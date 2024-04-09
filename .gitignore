@@ -84,4 +84,4 @@ migrate_working_dir/
 **/ios/Runner/GeneratedPluginRegistrant.*
 
 # Exceptions to above rules.
-!/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
+!/packages/flutter_tools/test/data/dart_dependencies_test/**/.packagesgit remote add origin <repository-url>
