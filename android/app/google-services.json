@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "137798276523",
+    "project_id": "deescalateapp-12db3",
+    "storage_bucket": "deescalateapp-12db3.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:137798276523:android:6c30a9aaa47703f1be6eee",
+        "android_client_info": {
+          "package_name": "com.example.new_deescalate"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDtX895NRQGl6vuaKqFjXiyRKCZaR7FpTc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
