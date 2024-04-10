@@ -83,5 +83,7 @@ migrate_working_dir/
 **/ios/ServiceDefinitions.json
 **/ios/Runner/GeneratedPluginRegistrant.*
 
+.env
+env.g.dart
 # Exceptions to above rules.
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packagesgit remote add origin <repository-url>
