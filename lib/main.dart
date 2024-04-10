@@ -4,11 +4,10 @@ import 'firebase_options.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart' as dotenv;
 import 'package:envied/envied.dart';
 import 'env/env.dart';
-
+import 'package:dart_openai/dart_openai.dart' as OpenAI;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  OpenAI.apiKey = Env.apiKey;
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
