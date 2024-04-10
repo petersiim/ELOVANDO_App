@@ -5,10 +5,51 @@ import 'package:flutter_dotenv/flutter_dotenv.dart' as dotenv;
 import 'package:envied/envied.dart';
 import 'env/env.dart';
 import 'package:dart_openai/dart_openai.dart' as openai;
+import 'dart:developer';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   openai.OpenAI.apiKey = Env.apiKey; // Initializes the package with that API key, all methods now are ready for use.
+
+  // the system message that will be sent to the request.
+  final systemMessage = openai.OpenAIChatCompletionChoiceMessageModel(
+    content: [
+      openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
+        "return any message you are given as JSON.",
+      ),
+    ],
+    role: openai.OpenAIChatMessageRole.assistant,
+  );
+
+  // the user message that will be sent to the request.
+  final userMessage = openai.OpenAIChatCompletionChoiceMessageModel(
+    content: [
+      openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
+        "Hello, I am a chatbot created by OpenAI. How are you today?",
+      ),
+    ],
+    role: openai.OpenAIChatMessageRole.user,
+  );
+
+  // all messages to be sent.
+  final requestMessages = [
+    systemMessage,
+    userMessage,
+  ];
+
+  // the actual request.
+  openai.OpenAIChatCompletionModel chatCompletion = await openai.OpenAI.instance.chat.create(
+    model: "gpt-3.5-turbo-1106",
+    responseFormat: {"type": "json_object"},
+    seed: 6,
+    messages: requestMessages,
+    temperature: 0.2,
+    maxTokens: 50,
+  );
+
+log('GPT-3 Response: ${chatCompletion.choices.first.message}'); // Logs the generated text
+
+
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
