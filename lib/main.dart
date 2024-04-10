@@ -5,14 +5,52 @@ import 'package:flutter_dotenv/flutter_dotenv.dart' as dotenv;
 import 'package:envied/envied.dart';
 import 'env/env.dart';
 import 'package:dart_openai/dart_openai.dart' as openai;
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:logging/logging.dart';
+
+final Logger _logger_ = Logger('MyAppLogger');
 
 void main() async {
+  Logger.root.level = Level.ALL; // Set this level to control which log messages to show
+  Logger.root.onRecord.listen((record) {
+    print('${record.level.name}: ${record.time}: ${record.message}');
+  });
+
   WidgetsFlutterBinding.ensureInitialized();
-  openai.OpenAI.apiKey = Env.apiKey; // Initializes the package with that API key, all methods now are ready for use.
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  var headers = {
+    'Authorization': 'Bearer ${Env.apiKey}',
+    'Content-Type': 'application/json',
+  };
+  var body = jsonEncode({
+    'model': 'gpt-4',
+    'messages': [
+      {'role': 'system', 'content': 'You are a helpful assistant.'},
+      {'role': 'user', 'content': 'Who won the world series in 2020?'},
+    ],
+  });
+
+  var response = await http.post(
+    Uri.parse('https://api.openai.com/v1/chat/completions'),
+    headers: headers,
+    body: body,
+  );
+
+  var responseData = jsonDecode(response.body);
+  if (responseData != null &&
+    responseData['choices'] != null &&
+    responseData['choices'].isNotEmpty &&
+    responseData['choices'][0]['message'] != null &&
+    responseData['choices'][0]['message']['content'] != null) {
+  _logger_.info(responseData['choices'][0]['message']['content']);
+  } else {
+  _logger_.warning('Unexpected response format');
+  _logger_.warning('Response data: $responseData');
+  }   
   runApp(const MyApp());
 }
 
@@ -65,10 +103,13 @@ class MyHomePage extends StatefulWidget {
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
+
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
-  final TextEditingController _controller = TextEditingController(); // Controller for the TextField
+  final TextEditingController _controller =
+      TextEditingController(); // Controller for the TextField
   String _userInput = ""; // Variable to store the user's input
+  String _response = ""; // Variable to store the response from the OpenAI API
 
   void _incrementCounter() {
     setState(() {
@@ -76,53 +117,76 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _updateUserInput() {
+  void _updateUserInput() async {
     setState(() {
-      _userInput = _controller.text; // Update _userInput with the text from the TextField
+      _userInput = _controller
+          .text; // Update _userInput with the text from the TextField
     });
+
+    var headers = {
+      'Authorization': 'Bearer ${Env.apiKey}',
+      'Content-Type': 'application/json',
+    };
+
+    var body = jsonEncode({
+      'model': 'gpt-3',
+      'messages': [
+        {'role': 'system', 'content': 'You are a helpful assistant.'},
+        {'role': 'user', 'content': _userInput},
+      ],
+    });
+
+    var response = await http.post(
+      Uri.parse('https://api.openai.com/v1/chat/completions'),
+      headers: headers,
+      body: body,
+    );
+
+    var responseData = jsonDecode(response.body);
+
+    if (responseData != null &&
+        responseData['choices'] != null &&
+        responseData['choices'].isNotEmpty &&
+        responseData['choices'][0]['message'] != null &&
+        responseData['choices'][0]['message']['content'] != null) {
+      setState(() {
+        _response = responseData['choices'][0]['message']['content'];
+      });
+    } else {
+      _logger_.log(Level.WARNING, 'Unexpected response format');    }
   }
 
-  @override
+  @overrider
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
       ),
-      body: Center(
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: TextField(
-                controller: _controller,
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: 'Wie läuft es so in deiner Beziehung?', // Label for the TextField
-                ),
+            TextField(
+              controller: _controller,
+              decoration: InputDecoration(
+                labelText: 'Enter your question',
               ),
             ),
-            TextButton(
-              onPressed: _updateUserInput, // Calls the _updateUserInput function when pressed
-              child: const Text('Ratschlag'),
+            SizedBox(height: 16.0), // Add some spacing
+            ElevatedButton(
+              onPressed: _updateUserInput,
+              child: Text('Rat'),
             ),
-            if (_userInput.isNotEmpty) // Only display this Text widget if _userInput is not empty
+            SizedBox(height: 16.0), // Add some spacing
+            if (_userInput
+                .isNotEmpty) // Only display this Text widget if _userInput is not empty
               Text('Du sagtest: $_userInput'),
+            if (_response
+                .isNotEmpty) // Only display this Text widget if _response is not empty
+              Text('Die Antwort ist: $_response'),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
       ),
     );
   }
