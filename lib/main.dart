@@ -59,14 +59,20 @@ class MyHomePage extends StatefulWidget {
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
-
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
   final TextEditingController _controller = TextEditingController(); // Controller for the TextField
+  String _userInput = ""; // Variable to store the user's input
 
   void _incrementCounter() {
     setState(() {
       _counter++;
+    });
+  }
+
+  void _updateUserInput() {
+    setState(() {
+      _userInput = _controller.text; // Update _userInput with the text from the TextField
     });
   }
 
@@ -98,6 +104,12 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ),
             ),
+            TextButton(
+              onPressed: _updateUserInput, // Calls the _updateUserInput function when pressed
+              child: const Text('Ratschlag'),
+            ),
+            if (_userInput.isNotEmpty) // Only display this Text widget if _userInput is not empty
+              Text('Du sagtest: $_userInput'),
           ],
         ),
       ),
