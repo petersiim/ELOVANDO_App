@@ -15,7 +15,7 @@ void main() async {
   final systemMessage = openai.OpenAIChatCompletionChoiceMessageModel(
     content: [
       openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
-        "return any message you are given as JSON.",
+        "you are a helpfull assistant for my users, return answers as JSON",
       ),
     ],
     role: openai.OpenAIChatMessageRole.assistant,
@@ -25,7 +25,7 @@ void main() async {
   final userMessage = openai.OpenAIChatCompletionChoiceMessageModel(
     content: [
       openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
-        "Hello, I am a chatbot created by OpenAI. How are you today?",
+        "Whats 1 + 1?",
       ),
     ],
     role: openai.OpenAIChatMessageRole.user,
@@ -47,8 +47,8 @@ void main() async {
     maxTokens: 50,
   );
 
-log('GPT-3 Response: ${chatCompletion.choices.first.message}'); // Logs the generated text
-
+  print('GPT-3 Response: ${chatCompletion.choices.first.message}'); // Logs the generated text
+  print('test');
 
 
   await Firebase.initializeApp(
