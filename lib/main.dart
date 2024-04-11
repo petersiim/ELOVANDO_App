@@ -59,41 +59,53 @@ class _MyHomePageState extends State<MyHomePage> {
   ];
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: <Widget>[
-            Text(therapistMessage),
-            SizedBox(height: 20),
-            TextField(
-              controller: clientController,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Your response',
-              ),
-            ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () async {
-                String clientMessage = clientController.text;
-                setState(() {
-                  therapistMessage = "Therapist: ...";
-                });
-                therapistMessage = await sendMessage(clientMessage);
-                setState(() {});
-              },
-              child: Text('Send'),
-            ),
-          ],
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(
+      title: Text(widget.title),
+    ),
+    body: Column(
+      children: <Widget>[
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(therapistMessage),
+          ),
         ),
-      ),
-    );
-  }
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                TextField(
+                  controller: clientController,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Your response',
+                  ),
+                ),
+                SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () async {
+                    String clientMessage = clientController.text;
+                    setState(() {
+                      therapistMessage = "Therapist: ...";
+                    });
+                    therapistMessage = await sendMessage(clientMessage);
+                    setState(() {});
+                  },
+                  child: Text('Send'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
   Future<String> sendMessage(String message) async {
     // Add the user's message to the conversation history
