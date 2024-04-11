@@ -15,7 +15,7 @@ void main() async {
   final systemMessage = openai.OpenAIChatCompletionChoiceMessageModel(
     content: [
       openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
-        "you are a helpfull assistant for my users, return answers as JSON",
+        "be transparent",
       ),
     ],
     role: openai.OpenAIChatMessageRole.assistant,
@@ -25,7 +25,7 @@ void main() async {
   final userMessage = openai.OpenAIChatCompletionChoiceMessageModel(
     content: [
       openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
-        "Whats 1 + 1?",
+        "where is you training data cut off"
       ),
     ],
     role: openai.OpenAIChatMessageRole.user,
@@ -39,15 +39,15 @@ void main() async {
 
   // the actual request.
   openai.OpenAIChatCompletionModel chatCompletion = await openai.OpenAI.instance.chat.create(
-    model: "gpt-3.5-turbo-1106",
-    responseFormat: {"type": "json_object"},
+    model: "gpt-4",
+    responseFormat: {"type": "text"},
     seed: 6,
     messages: requestMessages,
     temperature: 0.2,
-    maxTokens: 50,
+    maxTokens: 500,
   );
 
-  print('GPT-3 Response: ${chatCompletion.choices.first.message}'); // Logs the generated text
+  print('GPT Response: ${chatCompletion.choices.first.message}'); // Logs the generated text
   print('test');
 
 
