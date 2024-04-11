@@ -46,6 +46,18 @@ class _MyHomePageState extends State<MyHomePage> {
   String therapistMessage = "Therapist: How are you?";
   final TextEditingController clientController = TextEditingController();
 
+  // Add a list to store the conversation history
+  List<openai.OpenAIChatCompletionChoiceMessageModel> conversationHistory = [
+    openai.OpenAIChatCompletionChoiceMessageModel(
+      content: [
+        openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
+          "Be a therapist with 40 years of experience and up to date with modern research",
+        ),
+      ],
+      role: openai.OpenAIChatMessageRole.assistant,
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -67,55 +79,46 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             SizedBox(height: 20),
             ElevatedButton(
-                onPressed: () async {
-                  String clientMessage = clientController.text;
-                  setState(() {
-                    therapistMessage = "Therapist: ...";
-                  });
-                  therapistMessage = await sendMessage(clientMessage);
-                  setState(() {});
-                },
-                child: Text('Send'),
-                          ),
-            ],
+              onPressed: () async {
+                String clientMessage = clientController.text;
+                setState(() {
+                  therapistMessage = "Therapist: ...";
+                });
+                therapistMessage = await sendMessage(clientMessage);
+                setState(() {});
+              },
+              child: Text('Send'),
+            ),
+          ],
         ),
       ),
     );
   }
 
   Future<String> sendMessage(String message) async {
-    final systemMessage = openai.OpenAIChatCompletionChoiceMessageModel(
-      content: [
-        openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
-          "Be a therapist with 40 years of expirience and up to date with modern research",
-        ),
-      ],
-      role: openai.OpenAIChatMessageRole.assistant,
-    );
-
-    final userMessage = openai.OpenAIChatCompletionChoiceMessageModel(
-      content: [
-        openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(message),
-      ],
+    // Add the user's message to the conversation history
+    conversationHistory.add(openai.OpenAIChatCompletionChoiceMessageModel(
+      content: [openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(message)],
       role: openai.OpenAIChatMessageRole.user,
-    );
+    ));
 
-    final requestMessages = [
-      systemMessage,
-      userMessage,
-    ];
-
+    // Generate the therapist's response
     openai.OpenAIChatCompletionModel chatCompletion = await openai.OpenAI.instance.chat.create(
       model: "gpt-4",
       responseFormat: {"type": "text"},
       seed: 6,
-      messages: requestMessages,
+      messages: conversationHistory,
       temperature: 0.2,
       maxTokens: 100,
     );
-    String responseText = chatCompletion.choices.first.message.content?.first.text ?? 'No response received';
 
-    print(responseText);
-    return 'Therapist: ${responseText}';
+    // Extract the therapist's message and add it to the conversation history
+    String responseText = chatCompletion.choices.first.message.content?.first.text ?? 'No response received';
+    conversationHistory.add(openai.OpenAIChatCompletionChoiceMessageModel(
+      content: [openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(responseText)],
+      role: openai.OpenAIChatMessageRole.assistant,
+    ));
+
+    return 'Therapist: $responseText';
   }
 }
