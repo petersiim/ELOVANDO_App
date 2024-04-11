@@ -46,6 +46,7 @@ class _MyHomePageState extends State<MyHomePage> {
   String therapistMessage = "Therapist: How are you?";
   final TextEditingController clientController = TextEditingController();
 
+
   // Add a list to store the conversation history
   List<openai.OpenAIChatCompletionChoiceMessageModel> conversationHistory = [
   openai.OpenAIChatCompletionChoiceMessageModel(
@@ -82,7 +83,7 @@ class _MyHomePageState extends State<MyHomePage> {
   ),
 ];
 
-  @override
+ @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -92,7 +93,21 @@ class _MyHomePageState extends State<MyHomePage> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: <Widget>[
-            Text(therapistMessage),
+            Expanded(  // Add this
+              child: Scrollbar(
+                child: Container(
+                  // height: MediaQuery.of(context).size.height / 2,  // Remove this
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.black),  // Add a border
+                    color: Colors.white,  // Add a background color
+                  ),
+                  padding: EdgeInsets.all(8.0),  // Add padding
+                  child: SingleChildScrollView(
+                    child: Text(therapistMessage),  // Replace this with your widget that displays the therapist's message
+                  ),
+                ),
+              ),
+            ),
             SizedBox(height: 20),
             TextField(
               controller: clientController,
@@ -119,6 +134,7 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+
   Future<String> sendMessage(String message) async {
     // Add the user's message to the conversation history
     conversationHistory.add(openai.OpenAIChatCompletionChoiceMessageModel(
@@ -133,7 +149,7 @@ class _MyHomePageState extends State<MyHomePage> {
       seed: 6,
       messages: conversationHistory,
       temperature: 0.2,
-      maxTokens: 100,
+      maxTokens: 500,
     );
 
     // Extract the therapist's message and add it to the conversation history
