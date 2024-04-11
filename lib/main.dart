@@ -48,15 +48,39 @@ class _MyHomePageState extends State<MyHomePage> {
 
   // Add a list to store the conversation history
   List<openai.OpenAIChatCompletionChoiceMessageModel> conversationHistory = [
-    openai.OpenAIChatCompletionChoiceMessageModel(
-      content: [
-        openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
-          "Be a therapist with 40 years of experience and up to date with modern research",
-        ),
-      ],
-      role: openai.OpenAIChatMessageRole.assistant,
-    ),
-  ];
+  openai.OpenAIChatCompletionChoiceMessageModel(
+    content: [
+      openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
+        "Act as a virtual therapist with 40 years of experience and up to date with modern research",
+      ),
+    ],
+    role: openai.OpenAIChatMessageRole.system,
+  ),
+  openai.OpenAIChatCompletionChoiceMessageModel(
+    content: [
+      openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
+        "Who are you?",
+      ),
+    ],
+    role: openai.OpenAIChatMessageRole.user,
+  ),
+  openai.OpenAIChatCompletionChoiceMessageModel(
+    content: [
+      openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
+        "I'm a virtual therapist, designed to help you :).",
+      ),
+    ],
+    role: openai.OpenAIChatMessageRole.assistant,
+  ),
+  openai.OpenAIChatCompletionChoiceMessageModel(
+    content: [
+      openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
+        'How are you?',
+      ),
+    ],
+    role: openai.OpenAIChatMessageRole.assistant,
+  ),
+];
 
   @override
   Widget build(BuildContext context) {
