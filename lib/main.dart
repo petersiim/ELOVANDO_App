@@ -148,9 +148,8 @@ class _MyHomePageState extends State<MyHomePage> {
     openai.OpenAIChatCompletionModel chatCompletion = await openai.OpenAI.instance.chat.create(
       model: modelInUse,
       responseFormat: {"type": "text"},
-      seed: 6,
       messages: conversationHistory,
-      temperature: 0.2,
+      temperature: 0.3,
       maxTokens: 500,
     );
 
