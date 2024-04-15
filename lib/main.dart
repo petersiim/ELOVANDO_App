@@ -76,22 +76,6 @@ class _MyHomePageState extends State<MyHomePage> {
       openai.OpenAIChatCompletionChoiceMessageModel(
         content: [
           openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
-            "Who are you?",
-          ),
-        ],
-        role: openai.OpenAIChatMessageRole.user,
-      ),
-      openai.OpenAIChatCompletionChoiceMessageModel(
-        content: [
-          openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
-            "I'm a virtual therapist, designed to help you :).",
-          ),
-        ],
-        role: openai.OpenAIChatMessageRole.assistant,
-      ),
-      openai.OpenAIChatCompletionChoiceMessageModel(
-        content: [
-          openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
             'How are you?',
           ),
         ],
@@ -160,8 +144,9 @@ class _MyHomePageState extends State<MyHomePage> {
     ));
 
     // Generate the therapist's response
+    String modelInUse = "gpt-4-turbo";
     openai.OpenAIChatCompletionModel chatCompletion = await openai.OpenAI.instance.chat.create(
-      model: "gpt-3.5-turbo",
+      model: modelInUse,
       responseFormat: {"type": "text"},
       seed: 6,
       messages: conversationHistory,
@@ -176,6 +161,10 @@ class _MyHomePageState extends State<MyHomePage> {
       role: openai.OpenAIChatMessageRole.assistant,
     ));
 
+    for (var message in conversationHistory) {
+      print('Role: ${message.role}, Message: ${message.content?.first.text}');
+  }
+    print('Model used: $modelInUse');
     return 'Therapist: $responseText';
   }
 }
