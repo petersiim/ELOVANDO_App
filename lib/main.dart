@@ -6,6 +6,13 @@ import 'package:envied/envied.dart';
 import 'env/env.dart';
 import 'package:dart_openai/dart_openai.dart' as openai;
 import 'dart:developer';
+import 'package:flutter/services.dart';
+
+//READ the context stored in file 
+Future<String> readFile() async {
+  String text = await rootBundle.loadString('assets/ContextForModel.txt');
+  return text;
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,7 +30,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Deescalate App',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
@@ -46,42 +53,52 @@ class _MyHomePageState extends State<MyHomePage> {
   String therapistMessage = "Therapist: How are you?";
   final TextEditingController clientController = TextEditingController();
 
+  String contextForModelTxt = '';
+  List<openai.OpenAIChatCompletionChoiceMessageModel> conversationHistory = [];
 
-  // Add a list to store the conversation history
-  List<openai.OpenAIChatCompletionChoiceMessageModel> conversationHistory = [
-  openai.OpenAIChatCompletionChoiceMessageModel(
-    content: [
-      openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
-        "Act as a virtual therapist with 40 years of experience and up to date with modern research",
+  @override
+  void initState() {
+    super.initState();
+    initializeContextAndHistory();
+  }
+
+  Future<void> initializeContextAndHistory() async {
+    contextForModelTxt = await readFile();
+    conversationHistory = [
+      openai.OpenAIChatCompletionChoiceMessageModel(
+        content: [
+          openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
+            contextForModelTxt,
+          ),
+        ],
+        role: openai.OpenAIChatMessageRole.system,
       ),
-    ],
-    role: openai.OpenAIChatMessageRole.system,
-  ),
-  openai.OpenAIChatCompletionChoiceMessageModel(
-    content: [
-      openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
-        "Who are you?",
+      openai.OpenAIChatCompletionChoiceMessageModel(
+        content: [
+          openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
+            "Who are you?",
+          ),
+        ],
+        role: openai.OpenAIChatMessageRole.user,
       ),
-    ],
-    role: openai.OpenAIChatMessageRole.user,
-  ),
-  openai.OpenAIChatCompletionChoiceMessageModel(
-    content: [
-      openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
-        "I'm a virtual therapist, designed to help you :).",
+      openai.OpenAIChatCompletionChoiceMessageModel(
+        content: [
+          openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
+            "I'm a virtual therapist, designed to help you :).",
+          ),
+        ],
+        role: openai.OpenAIChatMessageRole.assistant,
       ),
-    ],
-    role: openai.OpenAIChatMessageRole.assistant,
-  ),
-  openai.OpenAIChatCompletionChoiceMessageModel(
-    content: [
-      openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
-        'How are you?',
+      openai.OpenAIChatCompletionChoiceMessageModel(
+        content: [
+          openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
+            'How are you?',
+          ),
+        ],
+        role: openai.OpenAIChatMessageRole.assistant,
       ),
-    ],
-    role: openai.OpenAIChatMessageRole.assistant,
-  ),
-];
+    ];
+  }
 
  @override
   Widget build(BuildContext context) {
