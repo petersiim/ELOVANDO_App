@@ -144,7 +144,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     // Generate the therapist's response
     openai.OpenAIChatCompletionModel chatCompletion = await openai.OpenAI.instance.chat.create(
-      model: "gpt-4",
+      model: "gpt-3.5-turbo",
       responseFormat: {"type": "text"},
       seed: 6,
       messages: conversationHistory,
