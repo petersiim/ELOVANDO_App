@@ -150,7 +150,7 @@ class _MyHomePageState extends State<MyHomePage> {
       responseFormat: {"type": "text"},
       messages: conversationHistory,
       temperature: 0.3,
-      maxTokens: 500,
+      maxTokens: 700,
     );
 
     // Extract the therapist's message and add it to the conversation history
