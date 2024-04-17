@@ -8,7 +8,6 @@ import 'package:dart_openai/dart_openai.dart' as openai;
 import 'dart:developer';
 import 'package:flutter/services.dart';
 
-//READ the context stored in file 
 Future<String> readFile() async {
   String text = await rootBundle.loadString('assets/ContextForModel.txt');
   return text;
@@ -84,7 +83,7 @@ class _MyHomePageState extends State<MyHomePage> {
     ];
   }
 
- @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -94,17 +93,16 @@ class _MyHomePageState extends State<MyHomePage> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: <Widget>[
-            Expanded(  // Add this
+            Expanded(
               child: Scrollbar(
                 child: Container(
-                  // height: MediaQuery.of(context).size.height / 2,  // Remove this
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.black),  // Add a border
-                    color: Colors.white,  // Add a background color
+                    border: Border.all(color: Colors.black),
+                    color: Colors.white,
                   ),
-                  padding: EdgeInsets.all(8.0),  // Add padding
+                  padding: EdgeInsets.all(8.0),
                   child: SingleChildScrollView(
-                    child: Text(therapistMessage),  // Replace this with your widget that displays the therapist's message
+                    child: Text(therapistMessage),
                   ),
                 ),
               ),
@@ -116,16 +114,14 @@ class _MyHomePageState extends State<MyHomePage> {
                 border: OutlineInputBorder(),
                 labelText: 'Your response',
               ),
+              onSubmitted: (text) async {
+                await sendMessageAndDisplay(text);
+              },
             ),
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
-                String clientMessage = clientController.text;
-                setState(() {
-                  therapistMessage = "Therapist: ...";
-                });
-                therapistMessage = await sendMessage(clientMessage);
-                setState(() {});
+                await sendMessageAndDisplay(clientController.text);
               },
               child: Text('Send'),
             ),
@@ -135,15 +131,21 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  Future<void> sendMessageAndDisplay(String message) async {
+    clientController.clear();
+    setState(() {
+      therapistMessage = "Therapist: ...";
+    });
+    therapistMessage = await sendMessage(message);
+    setState(() {});
+  }
 
   Future<String> sendMessage(String message) async {
-    // Add the user's message to the conversation history
     conversationHistory.add(openai.OpenAIChatCompletionChoiceMessageModel(
       content: [openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(message)],
       role: openai.OpenAIChatMessageRole.user,
     ));
 
-    // Generate the therapist's response
     String modelInUse = "gpt-4-turbo";
     openai.OpenAIChatCompletionModel chatCompletion = await openai.OpenAI.instance.chat.create(
       model: modelInUse,
@@ -153,17 +155,12 @@ class _MyHomePageState extends State<MyHomePage> {
       maxTokens: 700,
     );
 
-    // Extract the therapist's message and add it to the conversation history
     String responseText = chatCompletion.choices.first.message.content?.first.text ?? 'No response received';
     conversationHistory.add(openai.OpenAIChatCompletionChoiceMessageModel(
       content: [openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(responseText)],
       role: openai.OpenAIChatMessageRole.assistant,
     ));
 
-    for (var message in conversationHistory) {
-      print('Role: ${message.role}, Message: ${message.content?.first.text}');
-  }
-    print('Model used: $modelInUse');
     return 'Therapist: $responseText';
   }
 }
