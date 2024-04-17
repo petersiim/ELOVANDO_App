@@ -7,6 +7,7 @@ import 'env/env.dart';
 import 'package:dart_openai/dart_openai.dart' as openai;
 import 'dart:developer';
 import 'package:flutter/services.dart';
+import 'dart:async';
 
 Future<String> readFile() async {
   String text = await rootBundle.loadString('assets/ContextForModel.txt');
@@ -96,6 +97,7 @@ class _MyHomePageState extends State<MyHomePage> {
             Expanded(
               child: Scrollbar(
                 child: Container(
+                  width: double.infinity,
                   decoration: BoxDecoration(
                     border: Border.all(color: Colors.black),
                     color: Colors.white,
@@ -132,13 +134,20 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> sendMessageAndDisplay(String message) async {
-    clientController.clear();
+  clientController.clear();
+  int counter = 0;
+  Timer timer = Timer.periodic(Duration(milliseconds: 500), (Timer t) {
     setState(() {
-      therapistMessage = "Therapist: ...";
+      therapistMessage = 'Therapist: ' + '.' * (counter % 4);
+      counter++;
     });
-    therapistMessage = await sendMessage(message);
-    setState(() {});
-  }
+  });
+  String response = await sendMessage(message);
+  timer.cancel();
+  setState(() {
+    therapistMessage = response;
+  });
+}
 
   Future<String> sendMessage(String message) async {
     conversationHistory.add(openai.OpenAIChatCompletionChoiceMessageModel(
