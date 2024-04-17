@@ -35,7 +35,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Demo Deescalate App'),
+      home: const MyHomePage(title: 'Deescalate App'),
     );
   }
 }
@@ -48,9 +48,8 @@ class MyHomePage extends StatefulWidget {
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
-
 class _MyHomePageState extends State<MyHomePage> {
-  String therapistMessage = "Therapist: How are you?";
+  List<String> messages = ["Therapist: How are you?"];
   final TextEditingController clientController = TextEditingController();
 
   String contextForModelTxt = '';
@@ -103,8 +102,11 @@ class _MyHomePageState extends State<MyHomePage> {
                     color: Colors.white,
                   ),
                   padding: EdgeInsets.all(8.0),
-                  child: SingleChildScrollView(
-                    child: Text(therapistMessage),
+                  child: ListView.builder(
+                    itemCount: messages.length,
+                    itemBuilder: (context, index) {
+                      return Text(messages[index]);
+                    },
                   ),
                 ),
               ),
@@ -117,12 +119,14 @@ class _MyHomePageState extends State<MyHomePage> {
                 labelText: 'Your response',
               ),
               onSubmitted: (text) async {
+                messages.add('You: $text');
                 await sendMessageAndDisplay(text);
               },
             ),
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
+                messages.add('You: ${clientController.text}');
                 await sendMessageAndDisplay(clientController.text);
               },
               child: Text('Send'),
@@ -134,20 +138,26 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> sendMessageAndDisplay(String message) async {
-  clientController.clear();
-  int counter = 0;
-  Timer timer = Timer.periodic(Duration(milliseconds: 500), (Timer t) {
-    setState(() {
-      therapistMessage = 'Therapist: ' + '.' * (counter % 4);
-      counter++;
+    clientController.clear();
+    int counter = 0;
+    Timer timer = Timer.periodic(Duration(milliseconds: 500), (Timer t) {
+      setState(() {
+        if (messages.length > 0 && messages.last.startsWith('Therapist: ')) {
+          messages.removeLast();
+        }
+        messages.add('Therapist: ' + '.' * (counter % 4));
+        counter++;
+      });
     });
-  });
-  String response = await sendMessage(message);
-  timer.cancel();
-  setState(() {
-    therapistMessage = response;
-  });
-}
+    String response = await sendMessage(message);
+    timer.cancel();
+    setState(() {
+      messages.removeLast();
+      messages.add('$response');
+    });
+  }
+
+
 
   Future<String> sendMessage(String message) async {
     conversationHistory.add(openai.OpenAIChatCompletionChoiceMessageModel(
