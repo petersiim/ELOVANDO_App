@@ -95,19 +95,19 @@ class _MyHomePageState extends State<MyHomePage> {
           children: <Widget>[
             Expanded(
               child: Scrollbar(
-                child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.black),
-                    color: Colors.white,
-                  ),
-                  padding: EdgeInsets.all(8.0),
-                  child: ListView.builder(
-                    itemCount: messages.length,
-                    itemBuilder: (context, index) {
-                      return Text(messages[index]);
-                    },
-                  ),
+                child: ListView.builder(
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: messages[index].startsWith('You: ') ? Colors.grey[200] : Colors.white,
+                        border: Border.all(color: Colors.black),
+                      ),
+                      child: Text(messages[index]),
+                    );
+                  },
                 ),
               ),
             ),
@@ -137,6 +137,7 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  
   Future<void> sendMessageAndDisplay(String message) async {
     clientController.clear();
     int counter = 0;
@@ -156,7 +157,6 @@ class _MyHomePageState extends State<MyHomePage> {
       messages.add('$response');
     });
   }
-
 
 
   Future<String> sendMessage(String message) async {
