@@ -49,7 +49,7 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 class _MyHomePageState extends State<MyHomePage> {
-  List<String> messages = ["Therapist: How are you?"];
+  List<String> messages = ["Descalate: How are you?"];
   final TextEditingController clientController = TextEditingController();
 
   String contextForModelTxt = '';
@@ -143,10 +143,10 @@ class _MyHomePageState extends State<MyHomePage> {
     int counter = 0;
     Timer timer = Timer.periodic(Duration(milliseconds: 500), (Timer t) {
       setState(() {
-        if (messages.length > 0 && messages.last.startsWith('Therapist: ')) {
+        if (messages.length > 0 && messages.last.startsWith('Descalate: ')) {
           messages.removeLast();
         }
-        messages.add('Therapist: ' + '.' * (counter % 4));
+        messages.add('Descalate: ' + '.' * (counter % 4));
         counter++;
       });
     });
@@ -180,6 +180,6 @@ class _MyHomePageState extends State<MyHomePage> {
       role: openai.OpenAIChatMessageRole.assistant,
     ));
 
-    return 'Therapist: $responseText';
+    return 'Descalate: $responseText';
   }
 }
