@@ -66,15 +66,17 @@ class _LandingPageState extends State<LandingPage> {
               style: TextStyle(fontSize: 24),
             ),
             SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ChatPage(title: 'Chat Page', hasMicrophonePermission: hasMicrophonePermission)),
-                );
-              },
-              child: const Text('Go to Chat Page'),
-            ),
+                          ElevatedButton(
+                onPressed: () {
+                  
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ChatPage(title: 'Chat Page', hasMicrophonePermission: hasMicrophonePermission)),
+                    );
+                  
+                },
+                child: const Text('Go to Chat Page'),
+              ),
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {

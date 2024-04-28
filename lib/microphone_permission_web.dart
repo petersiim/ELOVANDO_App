@@ -5,14 +5,14 @@ import 'microphone_permission.dart';
 
 class MicrophonePermissionWeb implements MicrophonePermission {
   @override
-  Future<bool> requestMicrophonePermission() async {
-    try {
-      final constraints = js.JsObject.jsify({'audio': true, 'video': false});
-      final promise = js_util.callMethod(js.context['navigator']['mediaDevices'], 'getUserMedia', [constraints]);
-      await js_util.promiseToFuture(promise);
-      return true;
-    } catch (e) {
-      return false;
-    }
+Future<bool> requestMicrophonePermission() async {
+  try {
+    final constraints = {'audio': true, 'video': false};
+    await html.window.navigator.mediaDevices?.getUserMedia(constraints);
+    return true;
+  } catch (e) {
+    print('Error requesting microphone permission: $e');
+    return false;
   }
+}
 }
