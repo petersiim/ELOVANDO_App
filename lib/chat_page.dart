@@ -50,58 +50,71 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: <Widget>[
-            Expanded(
-              child: Scrollbar(
-                child: ListView.builder(
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: messages[index].startsWith('You: ') ? Colors.grey[200] : Colors.white,
-                        border: Border.all(color: Colors.black),
-                      ),
-                      child: Text(messages[index]),
-                    );
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(
+      title: Text(widget.title),
+    ),
+    body: Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: <Widget>[
+          Expanded(
+            child: Scrollbar(
+              child: ListView.builder(
+                itemCount: messages.length,
+                itemBuilder: (context, index) {
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: messages[index].startsWith('You: ') ? Colors.grey[200] : Colors.white,
+                      border: Border.all(color: Colors.black),
+                    ),
+                    child: Text(messages[index]),
+                  );
+                },
+              ),
+            ),
+          ),
+          SizedBox(height: 20),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: TextField(
+                  controller: clientController,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Your response',
+                  ),
+                  onSubmitted: (text) async {
+                    messages.add('You: $text');
+                    await sendMessageAndDisplay(text);
                   },
                 ),
               ),
-            ),
-            SizedBox(height: 20),
-            TextField(
-              controller: clientController,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Your response',
+              SizedBox(width: 10), // Add some space between the TextField and the FloatingActionButton
+              FloatingActionButton(
+                onPressed: () {
+                  // TODO: Add your audio recording functionality here
+                },
+                child: Icon(Icons.mic),
               ),
-              onSubmitted: (text) async {
-                messages.add('You: $text');
-                await sendMessageAndDisplay(text);
-              },
-            ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () async {
-                messages.add('You: ${clientController.text}');
-                await sendMessageAndDisplay(clientController.text);
-              },
-              child: Text('Send'),
-            ),
-          ],
-        ),
+            ],
+          ),
+          SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () async {
+              messages.add('You: ${clientController.text}');
+              await sendMessageAndDisplay(clientController.text);
+            },
+            child: Text('Send'),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Future<void> sendMessageAndDisplay(String message) async {
     clientController.clear();
