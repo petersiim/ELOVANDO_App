@@ -6,9 +6,10 @@ import 'dart:async';
 import 'main.dart';
 
 class ChatPage extends StatefulWidget {
-  const ChatPage({Key? key, required this.title}) : super(key: key);
+  const ChatPage({Key? key, required this.title, required this.hasMicrophonePermission}) : super(key: key);
 
   final String title;
+  final bool hasMicrophonePermission;
 
   @override
   State<ChatPage> createState() => _ChatPageState();
@@ -94,10 +95,11 @@ Widget build(BuildContext context) {
                 ),
               ),
               SizedBox(width: 10), // Add some space between the TextField and the FloatingActionButton
-              FloatingActionButton(
-                onPressed: () {
-                  // TODO: Add your audio recording functionality here
-                },
+              if (widget.hasMicrophonePermission)
+                  FloatingActionButton(
+                    onPressed: () {
+                      // TODO: Add your audio recording functionality here
+                    },
                 child: Icon(Icons.mic),
               ),
             ],
