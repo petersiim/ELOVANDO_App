@@ -17,11 +17,19 @@ Future<String> readFile() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  openai.OpenAI.apiKey = Env.apiKey;
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  // Load environment variables
+  await dotenv.load();
+  Envied.inject(Env());
+
+  openai.OpenAI.apiKey = Env.apiKey;
+  print(Env.apiKey);
+  
+
+  print('Starting Firebase initialization...');
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  print('Firebase initialized successfully');
+
   runApp(const MyApp());
 }
 

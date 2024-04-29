@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:dart_openai/dart_openai.dart' as openai;
-import 'dart:developer';
-import 'package:flutter/services.dart';
 import 'dart:async';
 import 'main.dart';
 import 'package:record/record.dart';
-import 'dart:io' as io;
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:http/http.dart' as http;
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({Key? key, required this.title, required this.hasMicrophonePermission}) : super(key: key);
@@ -43,27 +43,32 @@ class _ChatPageState extends State<ChatPage> {
     super.dispose();
   }
 
-  Future<void> stopRecording() async {
-  try {
-    await _recorder.stop();
+  Future<void> toggleRecording() async {
+    if (!_isRecording) {
+      bool isPermissionGranted = await _recorder.hasPermission();
+      if (!isPermissionGranted) {
+        // Handle permission denial
+        print('Microphone permission not granted');
+        return;
+      }
 
-    setState(() {
-      _isRecording = false;
-    });
+      await _recorder.start();
+      setState(() {
+        _isRecording = true;
+      });
+    } else {
+      final path = await _recorder.stop();
+      setState(() {
+        _isRecording = false;
+      });
 
-    // Upload the recording to Firebase Storage
-    final dir = io.Directory('tmp');
-    final path = dir.path + '/rec.mp3';
-    io.File file = io.File(path);
-    try {
-      await _storage.ref('recordings/${DateTime.now().toIso8601String()}.mp3').putFile(file);
-    } catch (e) {
-      print('Error uploading to Firebase Storage: $e');
+      if (path != null) {
+        Uri blobUri = Uri.parse(path);
+        http.Response response = await http.get(blobUri);
+        await _storage.ref('recordings/${DateTime.now().toIso8601String()}.mp3').putData(response.bodyBytes, SettableMetadata(contentType: 'audio/mp3'));
+      }
     }
-  } catch (e) {
-    print('Error stopping the recording: $e');
   }
-}
 
   Future<void> initializeContextAndHistory() async {
     contextForModelTxt = await readFile();
@@ -134,23 +139,9 @@ class _ChatPageState extends State<ChatPage> {
                 SizedBox(width: 10), // Add some space between the TextField and the FloatingActionButton
                 if (widget.hasMicrophonePermission)
                   FloatingActionButton(
-  onPressed: () async {
-    if (!_isRecording) {
-      final dir = io.Directory('tmp');
-      if (!await dir.exists()) {
-        await dir.create();
-      }
-      final path = dir.path + '/rec.mp3';
-      await _recorder.start(path: path);
-      setState(() {
-        _isRecording = true;
-      });
-    } else {
-      await stopRecording();
-    }
-  },
-  child: Icon(_isRecording ? Icons.stop : Icons.mic),
-),
+                    onPressed: toggleRecording,
+                    child: Icon(_isRecording ? Icons.stop : Icons.mic),
+                  ),
               ],
             ),
             SizedBox(height: 20),
