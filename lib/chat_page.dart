@@ -7,6 +7,8 @@ import 'main.dart';
 import 'package:record/record.dart';
 import 'dart:io' as io;
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({Key? key, required this.title, required this.hasMicrophonePermission}) : super(key: key);
@@ -51,16 +53,19 @@ class _ChatPageState extends State<ChatPage> {
       _isRecording = false;
     });
 
-    // Upload the recording to Firebase Storage
-    final dir = io.Directory('tmp');
-    final path = dir.path + '/rec.mp3';
+    // Save the recording locally
+    final dir = await getApplicationDocumentsDirectory();
+    final path = '${dir.path}/rec.mp3';
     io.File file = io.File(path);
-    try {
-      await _storage.ref('recordings/${DateTime.now().toIso8601String()}.mp3').putFile(file);
+
+    print('Recording saved at: $path');
+
+    // Play the recording
+    AudioPlayer audioPlayer = AudioPlayer();
+    await audioPlayer.setSource(DeviceFileSource(path));
+    await audioPlayer.resume();
+    
     } catch (e) {
-      print('Error uploading to Firebase Storage: $e');
-    }
-  } catch (e) {
     print('Error stopping the recording: $e');
   }
 }
@@ -136,11 +141,8 @@ class _ChatPageState extends State<ChatPage> {
                   FloatingActionButton(
   onPressed: () async {
     if (!_isRecording) {
-      final dir = io.Directory('tmp');
-      if (!await dir.exists()) {
-        await dir.create();
-      }
-      final path = dir.path + '/rec.mp3';
+      final dir = await getApplicationDocumentsDirectory();
+      final path = '${dir.path}/rec.mp3';
       await _recorder.start(path: path);
       setState(() {
         _isRecording = true;
@@ -166,6 +168,8 @@ class _ChatPageState extends State<ChatPage> {
       ),
     );
   }
+
+  
 
   Future<void> sendMessageAndDisplay(String message) async {
     clientController.clear();

@@ -1,3 +1,4 @@
+/* use when running on web for permissions
 import 'dart:html' as html;
 import 'dart:js' as js;
 import 'dart:js_util' as js_util;
@@ -16,3 +17,4 @@ Future<bool> requestMicrophonePermission() async {
   }
 }
 }
+***/
