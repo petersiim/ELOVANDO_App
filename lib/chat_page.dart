@@ -27,6 +27,7 @@ class _ChatPageState extends State<ChatPage> {
   final TextEditingController clientController = TextEditingController();
 
   bool _isTranscribing = false;
+  bool _isSpeechEnabled = false; // Add this line
 
   late Record _recorder;
   bool _isRecording = false;
@@ -99,7 +100,7 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Future<void> initializeContextAndHistory() async {
-    contextForModelTxt = await readFile();
+    contextForModelTxt = await readFile('assets/ContextForModel.txt');
     conversationHistory = [
       openai.OpenAIChatCompletionChoiceMessageModel(
         content: [
@@ -125,6 +126,17 @@ class _ChatPageState extends State<ChatPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
+        actions: <Widget>[
+          Text("TTS?"),
+          Switch(
+            value: _isSpeechEnabled,
+            onChanged: (value) {
+              setState(() {
+                _isSpeechEnabled = value;
+              });
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -229,8 +241,24 @@ class _ChatPageState extends State<ChatPage> {
     String response = await sendMessage(message);
     setState(() {
       messages.removeLast(); // Remove the loading message
-      messages.add(response); // Add the actual response
+      messages.add('Descalate: $response'); // Add the actual response
     });
+    if (_isSpeechEnabled) {
+      // Generate speech from the response text
+      io.File speech = await openai.OpenAI.instance.audio.createSpeech(
+        model: "tts-1",
+        input: response,
+        voice: "nova",
+        responseFormat: openai.OpenAIAudioSpeechResponseFormat.mp3,
+        outputDirectory: await getApplicationDocumentsDirectory(),
+        outputFileName: "response",
+      );
+
+      // Play the speech
+      AudioPlayer audioPlayer = AudioPlayer();
+      await audioPlayer.setSource(DeviceFileSource(speech.path));
+      await audioPlayer.resume();
+    }
   }
 
   Future<String> sendMessage(String message) async {
@@ -248,7 +276,7 @@ class _ChatPageState extends State<ChatPage> {
       responseFormat: {"type": "text"},
       messages: conversationHistory,
       temperature: 0.3,
-      maxTokens: 700,
+      maxTokens: 400,
     );
 
     String responseText =
@@ -262,6 +290,6 @@ class _ChatPageState extends State<ChatPage> {
       role: openai.OpenAIChatMessageRole.assistant,
     ));
 
-    return 'Descalate: $responseText';
+    return responseText;
   }
 }

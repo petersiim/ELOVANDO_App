@@ -10,8 +10,8 @@ import 'package:flutter/services.dart';
 import 'dart:async';
 import 'landing_page.dart'; // Import the LandingPage widget
 
-Future<String> readFile() async {
-  String text = await rootBundle.loadString('assets/ContextForModel.txt');
+Future<String> readFile(String path) async {
+  String text = await rootBundle.loadString(path);
   return text;
 }
 
