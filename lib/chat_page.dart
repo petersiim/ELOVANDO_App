@@ -32,6 +32,16 @@ class _ChatPageState extends State<ChatPage> {
   String contextForModelTxt = '';
   List<openai.OpenAIChatCompletionChoiceMessageModel> conversationHistory = [];
 
+  Future<String> transcribeAudio(String filePath) async {
+    openai.OpenAIAudioModel transcription = await openai.OpenAI.instance.audio.createTranscription(
+      file: io.File(filePath),
+      model: "whisper-1",
+      responseFormat: openai.OpenAIAudioResponseFormat.json,
+    );
+
+    return transcription.text;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -56,9 +66,13 @@ class _ChatPageState extends State<ChatPage> {
     // Save the recording locally
     final dir = await getApplicationDocumentsDirectory();
     final path = '${dir.path}/rec.mp3';
-    io.File file = io.File(path);
 
     print('Recording saved at: $path');
+
+    // Transcribe the audio
+    String transcription = await transcribeAudio(path);
+    print('Transcription: $transcription');
+
 
     // Play the recording
     AudioPlayer audioPlayer = AudioPlayer();

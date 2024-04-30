@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 
 MicrophonePermission createMicrophonePermission() {
   /*if (kIsWeb) {
-    return Null;//MicrophonePermissionWeb();
+    return MicrophonePermissionWeb();
   } else {
     */
     return MicrophonePermissionNative();
