@@ -57,6 +57,7 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
 
       // Transcribe audio
       String transcription = await transcribeAudio(filePath ?? '');
+      print(transcription);
       if (person == 'Person A') {
         controllerA.text = transcription;
       } else if (person == 'Person B') {
@@ -97,6 +98,12 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
               : Icons.mic),
           onPressed: () => startStopRecording(person),
         ),
+        ElevatedButton(
+          onPressed: () {
+            print('$label: ${controller.text}');
+          },
+          child: const Text('Send'),
+        ),
       ],
     );
   }
@@ -112,18 +119,10 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              buildTextInput('Wie geht es dir in deiner Beziehung? (Person A)',
+              buildTextInput('Input (Person A)',
                   controllerA, 'Person A'),
-              buildTextInput('Wie geht es dir in deiner Beziehung? (Person B)',
+              buildTextInput('Input',
                   controllerB, 'Person B'),
-              ElevatedButton(
-                onPressed: () {
-                  // Logic to handle send
-                  print('Input von Person A: ${controllerA.text}');
-                  print('Input von Person B: ${controllerB.text}');
-                },
-                child: const Text('Send'),
-              ),
               const SizedBox(height: 20),
               // Add the new button here
               ElevatedButton(
@@ -137,16 +136,6 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
                   'Feedback (Person A)', feedbackControllerA, 'Feedback A'),
               buildTextInput(
                   'Feedback (Person B)', feedbackControllerB, 'Feedback B'),
-              ElevatedButton(
-                onPressed: () {
-                  // Logic to handle send
-                  print(
-                      'Feedback von Person A zur Love Session: ${feedbackControllerA.text}');
-                  print(
-                      'Feedback von Person B zur Love Session: ${feedbackControllerB.text}');
-                },
-                child: const Text('Send Feedback'),
-              ),
             ],
           ),
         ),
