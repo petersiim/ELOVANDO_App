@@ -31,6 +31,7 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
   void initState() {
     super.initState();
     _recorder = Record();
+    initializeContextAndHistory();
   }
 
   @override
@@ -99,8 +100,10 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
           onPressed: () => startStopRecording(person),
         ),
         ElevatedButton(
-          onPressed: () {
+          onPressed: () async {
             print('$label: ${controller.text}');
+            String response = await sendMessage(controller.text);
+            print('Response: $response');
           },
           child: const Text('Send'),
         ),
@@ -119,10 +122,8 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              buildTextInput('Input (Person A)',
-                  controllerA, 'Person A'),
-              buildTextInput('Input',
-                  controllerB, 'Person B'),
+              buildTextInput('Input (Person A)', controllerA, 'Person A'),
+              buildTextInput('Input (Person B)', controllerB, 'Person B'),
               const SizedBox(height: 20),
               // Add the new button here
               ElevatedButton(
@@ -158,7 +159,7 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
       responseFormat: {"type": "text"},
       messages: conversationHistory,
       temperature: 0.3,
-      maxTokens: 400,
+      maxTokens: 700,
     );
 
     String responseText =
@@ -171,7 +172,7 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
       ],
       role: openai.OpenAIChatMessageRole.assistant,
     ));
-
+    print(conversationHistory);
     return responseText;
   }
 

@@ -289,7 +289,7 @@ class _ChatPageState extends State<ChatPage> {
       ],
       role: openai.OpenAIChatMessageRole.assistant,
     ));
-
+    print(conversationHistory);
     return responseText;
   }
 }
