@@ -44,7 +44,7 @@ dependencies:
   record: ^4.4.4
   path_provider: ^2.0.8
   audioplayers: ^6.0.0
-  
+  path: ^1.9.0
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -80,7 +80,8 @@ flutter:
 
   assets:
     - assets/ContextForModel.txt
-    - assets\ContextForLoveSessionModel.txt
+    - assets/ContextForLoveSessionModel.txt
+    - assets/history_chat.txt
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

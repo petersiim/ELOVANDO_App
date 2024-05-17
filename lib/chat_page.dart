@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:dart_openai/dart_openai.dart' as openai;
-import 'dart:developer';
-import 'package:flutter/services.dart';
 import 'dart:async';
-import 'main.dart';
 import 'package:record/record.dart';
 import 'dart:io' as io;
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:path/path.dart' as p;
+import 'session_manager.dart';
 
 class ChatPage extends StatefulWidget {
-  const ChatPage(
-      {Key? key, required this.title, required this.hasMicrophonePermission})
+  const ChatPage({Key? key, required this.title, required this.hasMicrophonePermission})
       : super(key: key);
 
   final String title;
@@ -27,38 +25,33 @@ class _ChatPageState extends State<ChatPage> {
   final TextEditingController clientController = TextEditingController();
 
   bool _isTranscribing = false;
-  bool _isSpeechEnabled = false; // Add this line
-
+  bool _isSpeechEnabled = false;
+  late Timer _loadingTimer;
+  String _loadingText = "";
   late Record _recorder;
   bool _isRecording = false;
 
   final _storage = FirebaseStorage.instance;
 
-  String contextForModelTxt = '';
-  List<openai.OpenAIChatCompletionChoiceMessageModel> conversationHistory = [];
-
-  Future<String> transcribeAudio(String filePath) async {
-    openai.OpenAIAudioModel transcription =
-        await openai.OpenAI.instance.audio.createTranscription(
-      file: io.File(filePath),
-      model: "whisper-1",
-      responseFormat: openai.OpenAIAudioResponseFormat.json,
-    );
-
-    return transcription.text;
-  }
+  final SessionManager _sessionManager = SessionManager();
+  final String _sessionId = "1234";  // This can be dynamically generated for multiple users
 
   @override
   void initState() {
     super.initState();
     _recorder = Record();
-    initializeContextAndHistory();
+    _initializeSession();
   }
 
   @override
   void dispose() {
     _recorder.dispose();
+    _loadingTimer.cancel();
     super.dispose();
+  }
+
+  Future<void> _initializeSession() async {
+    await _sessionManager.initializeSession(_sessionId);
   }
 
   Future<void> stopRecording() async {
@@ -77,7 +70,7 @@ class _ChatPageState extends State<ChatPage> {
 
       // Transcribe the audio
       setState(() {
-        _isTranscribing = true; // Set the flag to true
+        _isTranscribing = true;
       });
 
       String transcription = await transcribeAudio(path);
@@ -85,9 +78,8 @@ class _ChatPageState extends State<ChatPage> {
 
       // End transcribing the audio
       setState(() {
-        _isTranscribing = false; // Set the flag back to false
-        clientController.text =
-            transcription; // Set the transcribed text to the TextField
+        _isTranscribing = false;
+        clientController.text = transcription;
       });
 
       // Play the recording
@@ -99,26 +91,14 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  Future<void> initializeContextAndHistory() async {
-    contextForModelTxt = await readFile('assets/ContextForModel.txt');
-    conversationHistory = [
-      openai.OpenAIChatCompletionChoiceMessageModel(
-        content: [
-          openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
-            contextForModelTxt,
-          ),
-        ],
-        role: openai.OpenAIChatMessageRole.system,
-      ),
-      openai.OpenAIChatCompletionChoiceMessageModel(
-        content: [
-          openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
-            'How are you?',
-          ),
-        ],
-        role: openai.OpenAIChatMessageRole.assistant,
-      ),
-    ];
+  Future<String> transcribeAudio(String filePath) async {
+    openai.OpenAIAudioModel transcription = await openai.OpenAI.instance.audio.createTranscription(
+      file: io.File(filePath),
+      model: "whisper-1",
+      responseFormat: openai.OpenAIAudioResponseFormat.json,
+    );
+
+    return transcription.text;
   }
 
   @override
@@ -183,14 +163,11 @@ class _ChatPageState extends State<ChatPage> {
                         Positioned(
                           top: 0,
                           bottom: 0,
-                          left:
-                              10, // Adjust this value to move the CircularProgressIndicator horizontally
+                          left: 10,
                           child: Center(
                             child: SizedBox(
-                              width:
-                                  20, // Adjust this value to change the width of the CircularProgressIndicator
-                              height:
-                                  20, // Adjust this value to change the height of the CircularProgressIndicator
+                              width: 20,
+                              height: 20,
                               child: CircularProgressIndicator(),
                             ),
                           ),
@@ -198,9 +175,7 @@ class _ChatPageState extends State<ChatPage> {
                     ],
                   ),
                 ),
-                SizedBox(
-                    width:
-                        10), // Add some space between the TextField and the FloatingActionButton
+                SizedBox(width: 10),
                 if (widget.hasMicrophonePermission)
                   FloatingActionButton(
                     onPressed: () async {
@@ -238,11 +213,19 @@ class _ChatPageState extends State<ChatPage> {
     setState(() {
       messages.add('Descalate: ...'); // Add a loading message
     });
+
+    _startLoadingIndicator();
+
+    _sessionManager.addUserMessage(_sessionId, message);
     String response = await sendMessage(message);
+
+    _stopLoadingIndicator();
+
     setState(() {
       messages.removeLast(); // Remove the loading message
       messages.add('Descalate: $response'); // Add the actual response
     });
+
     if (_isSpeechEnabled) {
       // Generate speech from the response text
       io.File speech = await openai.OpenAI.instance.audio.createSpeech(
@@ -261,35 +244,65 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
+  void _startLoadingIndicator() {
+    _loadingText = "";
+    _loadingTimer = Timer.periodic(Duration(milliseconds: 500), (timer) {
+      setState(() {
+        if (_loadingText.length == 3) {
+          _loadingText = "";
+        } else {
+          _loadingText += ".";
+        }
+        messages[messages.length - 1] = 'Descalate: $_loadingText';
+      });
+    });
+  }
+
+  void _stopLoadingIndicator() {
+    _loadingTimer.cancel();
+  }
+
   Future<String> sendMessage(String message) async {
-    conversationHistory.add(openai.OpenAIChatCompletionChoiceMessageModel(
-      content: [
-        openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(message)
-      ],
-      role: openai.OpenAIChatMessageRole.user,
-    ));
+    List<openai.OpenAIChatCompletionChoiceMessageModel> sessionHistory = _sessionManager.getSessionHistory(_sessionId);
+    print('Session History: $sessionHistory');
+    
+    if (sessionHistory.isEmpty) {
+      print('Session history is empty, initializing session again.');
+      await _initializeSession();
+      sessionHistory = _sessionManager.getSessionHistory(_sessionId);
+      print('Session History after initialization: $sessionHistory');
+    }
 
     String modelInUse = "gpt-4-turbo";
-    openai.OpenAIChatCompletionModel chatCompletion =
-        await openai.OpenAI.instance.chat.create(
-      model: modelInUse,
-      responseFormat: {"type": "text"},
-      messages: conversationHistory,
-      temperature: 0.3,
-      maxTokens: 400,
-    );
+    openai.OpenAIChatCompletionModel chatCompletion;
 
-    String responseText =
-        chatCompletion.choices.first.message.content?.first.text ??
-            'No response received';
-    conversationHistory.add(openai.OpenAIChatCompletionChoiceMessageModel(
-      content: [
-        openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
-            responseText)
-      ],
-      role: openai.OpenAIChatMessageRole.assistant,
-    ));
-    print(conversationHistory);
+    try {
+      chatCompletion = await openai.OpenAI.instance.chat.create(
+        model: modelInUse,
+        responseFormat: {"type": "text"},
+        messages: sessionHistory,
+        temperature: 0.3,
+        maxTokens: 400,
+      );
+    } catch (error) {
+      print('Error creating chat completion: $error');
+      return 'Error: $error';
+    }
+
+    String responseText = chatCompletion.choices.first.message.content?.first.text ?? 'No response received';
+    print('Response: $responseText');
+    _sessionManager.addAssistantMessage(_sessionId, responseText);
+
+    final dir = await getApplicationDocumentsDirectory();
+    final filePath = p.join(dir.path, 'history_chat.txt');
+    final file = io.File(filePath);
+
+    try {
+      await file.writeAsString(sessionHistory.toString());
+    } catch (error) {
+      print('Error writing session history to file: $error');
+    }
+
     return responseText;
   }
 }
