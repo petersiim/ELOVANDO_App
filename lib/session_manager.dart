@@ -1,4 +1,5 @@
 import 'package:dart_openai/dart_openai.dart' as openai;
+import 'package:flutter/services.dart' show rootBundle; // Import rootBundle
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
@@ -59,9 +60,6 @@ class SessionManager {
   }
 
   Future<String> _readFile(String filePath) async {
-    final directory = await getApplicationDocumentsDirectory();
-    final fullPath = p.join(directory.path, filePath); // Use the new prefix
-    final file = File(fullPath);
-    return await file.readAsString();
+    return await rootBundle.loadString(filePath); // Use rootBundle to load the file
   }
 }
