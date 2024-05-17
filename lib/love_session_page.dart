@@ -4,9 +4,10 @@ import 'package:dart_openai/dart_openai.dart' as openai;
 import 'package:path_provider/path_provider.dart';
 import 'dart:io' as io;
 import 'package:audioplayers/audioplayers.dart';
-import 'package:flutter/services.dart';
 import 'dart:async';
-import 'main.dart';
+import 'session_manager.dart';
+import 'package:path/path.dart' as p;
+
 
 class LoveSessionPage extends StatefulWidget {
   const LoveSessionPage({Key? key}) : super(key: key);
@@ -20,24 +21,34 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
   final TextEditingController controllerB = TextEditingController();
   final TextEditingController feedbackControllerA = TextEditingController();
   final TextEditingController feedbackControllerB = TextEditingController();
-  String contextForModelTxt = '';
-  List<openai.OpenAIChatCompletionChoiceMessageModel> conversationHistory = [];
-
   late Record _recorder;
   bool _isRecording = false;
   String _activeRecorder = '';
+  bool _isTranscribing = false;
+  String _loadingText = '';
+  late Timer _loadingTimer;
+
+  final SessionManager _sessionManager = SessionManager();
+  final String _sessionId =
+      "loveSession"; // Use a single session ID for the whole love session
 
   @override
   void initState() {
     super.initState();
     _recorder = Record();
-    initializeContextAndHistory();
+    initializeSession();
   }
 
   @override
   void dispose() {
     _recorder.dispose();
+    _loadingTimer.cancel();
     super.dispose();
+  }
+
+  Future<void> initializeSession() async {
+    await _sessionManager.initializeSession(
+        _sessionId, 'assets/ContextForLoveSessionModel.txt');
   }
 
   Future<void> startStopRecording(String person) async {
@@ -145,49 +156,52 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
   }
 
   Future<String> sendMessage(String message) async {
-    conversationHistory.add(openai.OpenAIChatCompletionChoiceMessageModel(
-      content: [
-        openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(message)
-      ],
-      role: openai.OpenAIChatMessageRole.user,
-    ));
+    _sessionManager.addUserMessage(_sessionId, message);
+    List<openai.OpenAIChatCompletionChoiceMessageModel> sessionHistory =
+        _sessionManager.getSessionHistory(_sessionId);
 
-    String modelInUse = "gpt-4-turbo";
-    openai.OpenAIChatCompletionModel chatCompletion =
-        await openai.OpenAI.instance.chat.create(
-      model: modelInUse,
-      responseFormat: {"type": "text"},
-      messages: conversationHistory,
-      temperature: 0.3,
-      maxTokens: 700,
-    );
+    print('Session History: $sessionHistory');
+
+    if (sessionHistory.isEmpty) {
+      print('Session history is empty, initializing session again.');
+      await _sessionManager.initializeSession(
+          _sessionId, 'assets/ContextForLoveSessionModel.txt');
+      sessionHistory = _sessionManager.getSessionHistory(_sessionId);
+      print('Session History after initialization: $sessionHistory');
+    }
+
+    String modelInUse = "gpt-4o";
+    openai.OpenAIChatCompletionModel chatCompletion;
+
+    try {
+      chatCompletion = await openai.OpenAI.instance.chat.create(
+        model: modelInUse,
+        responseFormat: {"type": "text"},
+        messages: sessionHistory,
+        temperature: 0.3,
+        maxTokens: 400,
+      );
+    } catch (error) {
+      print('Error creating chat completion: $error');
+      return 'Error: $error';
+    }
 
     String responseText =
         chatCompletion.choices.first.message.content?.first.text ??
             'No response received';
-    conversationHistory.add(openai.OpenAIChatCompletionChoiceMessageModel(
-      content: [
-        openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
-            responseText)
-      ],
-      role: openai.OpenAIChatMessageRole.assistant,
-    ));
-    print(conversationHistory);
-    return responseText;
-  }
+    print('Response: $responseText');
+    _sessionManager.addAssistantMessage(_sessionId, responseText);
 
-  Future<void> initializeContextAndHistory() async {
-    contextForModelTxt =
-        await readFile('assets/ContextForLoveSessionModel.txt');
-    conversationHistory = [
-      openai.OpenAIChatCompletionChoiceMessageModel(
-        content: [
-          openai.OpenAIChatCompletionChoiceMessageContentItemModel.text(
-            contextForModelTxt,
-          ),
-        ],
-        role: openai.OpenAIChatMessageRole.system,
-      ),
-    ];
+    final dir = await getApplicationDocumentsDirectory();
+    final filePath = p.join(dir.path, 'history_chat.txt');
+    final file = io.File(filePath);
+
+    try {
+      await file.writeAsString(sessionHistory.toString());
+    } catch (error) {
+      print('Error writing session history to file: $error');
+    }
+
+    return responseText;
   }
 }

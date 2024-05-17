@@ -51,7 +51,7 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Future<void> _initializeSession() async {
-    await _sessionManager.initializeSession(_sessionId);
+    await _sessionManager.initializeSession(_sessionId, "assets/ContextForModel.txt" );
   }
 
   Future<void> stopRecording() async {
@@ -273,7 +273,7 @@ class _ChatPageState extends State<ChatPage> {
       print('Session History after initialization: $sessionHistory');
     }
 
-    String modelInUse = "gpt-4-turbo";
+    String modelInUse = "gpt-4o";
     openai.OpenAIChatCompletionModel chatCompletion;
 
     try {

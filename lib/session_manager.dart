@@ -4,12 +4,12 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
 class SessionManager {
-  static const int _maxContextLength = 10; // Limit to the last 10 messages
+  static const int _maxContextLength =100; // Limit to the last 10 messages
   Map<String, List<openai.OpenAIChatCompletionChoiceMessageModel>> _sessions = {};
 
-  Future<void> initializeSession(String sessionId) async {
+  Future<void> initializeSession(String sessionId, String contextFilePath) async {
     if (!_sessions.containsKey(sessionId)) {
-      String contextForModelTxt = await _readFile('assets/ContextForModel.txt');
+      String contextForModelTxt = await _readFile(contextFilePath);
       _sessions[sessionId] = [
         openai.OpenAIChatCompletionChoiceMessageModel(
           content: [
