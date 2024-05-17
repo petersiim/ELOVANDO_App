@@ -1,10 +1,11 @@
 import 'package:dart_openai/dart_openai.dart' as openai;
+import 'package:flutter/services.dart' show rootBundle;
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
 class SessionManager {
-  static const int _maxContextLength =100; // Limit to the last 10 messages
+  static const int _maxContextLength = 10; // Limit to the last 10 messages
   Map<String, List<openai.OpenAIChatCompletionChoiceMessageModel>> _sessions = {};
 
   Future<void> initializeSession(String sessionId, String contextFilePath) async {
@@ -59,9 +60,6 @@ class SessionManager {
   }
 
   Future<String> _readFile(String filePath) async {
-    final directory = await getApplicationDocumentsDirectory();
-    final fullPath = p.join(directory.path, filePath); // Use the new prefix
-    final file = File(fullPath);
-    return await file.readAsString();
+    return await rootBundle.loadString(filePath); // Use rootBundle to load the file
   }
 }
