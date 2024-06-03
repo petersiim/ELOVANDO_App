@@ -1,4 +1,4 @@
-package com.example.new_deescalate
+package com.example.ELOVANDO_App
 
 import io.flutter.embedding.android.FlutterActivity
 
