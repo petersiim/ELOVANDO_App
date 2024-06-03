@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'onboarding_page.dart'; // Import the OnboardingPage
 
 class FirstPage extends StatefulWidget {
   @override
@@ -164,7 +165,23 @@ class _FirstPageState extends State<FirstPage> with TickerProviderStateMixin {
                     ),
                   ),
                 ),
-                // Bottom part with slide animation
+                // Gradient overlay with 20% opacity covering entire screen
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Color(0xFF22577A).withOpacity(0.2), // Top color with 20% opacity
+                          Color(0xFFF9AC36).withOpacity(0.2), // Bottom color with 20% opacity
+                        ],
+                        stops: [0.0, 1.0],
+                      ),
+                    ),
+                  ),
+                ),
+                // Bottom part with slide animation and button
                 Positioned(
                   bottom: 0,
                   left: 0,
@@ -239,11 +256,15 @@ class _FirstPageState extends State<FirstPage> with TickerProviderStateMixin {
                           ),
                         ),
                         Positioned(
-                          bottom: 38.0,
-                          right: 52.0,
+                          bottom: 40.0,
+                          right: 58.0,
                           child: GestureDetector(
                             onTap: () {
                               // Handle navigation action
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => OnboardingPage()),
+                              );
                             },
                             child: Container(
                               width: 50,
@@ -262,22 +283,6 @@ class _FirstPageState extends State<FirstPage> with TickerProviderStateMixin {
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                ),
-                // Gradient overlay with 20% opacity covering entire screen
-                Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Color(0xFF22577A).withOpacity(0.2), // Top color with 20% opacity
-                          Color(0xFFF9AC36).withOpacity(0.2), // Bottom color with 20% opacity
-                        ],
-                        stops: [0.0, 1.0],
-                      ),
                     ),
                   ),
                 ),
