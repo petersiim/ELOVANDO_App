@@ -1,4 +1,4 @@
-# new_deescalate
+# ELOVANDO - The Love App
 
 A new Flutter project.
 
