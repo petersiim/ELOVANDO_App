@@ -31,6 +31,7 @@ dependencies:
   flutter:
     sdk: flutter
   firebase_core: ^2.30.1
+  flutter_svg: ^2.0.10+1
   firebase_storage: ^11.7.4
   cloud_firestore: ^4.17.2
   envied: ^0.5.4
@@ -82,6 +83,8 @@ flutter:
     - assets/ContextForModel.txt
     - assets/ContextForLoveSessionModel.txt
     - assets/history_chat.txt
+    - assets/graphics/graphic_forest_landing_page.svg
+    - assets/graphics/test.svg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

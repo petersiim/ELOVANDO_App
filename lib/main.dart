@@ -9,6 +9,7 @@ import 'dart:developer';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'landing_page.dart'; // Import the LandingPage widget
+import 'first_page.dart'; // Import the FirstPage widget
 
 Future<String> readFile(String path) async {
   String text = await rootBundle.loadString(path);
@@ -36,7 +37,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: LandingPage(), // Use LandingPage as the home page
+      home: FirstPage(), // Use LandingPage as the home page
     );
   }
 }
