@@ -102,51 +102,59 @@ class _FirstPageState extends State<FirstPage> with SingleTickerProviderStateMix
                                 color: Color(0xFF414254), // Color #414254
                               ),
                             ),
-                            SizedBox(height: 16.0),
+                            SizedBox(height: 32.0),
                             Row(
-  children: <Widget>[
-    // Selected indicator
-    Container(
-      width: 30.0,
-      height: 10.0,
-      decoration: BoxDecoration(
-        color: Color(0xFF7D4666), // Selected color
-        borderRadius: BorderRadius.circular(6.0),
-      ),
-    ),
-    SizedBox(width: 4.0),
-    // Non-selected indicators
-    Row(
-      children: List.generate(3, (index) {
-        return Container(
-          margin: EdgeInsets.symmetric(horizontal: 2.0),
-          width: 10,
-          height: 10.0,
-          decoration: BoxDecoration(
-            color: Color(0xFF414254), // Non-selected color
-            shape: BoxShape.circle,
-          ),
-        );
-      }),
-    ),
-    Spacer(),
-  ],
-)
-
+                              children: <Widget>[
+                                // Selected indicator
+                                Container(
+                                  width: 30.0,
+                                  height: 10.0,
+                                  decoration: BoxDecoration(
+                                    color: Color(0xFF7D4666), // Selected color
+                                    borderRadius: BorderRadius.circular(6.0),
+                                  ),
+                                ),
+                                SizedBox(width: 4.0),
+                                // Non-selected indicators
+                                Row(
+                                  children: List.generate(3, (index) {
+                                    return Container(
+                                      margin: EdgeInsets.symmetric(horizontal: 2.0),
+                                      width: 10,
+                                      height: 10.0,
+                                      decoration: BoxDecoration(
+                                        color: Color(0xFF414254), // Non-selected color
+                                        shape: BoxShape.circle,
+                                      ),
+                                    );
+                                  }),
+                                ),
+                                Spacer(),
+                              ],
+                            ),
                           ],
                         ),
                       ),
                       Positioned(
-                        bottom: 16.0,
-                        right: 16.0,
+                        bottom: 38.0,
+                        right: 52.0,
                         child: GestureDetector(
                           onTap: () {
                             // Handle navigation action
                           },
-                          child: Icon(
-                            Icons.arrow_forward,
-                            size: 50,
-                            color: Color(0xFF414254), // Color #414254
+                          child: Container(
+                            width: 50,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Color(0xFF414254), // Correct color
+                            ),
+                            child: Center(
+                              child: Icon(
+                                Icons.arrow_forward,
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
                         ),
                       ),
