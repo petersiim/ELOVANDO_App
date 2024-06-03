@@ -85,6 +85,7 @@ flutter:
     - assets/history_chat.txt
     - assets\graphics\bg_forest.jpg
     - assets\graphics\logo_white.svg
+    - assets\graphics\freepik--Leaves.svg
     
     
   # An image asset can refer to one or more resolution-specific "variants", see
