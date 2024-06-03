@@ -11,20 +11,25 @@ class _FirstPageState extends State<FirstPage> with TickerProviderStateMixin {
   double _opacity = 0.0;
   late AnimationController _controller;
   late Animation<Offset> _slideAnimation;
-  late AnimationController _leavesController;
-  late Animation<Offset> _leavesAnimation;
 
-  bool _flipHorizontally = false;
-  double _rotationAngle = 0.0;
-  double _scaleFactor = 1.0;
+  final List<AnimationController> _leavesControllers = [];
+  final List<Animation<Offset>> _leavesAnimations = [];
+  final List<bool> _flipHorizontally = [];
+  final List<double> _rotationAngles = [];
+  final List<double> _scaleFactors = [];
+  final Random random = Random();
 
   @override
   void initState() {
     super.initState();
+    _initializeMainController();
+    _initializeLeavesControllers();
 
-    final random = Random();
-    _setRandomTransformations(random);
+    _controller.forward();
+    _startLeavesAnimations();
+  }
 
+  void _initializeMainController() {
     _controller = AnimationController(
       vsync: this,
       duration: Duration(seconds: 2),
@@ -43,42 +48,63 @@ class _FirstPageState extends State<FirstPage> with TickerProviderStateMixin {
         _opacity = _controller.value;
       });
     });
+  }
 
-    _controller.forward();
+  void _initializeLeavesControllers() {
+    for (int i = 0; i < 3; i++) {
+      final controller = AnimationController(
+        vsync: this,
+        duration: Duration(seconds: 5),
+      );
 
-    _leavesController = AnimationController(
-      vsync: this,
-      duration: Duration(seconds: 5),
-    )..addStatusListener((status) {
+      controller.addStatusListener((status) {
         if (status == AnimationStatus.completed) {
           setState(() {
-            _setRandomTransformations(random);
-            _leavesController.forward(from: 0);
+            _setRandomTransformations(i);
+            Future.delayed(Duration(seconds: random.nextInt(2)), () {
+              controller.forward(from: 0);
+            });
           });
         }
       });
 
-    _leavesAnimation = Tween<Offset>(
-      begin: Offset(1, 0),
-      end: Offset(-1, 0),
-    ).animate(CurvedAnimation(
-      parent: _leavesController,
-      curve: Curves.linear,
-    ));
+      _leavesControllers.add(controller);
+      _leavesAnimations.add(Tween<Offset>(
+        begin: Offset(1, 0),
+        end: Offset(-1, 0),
+      ).animate(CurvedAnimation(
+        parent: controller,
+        curve: Curves.linear,
+      )));
 
-    _leavesController.forward();
+      _setRandomTransformations(i);
+    }
   }
 
-  void _setRandomTransformations(Random random) {
-    _flipHorizontally = random.nextBool();
-    _rotationAngle = (random.nextDouble() - 0.5) * pi / 3; // Rotate between -60 to 60 degrees
-    _scaleFactor = 0.8 + random.nextDouble() * 0.4; // Scale between 0.8 and 1.2
+  void _setRandomTransformations(int index) {
+    if (_flipHorizontally.length <= index) {
+      _flipHorizontally.add(random.nextBool());
+      _rotationAngles.add((random.nextDouble() - 0.5) * pi / 3); // Rotate between -60 to 60 degrees
+      _scaleFactors.add(0.8 + random.nextDouble() * 0.4); // Scale between 0.8 and 1.2
+    } else {
+      _flipHorizontally[index] = random.nextBool();
+      _rotationAngles[index] = (random.nextDouble() - 0.5) * pi / 3;
+      _scaleFactors[index] = 0.8 + random.nextDouble() * 0.4;
+    }
+  }
+
+  void _startLeavesAnimations() {
+    for (int i = 0; i < _leavesControllers.length; i++) {
+      Future.delayed(Duration(milliseconds: random.nextInt(1000)), () {
+        _leavesControllers[i].forward();
+      });
+    }
   }
 
   @override
   void dispose() {
     _controller.dispose();
-    _leavesController.dispose();
+    _leavesControllers.forEach((controller) => controller.dispose());
     super.dispose();
   }
 
@@ -98,30 +124,31 @@ class _FirstPageState extends State<FirstPage> with TickerProviderStateMixin {
                   ),
                 ),
                 // Animated SVG leaves
-                Positioned(
-                  top: constraints.maxHeight * 0.05, // Position above the logo
-                  left: 0,
-                  right: 0,
-                  child: AnimatedBuilder(
-                    animation: _leavesController,
-                    builder: (context, child) {
-                      return Transform.translate(
-                        offset: _leavesAnimation.value * constraints.maxWidth,
-                        child: Transform(
-                          alignment: Alignment.center,
-                          transform: Matrix4.identity()
-                            ..scale(_flipHorizontally ? -_scaleFactor : _scaleFactor, _scaleFactor)
-                            ..rotateZ(_rotationAngle),
-                          child: SvgPicture.asset(
-                            'assets/graphics/freepik--Leaves.svg',
-                            width: constraints.maxWidth * 1, // Adjust size as needed
-                            height: constraints.maxHeight * 0.2, // Adjust size as needed
+                for (int i = 0; i < _leavesControllers.length; i++)
+                  Positioned(
+                    top: constraints.maxHeight * (0.05 + i * 0.1), // Different positions for different sets of leaves
+                    left: 0,
+                    right: 0,
+                    child: AnimatedBuilder(
+                      animation: _leavesControllers[i],
+                      builder: (context, child) {
+                        return Transform.translate(
+                          offset: _leavesAnimations[i].value * constraints.maxWidth,
+                          child: Transform(
+                            alignment: Alignment.center,
+                            transform: Matrix4.identity()
+                              ..scale(_flipHorizontally[i] ? -_scaleFactors[i] : _scaleFactors[i], _scaleFactors[i])
+                              ..rotateZ(_rotationAngles[i]),
+                            child: SvgPicture.asset(
+                              'assets/graphics/freepik--Leaves.svg',
+                              width: constraints.maxWidth * 1, // Adjust size as needed
+                              height: constraints.maxHeight * 0.2, // Adjust size as needed
+                            ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
-                ),
                 // Centered SVG logo with fade-in effect
                 Positioned(
                   top: constraints.maxHeight * 0.31, // Adjust the top position as needed
