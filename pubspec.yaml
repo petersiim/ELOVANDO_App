@@ -83,9 +83,12 @@ flutter:
     - assets/ContextForModel.txt
     - assets/ContextForLoveSessionModel.txt
     - assets/history_chat.txt
-    - assets/graphics/graphic_forest_landing_page.svg
-    - assets/graphics/test.svg
-
+    - assets\graphics\background_forest.svg
+    - assets\graphics\bg_forest.jpg
+    - assets\graphics\background.svg
+    - assets\graphics\layers.svg
+    - assets\graphics\plpl.svg
+    
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
 
