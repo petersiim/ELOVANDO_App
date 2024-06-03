@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -6,17 +7,27 @@ class FirstPage extends StatefulWidget {
   _FirstPageState createState() => _FirstPageState();
 }
 
-class _FirstPageState extends State<FirstPage> with SingleTickerProviderStateMixin {
+class _FirstPageState extends State<FirstPage> with TickerProviderStateMixin {
   double _opacity = 0.0;
   late AnimationController _controller;
   late Animation<Offset> _slideAnimation;
+  late AnimationController _leavesController;
+  late Animation<Offset> _leavesAnimation;
+
+  bool _flipHorizontally = false;
+  double _rotationAngle = 0.0;
+  double _scaleFactor = 1.0;
 
   @override
   void initState() {
     super.initState();
+
+    final random = Random();
+    _setRandomTransformations(random);
+
     _controller = AnimationController(
       vsync: this,
-      duration: Duration(seconds: 2), // Increase duration to 1.5 seconds
+      duration: Duration(seconds: 2),
     );
 
     _slideAnimation = Tween<Offset>(
@@ -34,11 +45,40 @@ class _FirstPageState extends State<FirstPage> with SingleTickerProviderStateMix
     });
 
     _controller.forward();
+
+    _leavesController = AnimationController(
+      vsync: this,
+      duration: Duration(seconds: 5),
+    )..addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          setState(() {
+            _setRandomTransformations(random);
+            _leavesController.forward(from: 0);
+          });
+        }
+      });
+
+    _leavesAnimation = Tween<Offset>(
+      begin: Offset(1, 0),
+      end: Offset(-1, 0),
+    ).animate(CurvedAnimation(
+      parent: _leavesController,
+      curve: Curves.linear,
+    ));
+
+    _leavesController.forward();
+  }
+
+  void _setRandomTransformations(Random random) {
+    _flipHorizontally = random.nextBool();
+    _rotationAngle = (random.nextDouble() - 0.5) * pi / 3; // Rotate between -60 to 60 degrees
+    _scaleFactor = 0.8 + random.nextDouble() * 0.4; // Scale between 0.8 and 1.2
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _leavesController.dispose();
     super.dispose();
   }
 
@@ -57,6 +97,31 @@ class _FirstPageState extends State<FirstPage> with SingleTickerProviderStateMix
                     fit: BoxFit.cover,
                   ),
                 ),
+                // Animated SVG leaves
+                Positioned(
+                  top: constraints.maxHeight * 0.05, // Position above the logo
+                  left: 0,
+                  right: 0,
+                  child: AnimatedBuilder(
+                    animation: _leavesController,
+                    builder: (context, child) {
+                      return Transform.translate(
+                        offset: _leavesAnimation.value * constraints.maxWidth,
+                        child: Transform(
+                          alignment: Alignment.center,
+                          transform: Matrix4.identity()
+                            ..scale(_flipHorizontally ? -_scaleFactor : _scaleFactor, _scaleFactor)
+                            ..rotateZ(_rotationAngle),
+                          child: SvgPicture.asset(
+                            'assets/graphics/freepik--Leaves.svg',
+                            width: constraints.maxWidth * 1, // Adjust size as needed
+                            height: constraints.maxHeight * 0.2, // Adjust size as needed
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
                 // Centered SVG logo with fade-in effect
                 Positioned(
                   top: constraints.maxHeight * 0.31, // Adjust the top position as needed
@@ -64,7 +129,7 @@ class _FirstPageState extends State<FirstPage> with SingleTickerProviderStateMix
                   right: 0,
                   child: AnimatedOpacity(
                     opacity: _opacity,
-                    duration: Duration(seconds: 2), // Match the opacity animation duration
+                    duration: Duration(seconds: 2),
                     child: SvgPicture.asset(
                       'assets/graphics/logo_white.svg',
                       width: constraints.maxWidth * 0.4, // Adjust size as needed
