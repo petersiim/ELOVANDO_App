@@ -89,7 +89,7 @@ class _FirstPageState extends State<FirstPage> with TickerProviderStateMixin {
     } else {
       _flipHorizontally[index] = random.nextBool();
       _rotationAngles[index] = (random.nextDouble() - 0.5) * pi / 3;
-      _scaleFactors[index] = 0.8 + random.nextDouble() * 0.4;
+      _scaleFactors[index] = 0.9 + random.nextDouble() * 0.5;
     }
   }
 
