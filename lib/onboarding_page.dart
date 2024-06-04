@@ -121,6 +121,13 @@ class _OnboardingPageState extends State<OnboardingPage> with TickerProviderStat
     });
   }
 
+  void skip() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => RegistrationPage()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -269,6 +276,25 @@ class _OnboardingPageState extends State<OnboardingPage> with TickerProviderStat
                       color: Colors.white,
                     ),
                   ],
+                ),
+              ),
+            ),
+          ),
+          // Skip Button
+          Positioned(
+            top: 74,
+            right: 34,
+            child: GestureDetector(
+              onTap: skip,
+              child: Text(
+                'Skip',
+                style: TextStyle(
+                  color: Color(0xFF414254),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w400,
+                  fontFamily: 'Inter',
+                  height: 1.41, // 24px line height / 17px font size
+                  letterSpacing: -0.5,
                 ),
               ),
             ),
