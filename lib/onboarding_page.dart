@@ -292,8 +292,8 @@ class _OnboardingPageState extends State<OnboardingPage> with TickerProviderStat
           ),
           // Skip Button
           Positioned(
-            top: 24,
-            right: 24,
+            top: 74,
+            right: 34,
             child: GestureDetector(
               onTap: skip,
               child: Text(
