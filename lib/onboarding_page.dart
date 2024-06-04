@@ -16,12 +16,12 @@ class OnboardingPage extends StatelessWidget {
           ),
           // Bottom SVG
           Positioned(
-            bottom: 0,
+            bottom: -18,
             left: 0,
             right: 0,
             child: SvgPicture.asset(
               'assets/graphics/onboarding_bg_bottom.svg',
-              fit: BoxFit.cover,
+              fit: BoxFit.contain,
             ),
           ),
           // Add your onboarding content here
