@@ -1,7 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-class OnboardingPage extends StatelessWidget {
+class OnboardingPage extends StatefulWidget {
+  @override
+  _OnboardingPageState createState() => _OnboardingPageState();
+}
+
+class _OnboardingPageState extends State<OnboardingPage> {
+  int currentIndex = 1; // Start at the second page
+
+  final List<String> icons = [
+    'assets/graphics/birds_icon.png',
+    'assets/graphics/holding-hands_icon.png',
+    'assets/graphics/ideas_wiss_an_icon.png',
+    'assets/graphics/therapy-chat-icon.png',
+    'assets/graphics/daten-shield-icon.png',
+    'assets/graphics/love-session-forest-icon.png',
+  ];
+
+  final List<String> bigTexts = [
+    'Mehr Zeit und\nRaum für eure Beziehung',
+    'Mehr Empathie\nund Wertschätzung',
+    'Wissenschaftlicher Ansatz',
+    'Kostenloser Therapeuten-Chat',
+    'Deine Daten\nin sicheren Händen',
+    'Fünf kostenlose\nLove-Sessions',
+  ];
+
+  final List<String> smallTexts = [
+    'Schafft euch ein fixes, aber flexibles Format für eure Beziehungspflege',
+    'Schafft ein neues Verständnis mit den personalsierten Descalate Love Sessions',
+    'Weniger Streit und eine glücklichere Beziehung durch die smarte, wissenschaftsbasierte Descalate-Methode.',
+    'Chatte mit unserem kostenlosen AI Paar-Therapeuten.',
+    'Wir stellen sicher, dass eure Beziehungsdaten sicher und verschlüsselt sind, sodass niemand darauf zugreifen kann.',
+    'Testet die Descalate Love-Sessions unverbindlich fünfmal und entscheidet euch erst dann für eines unserer Abo-Modelle.',
+  ];
+
+  void nextSet() {
+    setState(() {
+      currentIndex = (currentIndex + 1) % icons.length;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -24,23 +64,23 @@ class OnboardingPage extends StatelessWidget {
               fit: BoxFit.contain,
             ),
           ),
-          // Birds Icon
+          // Icon
           Positioned(
-            top: MediaQuery.of(context).size.height * 0.3, // Adjust as needed
+            top: MediaQuery.of(context).size.height * 0.25, // Adjusted up
             left: MediaQuery.of(context).size.width * 0.5 - 100, // Adjust as needed
             child: Image.asset(
-              'assets/graphics/birds_icon.png',
+              icons[currentIndex],
               width: 200, // Adjust width as needed
               height: 200, // Adjust height as needed
             ),
           ),
-          // Text Field
+          // Big Text
           Positioned(
-            top: MediaQuery.of(context).size.height * 0.5 + 25, // Adjust as needed
+            top: MediaQuery.of(context).size.height * 0.45 + 30, // Adjusted up
             width: 316, // specified width
             left: MediaQuery.of(context).size.width * 0.5 - 158, // Adjust as needed
             child: Text(
-              'Mehr Zeit und\nRaum für eure Beziehung',
+              bigTexts[currentIndex],
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 26,
@@ -49,13 +89,13 @@ class OnboardingPage extends StatelessWidget {
               ),
             ),
           ),
-          // Additional Text Field
+          // Small Text
           Positioned(
-            top: MediaQuery.of(context).size.height * 0.6 + 25, // Adjust as needed
+            top: MediaQuery.of(context).size.height * 0.55 + 30, // Adjusted up
             width: 313.3, // specified width
             left: MediaQuery.of(context).size.width * 0.5 - 156.65, // Adjust as needed
             child: Text(
-              'Schafft euch ein fixes, aber flexibles Format für eure Beziehungspflege',
+              smallTexts[currentIndex],
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 17,
@@ -65,46 +105,24 @@ class OnboardingPage extends StatelessWidget {
           ),
           // Navigation Indicator
           Positioned(
-            bottom: MediaQuery.of(context).size.height * 0.2 + 20, // Adjust as needed
+            bottom: MediaQuery.of(context).size.height * 0.25 -20, // Adjusted up
             left: 0,
             right: 0,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Navigation indicators with the second one selected
                 Row(
                   children: [
-                    Container(
-                      width: 10.0,
-                      height: 10.0,
-                      decoration: BoxDecoration(
-                        color: Color(0xFFDEDEDE), // Non-selected color
-                        shape: BoxShape.circle,
+                    for (int i = 0; i < icons.length; i++)
+                      Container(
+                        margin: EdgeInsets.symmetric(horizontal: 2.0),
+                        width: i == currentIndex ? 30.0 : 10.0,
+                        height: 10.0,
+                        decoration: BoxDecoration(
+                          color: i == currentIndex ? Color(0xFF7D4666) : Color(0xFFDEDEDE), // Selected and non-selected color
+                          borderRadius: i == currentIndex ? BorderRadius.circular(6.0) : BorderRadius.circular(5.0),
+                        ),
                       ),
-                    ),
-                    SizedBox(width: 4.0),
-                    Container(
-                      width: 30.0,
-                      height: 10.0,
-                      decoration: BoxDecoration(
-                        color: Color(0xFF7D4666), // Selected color
-                        borderRadius: BorderRadius.circular(6.0),
-                      ),
-                    ),
-                    SizedBox(width: 4.0),
-                    Row(
-                      children: List.generate(5, (index) {
-                        return Container(
-                          margin: EdgeInsets.symmetric(horizontal: 2.0),
-                          width: 10,
-                          height: 10.0,
-                          decoration: BoxDecoration(
-                            color: Color(0xFFDEDEDE), // Non-selected color
-                            shape: BoxShape.circle,
-                          ),
-                        );
-                      }),
-                    ),
                   ],
                 ),
               ],
@@ -112,35 +130,38 @@ class OnboardingPage extends StatelessWidget {
           ),
           // Button
           Positioned(
-            bottom: 100, // Adjust position as needed
+            bottom: 100, // Position remains the same
             left: 23,
             right: 23,
-            child: Container(
-              height: 56,
-              decoration: BoxDecoration(
-                color: Color(0xFF7D4666), // Primary color
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    "Weiter",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                      fontFamily: 'Inter',
-                      height: 1.41, // 24px line height / 17px font size
-                      letterSpacing: -0.5,
+            child: GestureDetector(
+              onTap: nextSet,
+              child: Container(
+                height: 56,
+                decoration: BoxDecoration(
+                  color: Color(0xFF7D4666), // Primary color
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Weiter",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: 'Inter',
+                        height: 1.41, // 24px line height / 17px font size
+                        letterSpacing: -0.5,
+                      ),
                     ),
-                  ),
-                  SizedBox(width: 10),
-                  Icon(
-                    Icons.arrow_forward,
-                    color: Colors.white,
-                  ),
-                ],
+                    SizedBox(width: 10),
+                    Icon(
+                      Icons.arrow_forward,
+                      color: Colors.white,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
