@@ -88,6 +88,12 @@ flutter:
     - assets\graphics\freepik--Leaves.svg
     - assets\graphics\onboarding_bg.svg
     - assets\graphics\onboarding_bg_bottom.svg
+    - assets\graphics\birds_icon.png
+    - assets\graphics\holding-hands_icon.png
+    - assets\graphics\ideas_wiss_an_icon.png
+    - assets\graphics\therapy-chat-icon.png
+    - assets\graphics\daten-shield-icon.png
+    - assets\graphics\love-session-forest-icon.png
     
     
   # An image asset can refer to one or more resolution-specific "variants", see

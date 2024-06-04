@@ -237,7 +237,7 @@ class _FirstPageState extends State<FirstPage> with TickerProviderStateMixin {
                                   SizedBox(width: 4.0),
                                   // Non-selected indicators
                                   Row(
-                                    children: List.generate(3, (index) {
+                                    children: List.generate(6, (index) {
                                       return Container(
                                         margin: EdgeInsets.symmetric(horizontal: 2.0),
                                         width: 10,
