@@ -30,11 +30,11 @@ class _OnboardingPageState extends State<OnboardingPage> with TickerProviderStat
 
   final List<String> smallTexts = [
     'Schafft euch ein fixes, aber flexibles Format für eure Beziehungspflege',
-    'Schafft ein neues Verständnis mit den personalsierten Descalate Love Sessions',
-    'Weniger Streit und eine glücklichere Beziehung durch die smarte, wissenschaftsbasierte Descalate-Methode.',
+    'Schafft ein neues Verständnis mit den personalsierten Elovando Love Sessions',
+    'Weniger Streit und eine glücklichere Beziehung durch die smarte, wissenschaftsbasierte Elovando-Methode.',
     'Chatte mit unserem kostenlosen AI Paar-Therapeuten.',
     'Wir stellen sicher, dass eure Beziehungsdaten sicher und verschlüsselt sind, sodass niemand darauf zugreifen kann.',
-    'Testet die Descalate Love-Sessions unverbindlich fünfmal und entscheidet euch erst dann für eines unserer Abo-Modelle.',
+    'Testet die Elovando Love-Sessions unverbindlich fünfmal und entscheidet euch erst dann für eines unserer Abo-Modelle.',
   ];
 
   final List<AnimationController> _leavesControllers = [];
@@ -43,6 +43,15 @@ class _OnboardingPageState extends State<OnboardingPage> with TickerProviderStat
   final List<double> _rotationAngles = [];
   final List<double> _scaleFactors = [];
   final Random random = Random();
+
+  final List<String> clickableTexts = [
+    '',
+    'Was ist eine Love Session?',
+    '',
+    'Zum Therapeuten',
+    'Zur Datenschutz-Erklärung',
+    'Zum Pricing',
+  ];
 
   @override
   void initState() {
@@ -121,6 +130,24 @@ class _OnboardingPageState extends State<OnboardingPage> with TickerProviderStat
     });
   }
 
+  void handleClick(int index) {
+    // Handle click actions for the clickable texts
+    switch (index) {
+      case 1:
+        // Navigate to the Love Session page or display relevant information
+        break;
+      case 3:
+        // Navigate to the Therapeuten page or display relevant information
+        break;
+      case 4:
+        // Navigate to the Datenschutz-Erklärung page or display relevant information
+        break;
+      case 5:
+        // Navigate to the Pricing page or display relevant information
+        break;
+    }
+  }
+
   void skip() {
     Navigator.push(
       context,
@@ -179,7 +206,7 @@ class _OnboardingPageState extends State<OnboardingPage> with TickerProviderStat
           // Icon
           if (currentIndex > 0)
             Positioned(
-              top: MediaQuery.of(context).size.height * 0.25, // Adjusted up
+              top: MediaQuery.of(context).size.height * 0.25 -30, // Adjusted up
               left: MediaQuery.of(context).size.width * 0.5 - 100, // Adjust as needed
               child: Image.asset(
                 icons[currentIndex - 1],
@@ -190,7 +217,7 @@ class _OnboardingPageState extends State<OnboardingPage> with TickerProviderStat
           // Big Text
           if (currentIndex > 0)
             Positioned(
-              top: MediaQuery.of(context).size.height * 0.45 + 30, // Adjusted up
+              top: MediaQuery.of(context).size.height * 0.45 -10, // Adjusted up
               width: 316, // specified width
               left: MediaQuery.of(context).size.width * 0.5 - 158, // Adjust as needed
               child: Text(
@@ -206,16 +233,36 @@ class _OnboardingPageState extends State<OnboardingPage> with TickerProviderStat
           // Small Text
           if (currentIndex > 0)
             Positioned(
-              top: MediaQuery.of(context).size.height * 0.55 + 30, // Adjusted up
+              top: MediaQuery.of(context).size.height * 0.55 -10, // Adjusted up
               width: 313.3, // specified width
               left: MediaQuery.of(context).size.width * 0.5 - 156.65, // Adjust as needed
-              child: Text(
-                smallTexts[currentIndex - 1],
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 17,
-                  color: Color(0xFF414254),
-                ),
+              child: Column(
+                children: [
+                  Text(
+                    smallTexts[currentIndex - 1],
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 17,
+                      color: Color(0xFF414254),
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  if (clickableTexts[currentIndex - 1].isNotEmpty)
+                    GestureDetector(
+                      onTap: () => handleClick(currentIndex - 1),
+                      child: Text(
+                        clickableTexts[currentIndex - 1],
+                        style: TextStyle(
+                          color: Color(0xFF7FCCB1),
+                          fontSize: 13,
+                          fontWeight: FontWeight.normal,
+                          fontFamily: 'Inter',
+                          height: 1.41, // 24px line height / 17px font size
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           // Navigation Indicator
@@ -241,6 +288,25 @@ class _OnboardingPageState extends State<OnboardingPage> with TickerProviderStat
                   ],
                 ),
               ],
+            ),
+          ),
+          // Skip Button
+          Positioned(
+            top: 24,
+            right: 24,
+            child: GestureDetector(
+              onTap: skip,
+              child: Text(
+                "Skip",
+                style: TextStyle(
+                  color: Color(0xFF414254),
+                  fontSize: 13,
+                  fontWeight: FontWeight.normal,
+                  fontFamily: 'Inter',
+                  height: 1.41,
+                  letterSpacing: -0.5,
+                ),
+              ),
             ),
           ),
           // Button
@@ -276,25 +342,6 @@ class _OnboardingPageState extends State<OnboardingPage> with TickerProviderStat
                       color: Colors.white,
                     ),
                   ],
-                ),
-              ),
-            ),
-          ),
-          // Skip Button
-          Positioned(
-            top: 74,
-            right: 34,
-            child: GestureDetector(
-              onTap: skip,
-              child: Text(
-                'Skip',
-                style: TextStyle(
-                  color: Color(0xFF414254),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w400,
-                  fontFamily: 'Inter',
-                  height: 1.41, // 24px line height / 17px font size
-                  letterSpacing: -0.5,
                 ),
               ),
             ),
