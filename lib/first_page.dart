@@ -121,7 +121,7 @@ class _FirstPageState extends State<FirstPage> with TickerProviderStateMixin {
                 Positioned.fill(
                   child: Image.asset(
                     'assets/graphics/bg_forest.jpg', // Ensure the image path is correct
-                    fit: BoxFit.cover,
+                    fit: BoxFit.fill,
                   ),
                 ),
                 // Animated SVG leaves

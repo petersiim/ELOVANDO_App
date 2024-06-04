@@ -164,17 +164,17 @@ class _OnboardingPageState extends State<OnboardingPage> with TickerProviderStat
           Positioned.fill(
             child: SvgPicture.asset(
               'assets/graphics/onboarding_bg.svg',
-              fit: BoxFit.cover,
+              fit: BoxFit.fill,
             ),
           ),
           // Bottom SVG
-          Positioned(
-            bottom: -18,
+          Positioned.fill(
+            bottom: -0,
             left: 0,
             right: 0,
             child: SvgPicture.asset(
               'assets/graphics/onboarding_bg_bottom.svg',
-              fit: BoxFit.contain,
+              fit: BoxFit.fill,
             ),
           ),
           // Animated SVG leaves
