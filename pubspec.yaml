@@ -94,7 +94,7 @@ flutter:
     - assets\graphics\therapy-chat-icon.png
     - assets\graphics\daten-shield-icon.png
     - assets\graphics\love-session-forest-icon.png
-    
+    - assets\graphics\onboarding_leaves.svg
     
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

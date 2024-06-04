@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -6,9 +7,8 @@ class OnboardingPage extends StatefulWidget {
   _OnboardingPageState createState() => _OnboardingPageState();
 }
 
-class _OnboardingPageState extends State<OnboardingPage> {
+class _OnboardingPageState extends State<OnboardingPage> with TickerProviderStateMixin {
   int currentIndex = 1; // Start at the second page
-
   final List<String> icons = [
     'assets/graphics/birds_icon.png',
     'assets/graphics/holding-hands_icon.png',
@@ -35,6 +35,77 @@ class _OnboardingPageState extends State<OnboardingPage> {
     'Wir stellen sicher, dass eure Beziehungsdaten sicher und verschlüsselt sind, sodass niemand darauf zugreifen kann.',
     'Testet die Descalate Love-Sessions unverbindlich fünfmal und entscheidet euch erst dann für eines unserer Abo-Modelle.',
   ];
+
+  final List<AnimationController> _leavesControllers = [];
+  final List<Animation<Offset>> _leavesAnimations = [];
+  final List<bool> _flipHorizontally = [];
+  final List<double> _rotationAngles = [];
+  final List<double> _scaleFactors = [];
+  final Random random = Random();
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeLeavesControllers();
+    _startLeavesAnimations();
+  }
+
+  void _initializeLeavesControllers() {
+    for (int i = 0; i < 2; i++) {
+      final controller = AnimationController(
+        vsync: this,
+        duration: Duration(seconds: 5),
+      );
+
+      controller.addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          setState(() {
+            _setRandomTransformations(i);
+            Future.delayed(Duration(seconds: random.nextInt(2)), () {
+              controller.forward(from: 0);
+            });
+          });
+        }
+      });
+
+      _leavesControllers.add(controller);
+      _leavesAnimations.add(Tween<Offset>(
+        begin: Offset(1, 0),
+        end: Offset(-1, 0),
+      ).animate(CurvedAnimation(
+        parent: controller,
+        curve: Curves.linear,
+      )));
+
+      _setRandomTransformations(i);
+    }
+  }
+
+  void _setRandomTransformations(int index) {
+    if (_flipHorizontally.length <= index) {
+      _flipHorizontally.add(random.nextBool());
+      _rotationAngles.add((random.nextDouble() - 0.5) * pi / 3); // Rotate between -60 to 60 degrees
+      _scaleFactors.add(0.8 + random.nextDouble() * 0.4); // Scale between 0.8 and 1.2
+    } else {
+      _flipHorizontally[index] = random.nextBool();
+      _rotationAngles[index] = (random.nextDouble() - 0.5) * pi / 3;
+      _scaleFactors[index] = 0.9 + random.nextDouble() * 0.5;
+    }
+  }
+
+  void _startLeavesAnimations() {
+    for (int i = 0; i < _leavesControllers.length; i++) {
+      Future.delayed(Duration(milliseconds: random.nextInt(1000)), () {
+        _leavesControllers[i].forward();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _leavesControllers.forEach((controller) => controller.dispose());
+    super.dispose();
+  }
 
   void nextSet() {
     setState(() {
@@ -64,6 +135,32 @@ class _OnboardingPageState extends State<OnboardingPage> {
               fit: BoxFit.contain,
             ),
           ),
+          // Animated SVG leaves
+          for (int i = 0; i < _leavesControllers.length; i++)
+            Positioned(
+              top: MediaQuery.of(context).size.height * (0.05 + i * 0.1) - 40, // Different positions for different sets of leaves
+              left: 0,
+              right: 0,
+              child: AnimatedBuilder(
+                animation: _leavesControllers[i],
+                builder: (context, child) {
+                  return Transform.translate(
+                    offset: _leavesAnimations[i].value * MediaQuery.of(context).size.width,
+                    child: Transform(
+                      alignment: Alignment.center,
+                      transform: Matrix4.identity()
+                        ..scale(_flipHorizontally[i] ? -_scaleFactors[i] : _scaleFactors[i], _scaleFactors[i])
+                        ..rotateZ(_rotationAngles[i]),
+                      child: SvgPicture.asset(
+                        'assets/graphics/onboarding_leaves.svg',
+                        width: MediaQuery.of(context).size.width * 2, // Adjust size as needed
+                        height: MediaQuery.of(context).size.height * 0.4, // Adjust size as needed
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
           // Icon
           Positioned(
             top: MediaQuery.of(context).size.height * 0.25, // Adjusted up
@@ -105,7 +202,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           ),
           // Navigation Indicator
           Positioned(
-            bottom: MediaQuery.of(context).size.height * 0.25 -20, // Adjusted up
+            bottom: MediaQuery.of(context).size.height * 0.25 - 20, // Adjusted up
             left: 0,
             right: 0,
             child: Row(
