@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'registration_page.dart'; // Import the RegistrationPage
 
 class OnboardingPage extends StatefulWidget {
   @override
@@ -8,7 +9,7 @@ class OnboardingPage extends StatefulWidget {
 }
 
 class _OnboardingPageState extends State<OnboardingPage> with TickerProviderStateMixin {
-  int currentIndex = 1; // Start at the second page
+  int currentIndex = 1; // Start at the second page, accounting for the previous page
   final List<String> icons = [
     'assets/graphics/birds_icon.png',
     'assets/graphics/holding-hands_icon.png',
@@ -109,7 +110,14 @@ class _OnboardingPageState extends State<OnboardingPage> with TickerProviderStat
 
   void nextSet() {
     setState(() {
-      currentIndex = (currentIndex + 1) % icons.length;
+      if (currentIndex == icons.length) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => RegistrationPage()),
+        );
+      } else {
+        currentIndex = (currentIndex + 1) % (icons.length + 1);
+      }
     });
   }
 
@@ -162,44 +170,47 @@ class _OnboardingPageState extends State<OnboardingPage> with TickerProviderStat
               ),
             ),
           // Icon
-          Positioned(
-            top: MediaQuery.of(context).size.height * 0.25, // Adjusted up
-            left: MediaQuery.of(context).size.width * 0.5 - 100, // Adjust as needed
-            child: Image.asset(
-              icons[currentIndex],
-              width: 200, // Adjust width as needed
-              height: 200, // Adjust height as needed
+          if (currentIndex > 0)
+            Positioned(
+              top: MediaQuery.of(context).size.height * 0.25, // Adjusted up
+              left: MediaQuery.of(context).size.width * 0.5 - 100, // Adjust as needed
+              child: Image.asset(
+                icons[currentIndex - 1],
+                width: 200, // Adjust width as needed
+                height: 200, // Adjust height as needed
+              ),
             ),
-          ),
           // Big Text
-          Positioned(
-            top: MediaQuery.of(context).size.height * 0.45 + 30, // Adjusted up
-            width: 316, // specified width
-            left: MediaQuery.of(context).size.width * 0.5 - 158, // Adjust as needed
-            child: Text(
-              bigTexts[currentIndex],
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF414254),
+          if (currentIndex > 0)
+            Positioned(
+              top: MediaQuery.of(context).size.height * 0.45 + 30, // Adjusted up
+              width: 316, // specified width
+              left: MediaQuery.of(context).size.width * 0.5 - 158, // Adjust as needed
+              child: Text(
+                bigTexts[currentIndex - 1],
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF414254),
+                ),
               ),
             ),
-          ),
           // Small Text
-          Positioned(
-            top: MediaQuery.of(context).size.height * 0.55 + 30, // Adjusted up
-            width: 313.3, // specified width
-            left: MediaQuery.of(context).size.width * 0.5 - 156.65, // Adjust as needed
-            child: Text(
-              smallTexts[currentIndex],
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 17,
-                color: Color(0xFF414254),
+          if (currentIndex > 0)
+            Positioned(
+              top: MediaQuery.of(context).size.height * 0.55 + 30, // Adjusted up
+              width: 313.3, // specified width
+              left: MediaQuery.of(context).size.width * 0.5 - 156.65, // Adjust as needed
+              child: Text(
+                smallTexts[currentIndex - 1],
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 17,
+                  color: Color(0xFF414254),
+                ),
               ),
             ),
-          ),
           // Navigation Indicator
           Positioned(
             bottom: MediaQuery.of(context).size.height * 0.25 - 20, // Adjusted up
@@ -210,7 +221,7 @@ class _OnboardingPageState extends State<OnboardingPage> with TickerProviderStat
               children: [
                 Row(
                   children: [
-                    for (int i = 0; i < icons.length; i++)
+                    for (int i = 0; i < icons.length + 1; i++)
                       Container(
                         margin: EdgeInsets.symmetric(horizontal: 2.0),
                         width: i == currentIndex ? 30.0 : 10.0,
