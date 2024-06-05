@@ -34,17 +34,18 @@ class _RegistrationPageState extends State<RegistrationPage> {
       // Store user information in Firestore
       await _firestore.collection('users').doc(userCredential.user!.uid).set({
         'email': _emailController.text.trim(),
-        // Add more fields if needed
+        'createdAt': Timestamp.now(),
+        'emailVerified': false,
       });
 
       // Show the verification dialog
       _showVerificationDialog(userCredential.user!);
 
       // Start checking for email verification in the background
+      print('start checking');
       _checkEmailVerified(userCredential.user!);
     } on FirebaseAuthException catch (e) {
       // Handle registration error
-      print("Error: $e");
       setState(() {
         _errorMessage = 'Registrierung fehlgeschlagen: ${e.message}';
       });
@@ -52,44 +53,52 @@ class _RegistrationPageState extends State<RegistrationPage> {
   }
 
   void _checkEmailVerified(User user) async {
-    Future.doWhile(() async {
+    bool emailVerified = false;
+    while (!emailVerified) {
+      print('checking');
       await Future.delayed(Duration(seconds: 2));
       await user.reload();
-      if (user.emailVerified) {
+      User? updatedUser = _auth.currentUser;
+      emailVerified = updatedUser?.emailVerified ?? false;
+      if (emailVerified) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => BezProfErstellen()),
         );
-        return false; // Stop the loop
       }
-      return true; // Continue the loop
-    });
+    }
   }
 
   void _showVerificationDialog(User user) {
     showDialog(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: true,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Überprüfe deine E-Mail'),
-          content: Text('Bitte überprüfe deine E-Mail und bestätige dein Konto.'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Bitte überprüfe deine E-Mail und bestätige dein Konto.'),
+              SizedBox(height: 16),
+              ElevatedButton(
+                child: Text('Erneut senden'),
+                onPressed: () async {
+                  try {
+                    await user.sendEmailVerification();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Die Bestätigungs-E-Mail wurde erneut gesendet.'),
+                      ),
+                    );
+                  } catch (e) {
+                    print("Error: $e");
+                  }
+                },
+              ),
+            ],
+          ),
           actions: <Widget>[
-            TextButton(
-              child: Text('Erneut senden'),
-              onPressed: () async {
-                try {
-                  await user.sendEmailVerification();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Die Bestätigungs-E-Mail wurde erneut gesendet.'),
-                    ),
-                  );
-                } catch (e) {
-                  print("Error: $e");
-                }
-              },
-            ),
             TextButton(
               child: Text('OK'),
               onPressed: () {
