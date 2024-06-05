@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'bez_prof_erstellen.dart'; // Import the BezProfErstellen page
 
 class RegistrationPage extends StatefulWidget {
   @override
@@ -7,7 +10,97 @@ class RegistrationPage extends StatefulWidget {
 }
 
 class _RegistrationPageState extends State<RegistrationPage> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
+  String _errorMessage = '';
+
+  void _register() async {
+    setState(() {
+      _errorMessage = '';
+    });
+
+    try {
+      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      // Send email verification
+      await userCredential.user!.sendEmailVerification();
+
+      // Store user information in Firestore
+      await _firestore.collection('users').doc(userCredential.user!.uid).set({
+        'email': _emailController.text.trim(),
+        // Add more fields if needed
+      });
+
+      // Show the verification dialog
+      _showVerificationDialog(userCredential.user!);
+
+      // Start checking for email verification in the background
+      _checkEmailVerified(userCredential.user!);
+    } on FirebaseAuthException catch (e) {
+      // Handle registration error
+      print("Error: $e");
+      setState(() {
+        _errorMessage = 'Registrierung fehlgeschlagen: ${e.message}';
+      });
+    }
+  }
+
+  void _checkEmailVerified(User user) async {
+    Future.doWhile(() async {
+      await Future.delayed(Duration(seconds: 2));
+      await user.reload();
+      if (user.emailVerified) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => BezProfErstellen()),
+        );
+        return false; // Stop the loop
+      }
+      return true; // Continue the loop
+    });
+  }
+
+  void _showVerificationDialog(User user) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Überprüfe deine E-Mail'),
+          content: Text('Bitte überprüfe deine E-Mail und bestätige dein Konto.'),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Erneut senden'),
+              onPressed: () async {
+                try {
+                  await user.sendEmailVerification();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Die Bestätigungs-E-Mail wurde erneut gesendet.'),
+                    ),
+                  );
+                } catch (e) {
+                  print("Error: $e");
+                }
+              },
+            ),
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,24 +127,23 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 ),
                 SizedBox(height: 40), // Add space before the text fields
                 TextField(
+                  controller: _emailController,
                   decoration: InputDecoration(
                     border: InputBorder.none,
                     filled: true,
-                    fillColor:
-                        Color(0xFFF7F7F7), // Background color from the image
+                    fillColor: Color(0xFFF7F7F7), // Background color from the image
                     hintText: 'yourusername@domain.com',
                     hintStyle: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 17,
                       color: Color(0xFFB2B2B2), // Text color from the image
                     ),
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                   ),
                 ),
                 SizedBox(height: 20),
-
                 TextField(
+                  controller: _passwordController,
                   obscureText: !_isPasswordVisible,
                   decoration: InputDecoration(
                     border: InputBorder.none, // No border
@@ -63,8 +155,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                       fontSize: 17,
                       color: Color(0xFFB2B2B2), // Text color from the image
                     ),
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                     suffixIcon: GestureDetector(
                       onTap: () {
                         setState(() {
@@ -72,15 +163,12 @@ class _RegistrationPageState extends State<RegistrationPage> {
                         });
                       },
                       child: Icon(
-                        _isPasswordVisible
-                            ? Icons.visibility
-                            : Icons.visibility_off,
+                        _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
                         color: Color(0xFFB2B2B2), // Icon color matching text color
                       ),
                     ),
                   ),
                 ),
-
                 SizedBox(height: 30),
                 SizedBox(
                   width: double.infinity,
@@ -92,9 +180,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                         borderRadius: BorderRadius.circular(12.0),
                       ),
                     ),
-                    onPressed: () {
-                      // Handle registration
-                    },
+                    onPressed: _register,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -162,8 +248,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                     text: TextSpan(
                       text: 'Sie haben ein Konto? ',
                       style: TextStyle(
-                        color: Color(
-                            0xFF757575), // The grey color for the first part
+                        color: Color(0xFF757575), // The grey color for the first part
                         fontSize: 16,
                         fontFamily: 'Inter',
                         fontWeight: FontWeight.normal,
@@ -172,8 +257,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                         TextSpan(
                           text: 'Anmelden',
                           style: TextStyle(
-                            color: Color(
-                                0xFF7FCCB1), // The green color for the clickable part
+                            color: Color(0xFF7FCCB1), // The green color for the clickable part
                             fontSize: 16,
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.normal,
@@ -187,6 +271,19 @@ class _RegistrationPageState extends State<RegistrationPage> {
                     ),
                   ),
                 ),
+                if (_errorMessage.isNotEmpty)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        _errorMessage,
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
