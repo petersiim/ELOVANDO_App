@@ -27,10 +27,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.macOS:
         return macos;
       case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for windows - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return windows;
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -44,21 +41,21 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCGuyVTz4vkasmiN8ahxBqbnydy4FX2Drc',
-    appId: '1:137798276523:web:ca36d72c921c49cabe6eee',
-    messagingSenderId: '137798276523',
-    projectId: 'deescalateapp-12db3',
-    authDomain: 'deescalateapp-12db3.firebaseapp.com',
-    storageBucket: 'deescalateapp-12db3.appspot.com',
-    measurementId: 'G-LG8NR0SQYM',
+    apiKey: 'AIzaSyAawdIn9yC-y4ZC8xjwK4r-3qrglbU1BBc',
+    appId: '1:996434213634:web:9efe603baddb4da77fa01b',
+    messagingSenderId: '996434213634',
+    projectId: 'elovando-final',
+    authDomain: 'elovando-final.firebaseapp.com',
+    storageBucket: 'elovando-final.appspot.com',
+    measurementId: 'G-GBEXJL034B',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDtX895NRQGl6vuaKqFjXiyRKCZaR7FpTc',
-    appId: '1:137798276523:android:6c30a9aaa47703f1be6eee',
-    messagingSenderId: '137798276523',
-    projectId: 'deescalateapp-12db3',
-    storageBucket: 'deescalateapp-12db3.appspot.com',
+    apiKey: 'AIzaSyCfDu9oW5h3Y43rZ0Dg3EpmEpzFgcu5y1g',
+    appId: '1:996434213634:android:25a63ae80acc50de7fa01b',
+    messagingSenderId: '996434213634',
+    projectId: 'elovando-final',
+    storageBucket: 'elovando-final.appspot.com',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
@@ -78,4 +75,15 @@ class DefaultFirebaseOptions {
     storageBucket: 'deescalateapp-12db3.appspot.com',
     iosBundleId: 'com.example.newDeescalate.RunnerTests',
   );
+
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyAawdIn9yC-y4ZC8xjwK4r-3qrglbU1BBc',
+    appId: '1:996434213634:web:c58856388c40176e7fa01b',
+    messagingSenderId: '996434213634',
+    projectId: 'elovando-final',
+    authDomain: 'elovando-final.firebaseapp.com',
+    storageBucket: 'elovando-final.appspot.com',
+    measurementId: 'G-7S8JP7WXR4',
+  );
+
 }

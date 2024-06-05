@@ -1,11 +1,11 @@
 {
-    "name": "new_deescalate",
-    "short_name": "new_deescalate",
+    "name": "ELOVADO_App",
+    "short_name": "ELOVADO_App",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "The Love App",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
