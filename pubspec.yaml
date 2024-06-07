@@ -99,6 +99,12 @@ flutter:
     - assets\graphics\facebook_icon.png
     - assets\graphics\google_icon.png
     - assets\graphics\bez_prof_erstellen_icon.svg
+    - assets\graphics\bez_prof_erstellen_icon.png
+    - assets\graphics\leave_icon_blass.svg
+    - assets\graphics\leave_icon.svg
+    - assets\graphics\prof_erstellen_weiter_button.svg
+    - assets\graphics\prof_erstellen_back_button.svg
+    - assets\graphics\prof_erstellen_weiter_button.png
     
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
