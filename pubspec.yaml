@@ -105,7 +105,10 @@ flutter:
     - assets\graphics\prof_erstellen_weiter_button.svg
     - assets\graphics\prof_erstellen_back_button.svg
     - assets\graphics\prof_erstellen_weiter_button.png
-    
+    - assets\graphics\männlich_icon.svg
+    - assets\graphics\weiblich_icon.svg
+    - assets\graphics\weiteres_icon.svg
+
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
 
