@@ -35,6 +35,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
       _showVerificationDialog(userCredential.user!);
 
       // Start checking for email verification in the background
+      print('start checking');
       _checkEmailVerified(userCredential.user!);
     } on FirebaseAuthException catch (e) {
       // Handle registration error
@@ -47,6 +48,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
   void _checkEmailVerified(User user) async {
     bool emailVerified = false;
     while (!emailVerified) {
+      print('checking');
       await Future.delayed(Duration(seconds: 2));
       await user.reload();
       User? updatedUser = _auth.currentUser;
@@ -312,6 +314,26 @@ class _RegistrationPageState extends State<RegistrationPage> {
                             },
                         ),
                       ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: 10),
+                Center(
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (context) => BezProfErstellen()),
+                      );
+                    },
+                    child: Text(
+                      'Überspringen',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF7D4666),
+                      ),
                     ),
                   ),
                 ),
