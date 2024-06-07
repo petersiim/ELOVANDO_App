@@ -31,18 +31,10 @@ class _RegistrationPageState extends State<RegistrationPage> {
       // Send email verification
       await userCredential.user!.sendEmailVerification();
 
-      // Store user information in Firestore
-      await _firestore.collection('users').doc(userCredential.user!.uid).set({
-        'email': _emailController.text.trim(),
-        'createdAt': Timestamp.now(),
-        'emailVerified': false,
-      });
-
       // Show the verification dialog
       _showVerificationDialog(userCredential.user!);
 
       // Start checking for email verification in the background
-      print('start checking');
       _checkEmailVerified(userCredential.user!);
     } on FirebaseAuthException catch (e) {
       // Handle registration error
@@ -55,12 +47,18 @@ class _RegistrationPageState extends State<RegistrationPage> {
   void _checkEmailVerified(User user) async {
     bool emailVerified = false;
     while (!emailVerified) {
-      print('checking');
       await Future.delayed(Duration(seconds: 2));
       await user.reload();
       User? updatedUser = _auth.currentUser;
       emailVerified = updatedUser?.emailVerified ?? false;
       if (emailVerified) {
+        // Add user information to Firestore after email is verified
+        await _firestore.collection('users').doc(user.uid).set({
+          'email': user.email,
+          'createdAt': Timestamp.now(),
+          'emailVerified': true,
+        });
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => BezProfErstellen()),
@@ -75,14 +73,43 @@ class _RegistrationPageState extends State<RegistrationPage> {
       barrierDismissible: true,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Überprüfe deine E-Mail'),
+          title: Text(
+            'Überprüfe deine E-Mail',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF414254),
+            ),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Bitte überprüfe deine E-Mail und bestätige dein Konto.'),
+              Text(
+                'Bitte überprüfe deine E-Mail und bestätige dein Konto.',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 16,
+                  color: Color(0xFF414254),
+                ),
+              ),
               SizedBox(height: 16),
               ElevatedButton(
-                child: Text('Erneut senden'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF7D4666),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                  ),
+                ),
+                child: Text(
+                  'Erneut senden',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
                 onPressed: () async {
                   try {
                     await user.sendEmailVerification();
@@ -100,7 +127,15 @@ class _RegistrationPageState extends State<RegistrationPage> {
           ),
           actions: <Widget>[
             TextButton(
-              child: Text('OK'),
+              child: Text(
+                'OK',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF7D4666),
+                ),
+              ),
               onPressed: () {
                 Navigator.of(context).pop();
               },
