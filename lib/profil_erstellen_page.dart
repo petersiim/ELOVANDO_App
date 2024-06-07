@@ -110,110 +110,117 @@ class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
 
 
   Widget _buildPage2() {
-    List<Map<String, String>> genderOptions = [
-      {
-        'label': 'Männlich',
-        'icon': 'assets/graphics/männlich_icon.svg',
-      },
-      {
-        'label': 'Weiblich',
-        'icon': 'assets/graphics/weiblich_icon.svg',
-      },
-      {
-        'label': 'Weiteres',
-        'icon': 'assets/graphics/weiteres_icon.svg',
-      },
-    ];
+  List<Map<String, String>> genderOptions = [
+    {
+      'label': 'Männlich',
+      'icon': 'assets/graphics/männlich_icon.svg',
+    },
+    {
+      'label': 'Weiblich',
+      'icon': 'assets/graphics/weiblich_icon.svg',
+    },
+    {
+      'label': 'Weiteres',
+      'icon': 'assets/graphics/weiteres_icon.svg',
+    },
+  ];
 
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 34.0, vertical: 52.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            'Gender:',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF414254),
-            ),
+  return Padding(
+    padding: EdgeInsets.symmetric(horizontal: 34.0, vertical: 52.0),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          'Gender:',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF414254),
           ),
-          SizedBox(height: 44),
-          Expanded(
-            child: GridView.builder(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2, // Number of columns in the grid
-                crossAxisSpacing: 20.0, // Spacing between columns
-                mainAxisSpacing: 20.0, // Spacing between rows
-                childAspectRatio: 1.2, // Aspect ratio of each item
-              ),
-              itemCount: genderOptions.length,
-              itemBuilder: (context, index) {
-                bool isSelected = selectedGenderIndex == index;
-                print('Rendering box $index, isSelected: $isSelected'); // Debugging statement
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      selectedGenderIndex = index;
-                      print('Selected Gender Index: $selectedGenderIndex'); // Debugging statement
-                    });
-                  },
-                  child: AnimatedContainer(
-                    duration: Duration(milliseconds: 300),
-                    padding: EdgeInsets.all(12.0),
-                    decoration: BoxDecoration(
-                      color: isSelected ? Color(0xFFDDF1EA) : Color(0xFFF7F7F7),
-                      borderRadius: BorderRadius.circular(0),
-                      boxShadow: isSelected
-                          ? [
-                              BoxShadow(
-                                color: Colors.black26,
-                                spreadRadius: 1,
-                                blurRadius: 3,
-                                offset: Offset(0, 2),
-                              )
-                            ]
-                          : [],
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: <Widget>[
-                        SvgPicture.asset(
-                          genderOptions[index]['icon']!,
-                          color: isSelected ? Color(0xFF7D4666) : Color(0xFF979797),
-                          width: 50,
-                          height: 50,
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          genderOptions[index]['label']!,
-                          style: TextStyle(
-                            color: Color(0xFF414254),
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
+        ),
+        SizedBox(height: 44),
+        Expanded(
+          child: Column(
+            children: [
+              Expanded(
+                child: GridView.builder(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2, // Number of columns in the grid
+                    crossAxisSpacing: 20.0, // Spacing between columns
+                    mainAxisSpacing: 20.0, // Spacing between rows
+                    childAspectRatio: 1.2, // Aspect ratio of each item
                   ),
-                );
-              },
-            ),
-          ),
-          if (!_isGenderValid)
-            Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: Text(
-                'Hinweis: Bitte eine Option auswählen',
-                style: TextStyle(
-                  color: Color(0xFF7D4666),
+                  itemCount: genderOptions.length,
+                  itemBuilder: (context, index) {
+                    bool isSelected = selectedGenderIndex == index;
+                    print('Rendering box $index, isSelected: $isSelected'); // Debugging statement
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          selectedGenderIndex = index;
+                          print('Selected Gender Index: $selectedGenderIndex'); // Debugging statement
+                        });
+                      },
+                      child: AnimatedContainer(
+                        duration: Duration(milliseconds: 300),
+                        padding: EdgeInsets.all(12.0),
+                        decoration: BoxDecoration(
+                          color: isSelected ? Color(0xFFDDF1EA) : Color(0xFFF7F7F7),
+                          borderRadius: BorderRadius.circular(0),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: Colors.black26,
+                                    spreadRadius: 1,
+                                    blurRadius: 3,
+                                    offset: Offset(0, 2),
+                                  )
+                                ]
+                              : [],
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            SvgPicture.asset(
+                              genderOptions[index]['icon']!,
+                              color: isSelected ? Color(0xFF7D4666) : Color(0xFF979797),
+                              width: 50,
+                              height: 50,
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              genderOptions[index]['label']!,
+                              style: TextStyle(
+                                color: Color(0xFF414254),
+                                fontSize: 17,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
-            ),
-        ],
-      ),
-    );
-  }
+              if (!_isGenderValid)
+                Padding(
+                  padding: const EdgeInsets.only(top: 80.0),
+                  child: Text(
+                    'Hinweis: Bitte eine Option auswählen',
+                    style: TextStyle(
+                      color: Color(0xFF7D4666),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 
   Widget _buildPage3() {
     return Padding(
