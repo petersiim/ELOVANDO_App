@@ -77,7 +77,7 @@ class ProfilErstellenPage extends StatelessWidget {
             ),
           ),
           Positioned(
-            bottom: 80,
+            bottom: 100,
             right: 32,
             child: GestureDetector(
               onTap: () {
@@ -87,26 +87,26 @@ class ProfilErstellenPage extends StatelessWidget {
                 child: Center(
                   child: SvgPicture.asset(
                     'assets/graphics/prof_erstellen_weiter_button.svg',
-                    width: 65,
-                    height: 65,
+                    width: 55,
+                    height: 55,
                   ),
                 ),
               ),
             ),
           ),
           Positioned(
-            bottom: 20,
+            bottom: 40,
             left: 0,
             right: 0,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(4, (index) {
                 return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 6.0),
                   child: SvgPicture.asset(
                     'assets/graphics/leave_icon.svg',
-                    width: 20,
-                    height: 20,
+                    width: 40,
+                    height: 40,
                   ),
                 );
               }),
