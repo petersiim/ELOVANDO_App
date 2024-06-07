@@ -98,6 +98,7 @@ flutter:
     - assets\graphics\apple_icon.png
     - assets\graphics\facebook_icon.png
     - assets\graphics\google_icon.png
+    - assets\graphics\bez_prof_erstellen_icon.svg
     
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
