@@ -111,6 +111,10 @@ flutter:
     - assets\graphics\pic_upload_icon.svg
     - assets\graphics\profil_erstellen_MC_item_not_selected.svg
     - assets\graphics\profil_erstellen_MC_item_selected.svg
+    - assets\graphics\send_message_icon.svg
+    - assets\graphics\voice_input_icon.svg
+
+
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

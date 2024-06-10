@@ -140,19 +140,69 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
               color: Color(0xFF414254),
             ),
           ),
-          SizedBox(height: 44),
-          TextField(
-            decoration: InputDecoration(
-              hintText: 'Enter text',
-              hintStyle: TextStyle(color: Color(0xFF979797)),
-              border: InputBorder.none,
-              filled: true,
-              fillColor: Color(0xFFF7F7F7),
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+          SizedBox(height: 16),
+          Text(
+            'Was begeistert dich immer wieder an deinem Partner / deiner Partnerin?',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF414254),
             ),
           ),
-          // Add more fields or options as needed
+          SizedBox(height: 16),
+          Text(
+            'Was stört dich vielleicht aktuell ein wenig?',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF414254),
+            ),
+          ),
+          SizedBox(height: 44),
+          Container(
+            height: 150, // Set a fixed height for the text field container
+            decoration: BoxDecoration(
+              color: Color(0xFFF7F7F7),
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            child: Stack(
+              children: [
+                Scrollbar(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    child: TextField(
+                      maxLines: null,
+                      decoration: InputDecoration(
+                        hintText: 'Text eingeben...',
+                        hintStyle: TextStyle(color: Color(0xFF979797)),
+                        border: InputBorder.none,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 8,
+                  right: 8,
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: SvgPicture.asset('assets/graphics/voice_input_icon.svg'),
+                        onPressed: () {
+                          // Handle voice input action
+                        },
+                      ),
+                      IconButton(
+                        icon: SvgPicture.asset('assets/graphics/send_message_icon.svg'),
+                        onPressed: () {
+                          // Handle send message action
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -172,7 +222,7 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
               color: Color(0xFF414254),
             ),
           ),
-          SizedBox(height: 34),
+          SizedBox(height: 44),
           Column(
             children: List.generate(options.length, (index) {
               bool isSelected = selectedOptionIndexes[pageIndex] == index;
@@ -187,31 +237,12 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
                   child: Row(
                     children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isSelected
-                                ? Color(0xFF7FCCB1)
-                                : Color(0xFF979797),
-                            width: 2,
-                          ),
-                          color: isSelected ? Color(0xFF7FCCB1) : Colors.transparent,
-                        ),
+                      SvgPicture.asset(
+                        isSelected
+                            ? 'assets/graphics/profil_erstellen_MC_item_selected.svg'
+                            : 'assets/graphics/profil_erstellen_MC_item_not_selected.svg',
                         width: 24,
                         height: 24,
-                        child: isSelected
-                            ? Center(
-                                child: Container(
-                                  width: 12,
-                                  height: 12,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Color(0xFF7FCCB1),
-                                  ),
-                                ),
-                              )
-                            : Container(),
                       ),
                       SizedBox(width: 16),
                       Expanded(
