@@ -9,6 +9,8 @@ class ProfilErstellen2Page extends StatefulWidget {
 class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
   PageController _pageController = PageController();
   int _currentPage = 0;
+  List<int> selectedOptionIndexes = List<int>.generate(7, (index) => -1);
+  bool showError = false;
 
   List<Widget> _pages = [];
 
@@ -29,137 +31,109 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
   void _onPageChanged(int index) {
     setState(() {
       _currentPage = index;
+      showError = false;
     });
   }
 
   bool _validateCurrentPage() {
-    // Add validation logic for each page if needed
+    if (selectedOptionIndexes[_currentPage] == -1) {
+      setState(() {
+        showError = true;
+      });
+      return false;
+    }
     return true;
   }
 
   Widget _buildPage1() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 34.0, vertical: 52.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            'Welche Art von Film repräsentiert am besten eure Beziehung?',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF414254),
-            ),
-          ),
-          SizedBox(height: 44),
-          // Add your radio buttons or selection options here
-        ],
-      ),
+    List<String> options = [
+      'Romantische Komödie',
+      'Action-Abenteuer',
+      'Mystery-Thriller',
+      'Dokumentarfilm',
+    ];
+
+    return _buildOptionPage(
+      'Welche Art von Film repräsentiert am besten eure Beziehung?',
+      options,
+      0,
     );
   }
 
   Widget _buildPage2() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 34.0, vertical: 52.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            'Welches Tierduo beschreibt eure Partnerschaft am besten?',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF414254),
-            ),
-          ),
-          SizedBox(height: 44),
-          // Add your radio buttons or selection options here
-        ],
-      ),
+    List<String> options = [
+      'Löwen, die beschützend sind',
+      'Papageien, die kommunikativ sind',
+      'Füchse, die schlau und verspielt sind',
+      'Elefanten, die liebevoll und gedächtnisstark sind',
+    ];
+
+    return _buildOptionPage(
+      'Welches Tierduo beschreibt eure Partnerschaft am besten?',
+      options,
+      1,
     );
   }
 
   Widget _buildPage3() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 34.0, vertical: 52.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            'Wenn ihr zusammen kochen würdet, welche Rolle übernimmst du?',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF414254),
-            ),
-          ),
-          SizedBox(height: 44),
-          // Add your radio buttons or selection options here
-        ],
-      ),
+    List<String> options = [
+      'Der Chefkoch, der die Hauptgerichte zubereitet',
+      'Der Sous-Chef, der assistiert und experimentiert',
+      'Der Geschmackstester, der die Qualität sicherstellt',
+      'Der Organisator, der dafür sorgt, dass alles am richtigen Platz ist',
+    ];
+
+    return _buildOptionPage(
+      'Wenn ihr zusammen kochen würdet, welche Rolle übernimmst du?',
+      options,
+      2,
     );
   }
 
   Widget _buildPage4() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 34.0, vertical: 52.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            'Welche Rolle würde dein Partner übernehmen?',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF414254),
-            ),
-          ),
-          SizedBox(height: 44),
-          // Add your radio buttons or selection options here
-        ],
-      ),
+    List<String> options = [
+      'Der Chefkoch, der die Hauptgerichte zubereitet',
+      'Der Sous-Chef, der assistiert und experimentiert',
+      'Der Geschmackstester, der die Qualität sicherstellt',
+      'Der Organisator, der dafür sorgt, dass alles am richtigen Platz ist',
+    ];
+
+    return _buildOptionPage(
+      'Welche Rolle würde dein Partner übernehmen?',
+      options,
+      3,
     );
   }
 
   Widget _buildPage5() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 34.0, vertical: 52.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            'Wie unterstützt du deinen Partner in einer schwierigen Situation?',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF414254),
-            ),
-          ),
-          SizedBox(height: 44),
-          // Add your radio buttons or selection options here
-        ],
-      ),
+    List<String> options = [
+      'Wie ein Cheerleader, der anfeuert',
+      'Wie ein Coach, der Lösungen bietet',
+      'Wie ein stiller Unterstützer, der im Hintergrund hilft',
+    ];
+
+    return _buildOptionPage(
+      'Wie unterstützt du deinen Partner in einer schwierigen Situation?',
+      options,
+      4,
     );
   }
 
   Widget _buildPage6() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 34.0, vertical: 52.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            'Für welche der sieben Todsünden bist du am ehesten empfänglich?',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF414254),
-            ),
-          ),
-          SizedBox(height: 44),
-          // Add your radio buttons or selection options here
-        ],
-      ),
+    List<String> options = [
+      'Hochmut, dem Anerkennung über alles wichtig in einer Beziehung',
+      'Habgier, dem ein schöner Lifestyle gefällt für dich zu einer erfüllten Beziehung',
+      'Wollust, denn Körperlichkeit spielt für dich eine große Rolle',
+      'Zorn, weil du mit vollem Herz dabei bist',
+      'Völlerei, weil deine Beziehung ohne Genuss für dich nicht geht',
+      'Neid, weil du dir nur das Beste für dich und deinen Partner / deine Partnerin wünschst',
+      'Trägheit, weil Gemütlichkeit und Liebe für dich zusammengehören',
+    ];
+
+    return _buildOptionPage(
+      'Für welche der sieben Todsünden bist du am ehesten empfänglich?',
+      options,
+      5,
     );
   }
 
@@ -195,6 +169,98 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
     );
   }
 
+  Widget _buildOptionPage(String question, List<String> options, int pageIndex) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 34.0, vertical: 52.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            question,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF414254),
+            ),
+          ),
+          SizedBox(height: 44),
+          Column(
+            children: List.generate(options.length, (index) {
+              bool isSelected = selectedOptionIndexes[pageIndex] == index;
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    selectedOptionIndexes[pageIndex] = index;
+                    showError = false;
+                  });
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Row(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isSelected
+                                ? Color(0xFF7FCCB1)
+                                : Color(0xFF979797),
+                            width: 2,
+                          ),
+                          color: isSelected ? Color(0xFF7FCCB1) : Colors.transparent,
+                        ),
+                        width: 24,
+                        height: 24,
+                        child: isSelected
+                            ? Center(
+                                child: Container(
+                                  width: 12,
+                                  height: 12,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Color(0xFF7FCCB1),
+                                  ),
+                                ),
+                              )
+                            : Container(),
+                      ),
+                      SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          options[index],
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isSelected
+                                ? Color(0xFF414254)
+                                : Color(0xFF98999D),
+                            fontWeight: FontWeight.normal,
+                            fontFamily: 'Inter',
+                            height: 1.41,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ),
+          if (showError && selectedOptionIndexes[pageIndex] == -1)
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Text(
+                'Hinweis: Bitte eine Option auswählen',
+                style: TextStyle(
+                  color: Color(0xFF7D4666),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   List<Widget> _buildPageIndicators() {
     return List<Widget>.generate(7, (int index) {
       return Container(
@@ -224,6 +290,17 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
       } else {
         // Handle profile creation or navigation to the next page
       }
+    }
+  }
+
+  void _skipPage() {
+    if (_currentPage < 6) {
+      _pageController.nextPage(
+        duration: Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      // Handle profile creation or navigation to the next page
     }
   }
 
@@ -302,12 +379,11 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
             ),
           ),
           // Skip Button
-// Skip Button
           Positioned(
             bottom: 100,
             left: 32,
             child: GestureDetector(
-              onTap: _nextPage,
+              onTap: _skipPage,
               child: Text(
                 "Skip",
                 style: TextStyle(
