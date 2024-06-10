@@ -165,50 +165,44 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
               color: Color(0xFFF7F7F7),
               borderRadius: BorderRadius.circular(8.0),
             ),
-            child: Stack(
-              children: [
-                Scrollbar(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                    child: TextField(
-                      maxLines: null,
-                      decoration: InputDecoration(
-                        hintText: 'Text eingeben...',
-                        hintStyle: TextStyle(color: Color(0xFF979797)),
-                        border: InputBorder.none,
-                      ),
-                    ),
+            child: Scrollbar(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                child: TextField(
+                  maxLines: null,
+                  decoration: InputDecoration(
+                    hintText: 'Text eingeben...',
+                    hintStyle: TextStyle(color: Color(0xFF979797)),
+                    border: InputBorder.none,
                   ),
                 ),
-                Positioned(
-                  bottom: 8,
-                  right: 8,
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: SvgPicture.asset('assets/graphics/voice_input_icon.svg'),
-                        onPressed: () {
-                          // Handle voice input action
-                        },
-                      ),
-                      IconButton(
-                        icon: SvgPicture.asset('assets/graphics/send_message_icon.svg'),
-                        onPressed: () {
-                          // Handle send message action
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              IconButton(
+                icon: SvgPicture.asset('assets/graphics/voice_input_icon.svg'),
+                onPressed: () {
+                  // Handle voice input action
+                },
+              ),
+              IconButton(
+                icon: SvgPicture.asset('assets/graphics/send_message_icon.svg'),
+                onPressed: () {
+                  // Handle send message action
+                },
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildOptionPage(String question, List<String> options, int pageIndex) {
+  Widget _buildOptionPage(
+      String question, List<String> options, int pageIndex) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 34.0, vertical: 52.0),
       child: Column(
@@ -326,6 +320,8 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
 
   @override
   Widget build(BuildContext context) {
+    bool isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom != 0;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -381,50 +377,52 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
               _buildPage7(),
             ],
           ),
-          Positioned(
-            bottom: 80,
-            right: 32,
-            child: GestureDetector(
-              onTap: _nextPage,
-              child: Container(
-                child: Center(
-                  child: SvgPicture.asset(
-                    'assets/graphics/prof_erstellen_weiter_button.svg',
-                    width: 45,
-                    height: 45,
+          if (!isKeyboardVisible || _currentPage != 6) ...[
+            Positioned(
+              bottom: 80,
+              right: 32,
+              child: GestureDetector(
+                onTap: _nextPage,
+                child: Container(
+                  child: Center(
+                    child: SvgPicture.asset(
+                      'assets/graphics/prof_erstellen_weiter_button.svg',
+                      width: 45,
+                      height: 45,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-          Positioned(
-            bottom: 30,
-            left: 0,
-            right: 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: _buildPageIndicators(),
+            Positioned(
+              bottom: 30,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: _buildPageIndicators(),
+              ),
             ),
-          ),
-          // Skip Button
-          Positioned(
-            bottom: 100,
-            left: 32,
-            child: GestureDetector(
-              onTap: _skipPage,
-              child: Text(
-                "Skip",
-                style: TextStyle(
-                  color: Color(0xFF414254),
-                  fontSize: 13,
-                  fontWeight: FontWeight.normal,
-                  fontFamily: 'Inter',
-                  height: 1.41,
-                  letterSpacing: -0.5,
+            // Skip Button
+            Positioned(
+              bottom: 100,
+              left: 32,
+              child: GestureDetector(
+                onTap: _skipPage,
+                child: Text(
+                  "Skip",
+                  style: TextStyle(
+                    color: Color(0xFF414254),
+                    fontSize: 13,
+                    fontWeight: FontWeight.normal,
+                    fontFamily: 'Inter',
+                    height: 1.41,
+                    letterSpacing: -0.5,
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ],
       ),
     );
