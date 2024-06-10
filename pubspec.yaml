@@ -109,6 +109,8 @@ flutter:
     - assets\graphics\weiblich_icon.svg
     - assets\graphics\weiteres_icon.svg
     - assets\graphics\pic_upload_icon.svg
+    - assets\graphics\profil_erstellen_MC_item_not_selected.svg
+    - assets\graphics\profil_erstellen_MC_item_selected.svg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

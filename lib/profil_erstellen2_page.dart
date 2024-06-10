@@ -12,20 +12,9 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
   List<int> selectedOptionIndexes = List<int>.generate(7, (index) => -1);
   bool showError = false;
 
-  List<Widget> _pages = [];
-
   @override
   void initState() {
     super.initState();
-    _pages = [
-      _buildPage1(),
-      _buildPage2(),
-      _buildPage3(),
-      _buildPage4(),
-      _buildPage5(),
-      _buildPage6(),
-      _buildPage7(),
-    ];
   }
 
   void _onPageChanged(int index) {
@@ -183,7 +172,7 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
               color: Color(0xFF414254),
             ),
           ),
-          SizedBox(height: 44),
+          SizedBox(height: 34),
           Column(
             children: List.generate(options.length, (index) {
               bool isSelected = selectedOptionIndexes[pageIndex] == index;
@@ -351,7 +340,15 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
           PageView(
             controller: _pageController,
             onPageChanged: _onPageChanged,
-            children: _pages,
+            children: [
+              _buildPage1(),
+              _buildPage2(),
+              _buildPage3(),
+              _buildPage4(),
+              _buildPage5(),
+              _buildPage6(),
+              _buildPage7(),
+            ],
           ),
           Positioned(
             bottom: 80,
