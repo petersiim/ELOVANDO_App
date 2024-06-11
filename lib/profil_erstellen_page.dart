@@ -357,61 +357,64 @@ class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: Padding(
-          padding: const EdgeInsets.only(
-              top: 16.0, left: 24.0), // Adjust padding as needed
-          child: GestureDetector(
-            onTap: () {
-              if (_currentPage == 0) {
-                Navigator.pop(context);
-              } else {
-                _pageController.previousPage(
-                  duration: Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                );
-              }
-            },
-            child: Container(
-              width: 60, // Adjusted button size
-              height: 60, // Adjusted button size
-              child: SvgPicture.asset(
-                'assets/graphics/prof_erstellen_back_button.svg',
-                fit: BoxFit.contain, // Ensure the SVG fits within the container
-              ),
+Widget build(BuildContext context) {
+  bool isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom != 0;
+
+  return Scaffold(
+    appBar: AppBar(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      leading: Padding(
+        padding: const EdgeInsets.only(
+            top: 16.0, left: 24.0), // Adjust padding as needed
+        child: GestureDetector(
+          onTap: () {
+            if (_currentPage == 0) {
+              Navigator.pop(context);
+            } else {
+              _pageController.previousPage(
+                duration: Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              );
+            }
+          },
+          child: Container(
+            width: 60, // Adjusted button size
+            height: 60, // Adjusted button size
+            child: SvgPicture.asset(
+              'assets/graphics/prof_erstellen_back_button.svg',
+              fit: BoxFit.contain, // Ensure the SVG fits within the container
             ),
           ),
         ),
-        title: Padding(
-          padding: const EdgeInsets.only(
-              top: 16.0), // Adjust the top padding as needed
-          child: Text(
-            'Profil erstellen',
-            style: TextStyle(
-              color: Color(0xFF414254),
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        centerTitle: true,
       ),
-      body: Stack(
-        children: <Widget>[
-          PageView(
-            controller: _pageController,
-            onPageChanged: _onPageChanged,
-            children: [
-              _buildPage1(),
-              _buildPage2(),
-              _buildPage3(),
-              _buildPage4(),
-            ],
+      title: Padding(
+        padding: const EdgeInsets.only(
+            top: 16.0), // Adjust the top padding as needed
+        child: Text(
+          'Profil erstellen',
+          style: TextStyle(
+            color: Color(0xFF414254),
+            fontSize: 26,
+            fontWeight: FontWeight.bold,
           ),
+        ),
+      ),
+      centerTitle: true,
+    ),
+    body: Stack(
+      children: <Widget>[
+        PageView(
+          controller: _pageController,
+          onPageChanged: _onPageChanged,
+          children: [
+            _buildPage1(),
+            _buildPage2(),
+            _buildPage3(),
+            _buildPage4(),
+          ],
+        ),
+        if (!isKeyboardVisible || _currentPage != 0) ...[
           Positioned(
             bottom: 80,
             right: 32,
@@ -464,7 +467,9 @@ class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
+      ],
+    ),
+  );
+}
+
 }

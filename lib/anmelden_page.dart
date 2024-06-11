@@ -1,72 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'bez_prof_erstellen.dart'; // Import the BezProfErstellen page
-import 'anmelden_page.dart'; // Import the AnmeldenPage
+import 'registration_page.dart'; // Import the RegistrationPage
 
-class RegistrationPage extends StatefulWidget {
+class AnmeldenPage extends StatefulWidget {
   @override
-  _RegistrationPageState createState() => _RegistrationPageState();
+  _AnmeldenPageState createState() => _AnmeldenPageState();
 }
 
-class _RegistrationPageState extends State<RegistrationPage> {
+class _AnmeldenPageState extends State<AnmeldenPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   String _errorMessage = '';
 
-  void _register() async {
+  void _login() async {
     setState(() {
       _errorMessage = '';
     });
 
     try {
-      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
-      // Send email verification
-      await userCredential.user!.sendEmailVerification();
-
-      // Show the verification dialog
-      _showVerificationDialog(userCredential.user!);
-
-      // Start checking for email verification in the background
-      print('start checking');
-      _checkEmailVerified(userCredential.user!);
-    } on FirebaseAuthException catch (e) {
-      // Handle registration error
-      setState(() {
-        _errorMessage = 'Registrierung fehlgeschlagen: ${e.message}';
-      });
-    }
-  }
-
-  void _checkEmailVerified(User user) async {
-    bool emailVerified = false;
-    while (!emailVerified) {
-      print('checking');
-      await Future.delayed(Duration(seconds: 2));
-      await user.reload();
-      User? updatedUser = _auth.currentUser;
-      emailVerified = updatedUser?.emailVerified ?? false;
-      if (emailVerified) {
-        // Add user information to Firestore after email is verified
-        await _firestore.collection('users').doc(user.uid).set({
-          'email': user.email,
-          'createdAt': Timestamp.now(),
-          'emailVerified': true,
-        });
-
+      if (userCredential.user!.emailVerified) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => BezProfErstellen()),
         );
+      } else {
+        setState(() {
+          _errorMessage = 'Bitte überprüfe deine E-Mail-Adresse, um fortzufahren.';
+        });
+        _showVerificationDialog(userCredential.user!);
       }
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        _errorMessage = 'Anmeldung fehlgeschlagen: ${e.message}';
+      });
     }
   }
 
@@ -163,7 +138,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 Align(
                   alignment: Alignment.center,
                   child: Text(
-                    'Registrieren',
+                    'Anmelden',
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 48,
@@ -227,12 +202,12 @@ class _RegistrationPageState extends State<RegistrationPage> {
                         borderRadius: BorderRadius.circular(12.0),
                       ),
                     ),
-                    onPressed: _register,
+                    onPressed: _login,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'Registrieren',
+                          'Anmelden',
                           style: TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 17,
@@ -252,48 +227,10 @@ class _RegistrationPageState extends State<RegistrationPage> {
                   ),
                 ),
                 SizedBox(height: 30),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        // Handle Google sign-in
-                      },
-                      child: Image.asset(
-                        'assets/graphics/google_icon.png',
-                        width: 50,
-                        height: 50,
-                      ),
-                    ),
-                    SizedBox(width: 20),
-                    GestureDetector(
-                      onTap: () {
-                        // Handle Facebook sign-in
-                      },
-                      child: Image.asset(
-                        'assets/graphics/facebook_icon.png',
-                        width: 50,
-                        height: 50,
-                      ),
-                    ),
-                    SizedBox(width: 20),
-                    GestureDetector(
-                      onTap: () {
-                        // Handle Apple sign-in
-                      },
-                      child: Image.asset(
-                        'assets/graphics/apple_icon.png',
-                        width: 50,
-                        height: 50,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 30),
                 Center(
                   child: RichText(
                     text: TextSpan(
-                      text: 'Sie haben ein Konto? ',
+                      text: 'Noch keinen Account? ',
                       style: TextStyle(
                         color: Color(0xFF757575), // The grey color for the first part
                         fontSize: 16,
@@ -302,7 +239,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                       ),
                       children: [
                         TextSpan(
-                          text: 'Anmelden',
+                          text: 'Registrieren',
                           style: TextStyle(
                             color: Color(0xFF7FCCB1), // The green color for the clickable part
                             fontSize: 16,
@@ -313,7 +250,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                             ..onTap = () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) => AnmeldenPage()), // Navigate to AnmeldenPage
+                                MaterialPageRoute(builder: (context) => RegistrationPage()),
                               );
                             },
                         ),
@@ -322,25 +259,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
                   ),
                 ),
                 SizedBox(height: 10),
-                Center(
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => BezProfErstellen()),
-                      );
-                    },
-                    child: Text(
-                      'Überspringen',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF7D4666),
-                      ),
-                    ),
-                  ),
-                ),
                 if (_errorMessage.isNotEmpty)
                   Center(
                     child: Padding(

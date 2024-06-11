@@ -47,9 +47,7 @@ dependencies:
   audioplayers: ^6.0.0
   path: ^1.9.0
 
-
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
+  google_sign_in: ^6.2.1
   cupertino_icons: ^1.0.6
   firebase_auth: ^4.19.4
   provider: ^6.1.2
