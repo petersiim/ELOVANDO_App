@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'bez_prof_erstellen.dart'; // Import the BezProfErstellen page
 import 'anmelden_page.dart'; // Import the AnmeldenPage
 
@@ -13,6 +14,7 @@ class RegistrationPage extends StatefulWidget {
 class _RegistrationPageState extends State<RegistrationPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
@@ -149,6 +151,49 @@ class _RegistrationPageState extends State<RegistrationPage> {
     );
   }
 
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _errorMessage = '';
+    });
+
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        // User cancelled the sign-in
+        return;
+      }
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      UserCredential userCredential = await _auth.signInWithCredential(credential);
+      if (userCredential.additionalUserInfo!.isNewUser) {
+        // New user, add user information to Firestore
+        await _firestore.collection('users').doc(userCredential.user!.uid).set({
+          'email': userCredential.user!.email,
+          'createdAt': Timestamp.now(),
+          'emailVerified': true,
+        });
+      }
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => BezProfErstellen()),
+      );
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        _errorMessage = 'Google Anmeldung fehlgeschlagen: ${e.message}';
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Ein unerwarteter Fehler ist aufgetreten: ${e.toString()}';
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -256,9 +301,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     GestureDetector(
-                      onTap: () {
-                        // Handle Google sign-in
-                      },
+                      onTap: _signInWithGoogle,
                       child: Image.asset(
                         'assets/graphics/google_icon.png',
                         width: 50,

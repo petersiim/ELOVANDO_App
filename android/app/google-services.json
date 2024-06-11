@@ -12,7 +12,20 @@
           "package_name": "com.example.ELOVADO_App"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "996434213634-q46gs1ggpnbqrih9k1eipbv5cdmk3m5a.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.ELOVADO_App",
+            "certificate_hash": "5ff7c361cab8e1b1263a9ef5e86a17baa2f15bc5"
+          }
+        },
+        {
+          "client_id": "996434213634-frm39ql550phh67efhc8g7d5cf1ntpni.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCfDu9oW5h3Y43rZ0Dg3EpmEpzFgcu5y1g"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "996434213634-frm39ql550phh67efhc8g7d5cf1ntpni.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
