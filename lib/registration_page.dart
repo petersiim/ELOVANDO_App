@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/gestures.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'bez_prof_erstellen.dart'; // Import the BezProfErstellen page
 import 'anmelden_page.dart'; // Import the AnmeldenPage
+import 'package:flutter/gestures.dart';
 
 class RegistrationPage extends StatefulWidget {
   @override
@@ -194,6 +195,63 @@ class _RegistrationPageState extends State<RegistrationPage> {
     }
   }
 
+  Future<void> _signInWithFacebook() async {
+  setState(() {
+    _errorMessage = '';
+  });
+
+  try {
+    final LoginResult result = await FacebookAuth.instance.login();
+
+    switch (result.status) {
+      case LoginStatus.success:
+       // final accessToken = result.accessToken!.token;
+        final AuthCredential credential = FacebookAuthProvider.credential(accessToken);
+
+        UserCredential userCredential = await _auth.signInWithCredential(credential);
+        if (userCredential.additionalUserInfo!.isNewUser) {
+          // New user, add user information to Firestore
+          await _firestore.collection('users').doc(userCredential.user!.uid).set({
+            'email': userCredential.user!.email,
+            'createdAt': Timestamp.now(),
+            'emailVerified': true,
+          });
+        }
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => BezProfErstellen()),
+        );
+        break;
+      case LoginStatus.cancelled:
+        setState(() {
+          _errorMessage = 'Facebook Anmeldung abgebrochen.';
+        });
+        break;
+      case LoginStatus.failed:
+        setState(() {
+          _errorMessage = 'Facebook Anmeldung fehlgeschlagen: ${result.message}';
+        });
+        break;
+      default:
+        setState(() {
+          _errorMessage = 'Ein unbekannter Fehler ist aufgetreten.';
+        });
+        break;
+    }
+  } on FirebaseAuthException catch (e) {
+    setState(() {
+      _errorMessage = 'Facebook Anmeldung fehlgeschlagen: ${e.message}';
+    });
+  } catch (e) {
+    setState(() {
+      _errorMessage = 'Ein unerwarteter Fehler ist aufgetreten: ${e.toString()}';
+    });
+  }
+}
+
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -310,9 +368,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                     ),
                     SizedBox(width: 20),
                     GestureDetector(
-                      onTap: () {
-                        // Handle Facebook sign-in
-                      },
+                      onTap: _signInWithFacebook,
                       child: Image.asset(
                         'assets/graphics/facebook_icon.png',
                         width: 50,
