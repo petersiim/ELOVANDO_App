@@ -51,6 +51,7 @@ dependencies:
   firebase_auth: ^4.19.4
   provider: ^6.1.2
   firebase_ui_auth: ^1.14.0
+  sign_in_with_apple: ^6.1.0
 
 dev_dependencies:
   flutter_test:
