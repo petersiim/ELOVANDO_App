@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'dart:io';
 import 'data_input_formatter.dart';
 import 'profil_erstellen2_page.dart';
 
@@ -19,6 +23,9 @@ class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
   bool _isNameValid = true;
   bool _isGenderValid = true;
   bool _isDateValid = true;
+
+  File? _selectedImage;
+  String _errorMessage = '';
 
   void _onPageChanged(int index) {
     setState(() {
@@ -66,6 +73,77 @@ class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
       _isDateValid = true;
     });
     return true;
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: source);
+
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImage = File(pickedFile.path);
+      });
+    }
+  }
+
+  Future<PermissionStatus> _requestPhotoPermission() async {
+    final deviceInfo = DeviceInfoPlugin();
+    final androidInfo = await deviceInfo.androidInfo;
+    Permission permissionToRequest;
+
+    if (androidInfo.version.sdkInt <= 32) {
+      permissionToRequest = Permission.storage;
+    } else {
+      permissionToRequest = Permission.photos;
+    }
+
+    if (await permissionToRequest.isDenied) {
+      return await permissionToRequest.request();
+    }
+    return permissionToRequest.status;
+  }
+
+  Future<void> _showImageSourceSelectionDialog() async {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: <Widget>[
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Photo Library'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  PermissionStatus permissionStatus = await _requestPhotoPermission();
+                  if (permissionStatus.isGranted) {
+                    _pickImage(ImageSource.gallery);
+                  } else {
+                    setState(() {
+                      _errorMessage = 'Galerieerlaubnis verweigert';
+                    });
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_camera),
+                title: const Text('Camera'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  if (await Permission.camera.request().isGranted) {
+                    _pickImage(ImageSource.camera);
+                  } else {
+                    setState(() {
+                      _errorMessage = 'Kameraerlaubnis verweigert';
+                    });
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildPage1() {
@@ -295,16 +373,31 @@ class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
           SizedBox(height: 100),
           Center(
             child: GestureDetector(
-              onTap: () {
-                // Handle photo upload action
-              },
-              child: SvgPicture.asset(
-                'assets/graphics/pic_upload_icon.svg',
-                width: 250, // Adjust width as needed
-                height: 250, // Adjust height as needed
-              ),
+              onTap: _showImageSourceSelectionDialog,
+              child: _selectedImage == null
+                  ? SvgPicture.asset(
+                      'assets/graphics/pic_upload_icon.svg',
+                      width: 250, // Adjust width as needed
+                      height: 250, // Adjust height as needed
+                    )
+                  : Image.file(
+                      _selectedImage!,
+                      width: 250,
+                      height: 250,
+                      fit: BoxFit.cover,
+                    ),
             ),
           ),
+          if (_errorMessage.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Text(
+                _errorMessage,
+                style: TextStyle(
+                  color: Colors.red,
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -357,119 +450,118 @@ class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
   }
 
   @override
-Widget build(BuildContext context) {
-  bool isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom != 0;
+  Widget build(BuildContext context) {
+    bool isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom != 0;
 
-  return Scaffold(
-    appBar: AppBar(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      leading: Padding(
-        padding: const EdgeInsets.only(
-            top: 16.0, left: 24.0), // Adjust padding as needed
-        child: GestureDetector(
-          onTap: () {
-            if (_currentPage == 0) {
-              Navigator.pop(context);
-            } else {
-              _pageController.previousPage(
-                duration: Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-              );
-            }
-          },
-          child: Container(
-            width: 60, // Adjusted button size
-            height: 60, // Adjusted button size
-            child: SvgPicture.asset(
-              'assets/graphics/prof_erstellen_back_button.svg',
-              fit: BoxFit.contain, // Ensure the SVG fits within the container
-            ),
-          ),
-        ),
-      ),
-      title: Padding(
-        padding: const EdgeInsets.only(
-            top: 16.0), // Adjust the top padding as needed
-        child: Text(
-          'Profil erstellen',
-          style: TextStyle(
-            color: Color(0xFF414254),
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-      centerTitle: true,
-    ),
-    body: Stack(
-      children: <Widget>[
-        PageView(
-          controller: _pageController,
-          onPageChanged: _onPageChanged,
-          children: [
-            _buildPage1(),
-            _buildPage2(),
-            _buildPage3(),
-            _buildPage4(),
-          ],
-        ),
-        if (!isKeyboardVisible || _currentPage != 0) ...[
-          Positioned(
-            bottom: 80,
-            right: 32,
-            child: GestureDetector(
-              onTap: _nextPage,
-              child: Container(
-                child: Center(
-                  child: SvgPicture.asset(
-                    'assets/graphics/prof_erstellen_weiter_button.svg',
-                    width: 45,
-                    height: 45,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 30,
-            left: 0,
-            right: 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: _buildPageIndicators(),
-            ),
-          ),
-          // Skip Button
-          Positioned(
-            bottom: 100,
-            left: 32,
-            child: GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ProfilErstellen2Page(),
-                  ),
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: Padding(
+          padding: const EdgeInsets.only(
+              top: 16.0, left: 24.0), // Adjust padding as needed
+          child: GestureDetector(
+            onTap: () {
+              if (_currentPage == 0) {
+                Navigator.pop(context);
+              } else {
+                _pageController.previousPage(
+                  duration: Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
                 );
-              },
-              child: Text(
-                "Skip",
-                style: TextStyle(
-                  color: Color(0xFF414254),
-                  fontSize: 13,
-                  fontWeight: FontWeight.normal,
-                  fontFamily: 'Inter',
-                  height: 1.41,
-                  letterSpacing: -0.5,
-                ),
+              }
+            },
+            child: Container(
+              width: 60, // Adjusted button size
+              height: 60, // Adjusted button size
+              child: SvgPicture.asset(
+                'assets/graphics/prof_erstellen_back_button.svg',
+                fit: BoxFit.contain, // Ensure the SVG fits within the container
               ),
             ),
           ),
+        ),
+        title: Padding(
+          padding: const EdgeInsets.only(
+              top: 16.0), // Adjust the top padding as needed
+          child: Text(
+            'Profil erstellen',
+            style: TextStyle(
+              color: Color(0xFF414254),
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        centerTitle: true,
+      ),
+      body: Stack(
+        children: <Widget>[
+          PageView(
+            controller: _pageController,
+            onPageChanged: _onPageChanged,
+            children: [
+              _buildPage1(),
+              _buildPage2(),
+              _buildPage3(),
+              _buildPage4(),
+            ],
+          ),
+          if (!isKeyboardVisible || _currentPage != 0) ...[
+            Positioned(
+              bottom: 80,
+              right: 32,
+              child: GestureDetector(
+                onTap: _nextPage,
+                child: Container(
+                  child: Center(
+                    child: SvgPicture.asset(
+                      'assets/graphics/prof_erstellen_weiter_button.svg',
+                      width: 45,
+                      height: 45,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 30,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: _buildPageIndicators(),
+              ),
+            ),
+            // Skip Button
+            Positioned(
+              bottom: 100,
+              left: 32,
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProfilErstellen2Page(),
+                    ),
+                  );
+                },
+                child: Text(
+                  "Skip",
+                  style: TextStyle(
+                    color: Color(0xFF414254),
+                    fontSize: 13,
+                    fontWeight: FontWeight.normal,
+                    fontFamily: 'Inter',
+                    height: 1.41,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
-      ],
-    ),
-  );
-}
-
+      ),
+    );
+  }
 }
