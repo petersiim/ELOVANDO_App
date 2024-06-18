@@ -3,9 +3,12 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
 import 'data_input_formatter.dart';
 import 'profil_erstellen2_page.dart';
+import 'firestore_service.dart';
 
 class ProfilErstellenPage extends StatefulWidget {
   @override
@@ -13,6 +16,8 @@ class ProfilErstellenPage extends StatefulWidget {
 }
 
 class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
+  final FirestoreService _firestoreService = FirestoreService();
+
   PageController _pageController = PageController();
   int _currentPage = 0;
   int selectedGenderIndex = -1;
@@ -83,66 +88,202 @@ class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
       setState(() {
         _selectedImage = File(pickedFile.path);
       });
+
+      // Upload image to Firebase Storage
+      await _uploadImageToFirebase(_selectedImage!);
     }
   }
 
-  Future<PermissionStatus> _requestPhotoPermission() async {
-    final deviceInfo = DeviceInfoPlugin();
-    final androidInfo = await deviceInfo.androidInfo;
-    Permission permissionToRequest;
+  Future<void> _uploadImageToFirebase(File image) async {
+  try {
+    String userId = FirebaseAuth.instance.currentUser!.uid;
+    String fileName = 'user_images/$userId/profile_image.jpg';
 
-    if (androidInfo.version.sdkInt <= 32) {
-      permissionToRequest = Permission.storage;
+    // Upload image to Firebase Storage
+    Reference ref = FirebaseStorage.instance.ref().child(fileName);
+    await ref.putFile(image);
+
+    // Get the download URL
+    String downloadURL = await ref.getDownloadURL();
+
+    // Store the image URL in Firestore
+    await _firestoreService.updateUserProfile({
+      'profileImageUrl': downloadURL,
+    });
+
+    print('Image uploaded and URL stored in Firestore.');
+  } catch (e) {
+    setState(() {
+      _errorMessage = 'Failed to upload image: $e';
+    });
+    print('Failed to upload image: $e');
+  }
+}
+
+
+  void _nextPage() async {
+    FocusScope.of(context).unfocus(); // This will dismiss the keyboard
+
+    bool isValid = false;
+    if (_currentPage == 0) {
+      isValid = _validatePage1();
+      if (isValid) {
+        await _firestoreService.updateUserProfile({
+          'name': _nameController.text,
+        });
+      }
+    } else if (_currentPage == 1) {
+      isValid = _validatePage2();
+      if (isValid) {
+        await _firestoreService.updateUserProfile({
+          'gender': selectedGenderIndex,
+        });
+      }
+    } else if (_currentPage == 2) {
+      isValid = _validatePage3();
+      if (isValid) {
+        await _firestoreService.updateUserProfile({
+          'birthdate': _dateController.text,
+        });
+      }
     } else {
-      permissionToRequest = Permission.photos;
+      isValid = true;
     }
 
-    if (await permissionToRequest.isDenied) {
-      return await permissionToRequest.request();
-    }
-    return permissionToRequest.status;
-  }
-
-  Future<void> _showImageSourceSelectionDialog() async {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return SafeArea(
-          child: Wrap(
-            children: <Widget>[
-              ListTile(
-                leading: const Icon(Icons.photo_library),
-                title: const Text('Photo Library'),
-                onTap: () async {
-                  Navigator.pop(context);
-                  PermissionStatus permissionStatus = await _requestPhotoPermission();
-                  if (permissionStatus.isGranted) {
-                    _pickImage(ImageSource.gallery);
-                  } else {
-                    setState(() {
-                      _errorMessage = 'Galerieerlaubnis verweigert';
-                    });
-                  }
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo_camera),
-                title: const Text('Camera'),
-                onTap: () async {
-                  Navigator.pop(context);
-                  if (await Permission.camera.request().isGranted) {
-                    _pickImage(ImageSource.camera);
-                  } else {
-                    setState(() {
-                      _errorMessage = 'Kameraerlaubnis verweigert';
-                    });
-                  }
-                },
-              ),
-            ],
+    if (isValid) {
+      if (_currentPage < 3) {
+        _pageController.nextPage(
+          duration: Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      } else {
+        await _firestoreService
+            .markProfileStepCompleted('profileStep1Completed');
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProfilErstellen2Page(),
           ),
         );
-      },
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    bool isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom != 0;
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: Padding(
+          padding: const EdgeInsets.only(
+              top: 16.0, left: 24.0), // Adjust padding as needed
+          child: GestureDetector(
+            onTap: () {
+              if (_currentPage == 0) {
+                Navigator.pop(context);
+              } else {
+                _pageController.previousPage(
+                  duration: Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              }
+            },
+            child: Container(
+              width: 60, // Adjusted button size
+              height: 60, // Adjusted button size
+              child: SvgPicture.asset(
+                'assets/graphics/prof_erstellen_back_button.svg',
+                fit: BoxFit.contain, // Ensure the SVG fits within the container
+              ),
+            ),
+          ),
+        ),
+        title: Padding(
+          padding: const EdgeInsets.only(
+              top: 16.0), // Adjust the top padding as needed
+          child: Text(
+            'Profil erstellen',
+            style: TextStyle(
+              color: Color(0xFF414254),
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        centerTitle: true,
+      ),
+      body: Stack(
+        children: <Widget>[
+          PageView(
+            controller: _pageController,
+            onPageChanged: _onPageChanged,
+            children: [
+              _buildPage1(),
+              _buildPage2(),
+              _buildPage3(),
+              _buildPage4(),
+            ],
+          ),
+          if (!isKeyboardVisible || _currentPage != 0) ...[
+            Positioned(
+              bottom: 80,
+              right: 32,
+              child: GestureDetector(
+                onTap: _nextPage,
+                child: Container(
+                  child: Center(
+                    child: SvgPicture.asset(
+                      'assets/graphics/prof_erstellen_weiter_button.svg',
+                      width: 45,
+                      height: 45,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 30,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: _buildPageIndicators(),
+              ),
+            ),
+            // Skip Button
+            Positioned(
+              bottom: 100,
+              left: 32,
+              child: GestureDetector(
+                onTap: () async {
+                  await _firestoreService
+                      .markProfileStepCompleted('profileStep1Completed');
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProfilErstellen2Page(),
+                    ),
+                  );
+                },
+                child: Text(
+                  "Skip",
+                  style: TextStyle(
+                    color: Color(0xFF414254),
+                    fontSize: 13,
+                    fontWeight: FontWeight.normal,
+                    fontFamily: 'Inter',
+                    height: 1.41,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -354,6 +495,67 @@ class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
     );
   }
 
+  Future<PermissionStatus> _requestPhotoPermission() async {
+    final deviceInfo = DeviceInfoPlugin();
+    final androidInfo = await deviceInfo.androidInfo;
+    Permission permissionToRequest;
+
+    if (androidInfo.version.sdkInt <= 32) {
+      permissionToRequest = Permission.storage;
+    } else {
+      permissionToRequest = Permission.photos;
+    }
+
+    if (await permissionToRequest.isDenied) {
+      return await permissionToRequest.request();
+    }
+    return permissionToRequest.status;
+  }
+
+  Future<void> _showImageSourceSelectionDialog() async {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: <Widget>[
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Photo Library'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  PermissionStatus permissionStatus =
+                      await _requestPhotoPermission();
+                  if (permissionStatus.isGranted) {
+                    _pickImage(ImageSource.gallery);
+                  } else {
+                    setState(() {
+                      _errorMessage = 'Galerieerlaubnis verweigert';
+                    });
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_camera),
+                title: const Text('Camera'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  if (await Permission.camera.request().isGranted) {
+                    _pickImage(ImageSource.camera);
+                  } else {
+                    setState(() {
+                      _errorMessage = 'Kameraerlaubnis verweigert';
+                    });
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildPage4() {
     return Padding(
       padding: EdgeInsets.all(16.0),
@@ -416,152 +618,5 @@ class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
         ),
       );
     });
-  }
-
-  void _nextPage() {
-    FocusScope.of(context).unfocus(); // This will dismiss the keyboard
-
-    bool isValid = false;
-    if (_currentPage == 0) {
-      isValid = _validatePage1();
-    } else if (_currentPage == 1) {
-      isValid = _validatePage2();
-    } else if (_currentPage == 2) {
-      isValid = _validatePage3();
-    } else {
-      isValid = true;
-    }
-
-    if (isValid) {
-      if (_currentPage < 3) {
-        _pageController.nextPage(
-          duration: Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
-      } else {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ProfilErstellen2Page(),
-          ),
-        );
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    bool isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom != 0;
-
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: Padding(
-          padding: const EdgeInsets.only(
-              top: 16.0, left: 24.0), // Adjust padding as needed
-          child: GestureDetector(
-            onTap: () {
-              if (_currentPage == 0) {
-                Navigator.pop(context);
-              } else {
-                _pageController.previousPage(
-                  duration: Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                );
-              }
-            },
-            child: Container(
-              width: 60, // Adjusted button size
-              height: 60, // Adjusted button size
-              child: SvgPicture.asset(
-                'assets/graphics/prof_erstellen_back_button.svg',
-                fit: BoxFit.contain, // Ensure the SVG fits within the container
-              ),
-            ),
-          ),
-        ),
-        title: Padding(
-          padding: const EdgeInsets.only(
-              top: 16.0), // Adjust the top padding as needed
-          child: Text(
-            'Profil erstellen',
-            style: TextStyle(
-              color: Color(0xFF414254),
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: Stack(
-        children: <Widget>[
-          PageView(
-            controller: _pageController,
-            onPageChanged: _onPageChanged,
-            children: [
-              _buildPage1(),
-              _buildPage2(),
-              _buildPage3(),
-              _buildPage4(),
-            ],
-          ),
-          if (!isKeyboardVisible || _currentPage != 0) ...[
-            Positioned(
-              bottom: 80,
-              right: 32,
-              child: GestureDetector(
-                onTap: _nextPage,
-                child: Container(
-                  child: Center(
-                    child: SvgPicture.asset(
-                      'assets/graphics/prof_erstellen_weiter_button.svg',
-                      width: 45,
-                      height: 45,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: 30,
-              left: 0,
-              right: 0,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: _buildPageIndicators(),
-              ),
-            ),
-            // Skip Button
-            Positioned(
-              bottom: 100,
-              left: 32,
-              child: GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ProfilErstellen2Page(),
-                    ),
-                  );
-                },
-                child: Text(
-                  "Skip",
-                  style: TextStyle(
-                    color: Color(0xFF414254),
-                    fontSize: 13,
-                    fontWeight: FontWeight.normal,
-                    fontFamily: 'Inter',
-                    height: 1.41,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
   }
 }

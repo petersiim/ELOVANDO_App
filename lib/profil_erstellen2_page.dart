@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'partner_einladung_page.dart';
+import 'firestore_service.dart';
 
 class ProfilErstellen2Page extends StatefulWidget {
   @override
@@ -7,10 +9,13 @@ class ProfilErstellen2Page extends StatefulWidget {
 }
 
 class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
+  final FirestoreService _firestoreService = FirestoreService();
+
   PageController _pageController = PageController();
   int _currentPage = 0;
-  List<int> selectedOptionIndexes = List<int>.generate(7, (index) => -1);
+  List<int> selectedOptionIndexes = List<int>.generate(6, (index) => -1);
   bool showError = false;
+  TextEditingController _lastQuestionController = TextEditingController();
 
   @override
   void initState() {
@@ -25,6 +30,11 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
   }
 
   bool _validateCurrentPage() {
+    // Page 7 doesn't require option selection validation
+    if (_currentPage == 6) {
+      return true;
+    }
+
     if (selectedOptionIndexes[_currentPage] == -1) {
       setState(() {
         showError = true;
@@ -32,6 +42,172 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
       return false;
     }
     return true;
+  }
+
+  void _nextPage() async {
+    FocusScope.of(context).unfocus(); // This will dismiss the keyboard
+
+    bool isValid = _validateCurrentPage();
+
+    if (isValid) {
+      if (_currentPage < 6) {
+        // Store the selected option for the current page in Firestore
+        await _firestoreService.updateUserProfile({
+          'question${_currentPage + 1}': _getAnswerText(_currentPage, selectedOptionIndexes[_currentPage]),
+        });
+
+        _pageController.nextPage(
+          duration: Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      } else {
+        // Store the answer for the last question
+        await _firestoreService.updateUserProfile({
+          'question7': _lastQuestionController.text,
+        });
+
+        // Mark profile step 2 completed
+        await _firestoreService.markProfileStepCompleted('profileStep2Completed');
+        // Navigate to PartnerEinladungPage
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => PartnerEinladungPage()),
+        );
+      }
+    }
+  }
+
+  void _skipPage() async {
+    // Mark profile step 2 completed
+    await _firestoreService.markProfileStepCompleted('profileStep2Completed');
+    // Navigate to PartnerEinladungPage
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => PartnerEinladungPage()),
+    );
+  }
+
+  String _getAnswerText(int questionIndex, int answerIndex) {
+    List<List<String>> options = [
+      ['Romantische Komödie', 'Action-Abenteuer', 'Mystery-Thriller', 'Dokumentarfilm'],
+      ['Löwen, die beschützend sind', 'Papageien, die kommunikativ sind', 'Füchse, die schlau und verspielt sind', 'Elefanten, die liebevoll und gedächtnisstark sind'],
+      ['Der Chefkoch, der die Hauptgerichte zubereitet', 'Der Sous-Chef, der assistiert und experimentiert', 'Der Geschmackstester, der die Qualität sicherstellt', 'Der Organisator, der dafür sorgt, dass alles am richtigen Platz ist'],
+      ['Der Chefkoch, der die Hauptgerichte zubereitet', 'Der Sous-Chef, der assistiert und experimentiert', 'Der Geschmackstester, der die Qualität sicherstellt', 'Der Organisator, der dafür sorgt, dass alles am richtigen Platz ist'],
+      ['Wie ein Cheerleader, der anfeuert', 'Wie ein Coach, der Lösungen bietet', 'Wie ein stiller Unterstützer, der im Hintergrund hilft'],
+      ['Hochmut, dem Anerkennung über alles wichtig in einer Beziehung', 'Habgier, dem ein schöner Lifestyle gefällt für dich zu einer erfüllten Beziehung', 'Wollust, denn Körperlichkeit spielt für dich eine große Rolle', 'Zorn, weil du mit vollem Herz dabei bist', 'Völlerei, weil deine Beziehung ohne Genuss für dich nicht geht', 'Neid, weil du dir nur das Beste für dich und deinen Partner / deine Partnerin wünschst', 'Trägheit, weil Gemütlichkeit und Liebe für dich zusammengehören']
+    ];
+
+    return options[questionIndex][answerIndex];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    bool isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom != 0;
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: Padding(
+          padding: const EdgeInsets.only(top: 16.0, left: 24.0),
+          child: GestureDetector(
+            onTap: () {
+              if (_currentPage == 0) {
+                Navigator.pop(context);
+              } else {
+                _pageController.previousPage(
+                  duration: Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              }
+            },
+            child: Container(
+              width: 60,
+              height: 60,
+              child: SvgPicture.asset(
+                'assets/graphics/prof_erstellen_back_button.svg',
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+        ),
+        title: Padding(
+          padding: const EdgeInsets.only(top: 16.0),
+          child: Text(
+            'Profil erstellen',
+            style: TextStyle(
+              color: Color(0xFF414254),
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        centerTitle: true,
+      ),
+      body: Stack(
+        children: <Widget>[
+          PageView(
+            controller: _pageController,
+            onPageChanged: _onPageChanged,
+            children: [
+              _buildPage1(),
+              _buildPage2(),
+              _buildPage3(),
+              _buildPage4(),
+              _buildPage5(),
+              _buildPage6(),
+              _buildPage7(),
+            ],
+          ),
+          if (!isKeyboardVisible || _currentPage != 6) ...[
+            Positioned(
+              bottom: 80,
+              right: 32,
+              child: GestureDetector(
+                onTap: _nextPage,
+                child: Container(
+                  child: Center(
+                    child: SvgPicture.asset(
+                      'assets/graphics/prof_erstellen_weiter_button.svg',
+                      width: 45,
+                      height: 45,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 30,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: _buildPageIndicators(),
+              ),
+            ),
+            // Skip Button
+            Positioned(
+              bottom: 100,
+              left: 32,
+              child: GestureDetector(
+                onTap: _skipPage,
+                child: Text(
+                  "Skip",
+                  style: TextStyle(
+                    color: Color(0xFF414254),
+                    fontSize: 13,
+                    fontWeight: FontWeight.normal,
+                    fontFamily: 'Inter',
+                    height: 1.41,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   Widget _buildPage1() {
@@ -169,6 +345,7 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
               child: SingleChildScrollView(
                 padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                 child: TextField(
+                  controller: _lastQuestionController,
                   maxLines: null,
                   decoration: InputDecoration(
                     hintText: 'Text eingeben...',
@@ -201,8 +378,7 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
     );
   }
 
-  Widget _buildOptionPage(
-      String question, List<String> options, int pageIndex) {
+  Widget _buildOptionPage(String question, List<String> options, int pageIndex) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 34.0, vertical: 52.0),
       child: Column(
@@ -288,143 +464,5 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
         ),
       );
     });
-  }
-
-  void _nextPage() {
-    FocusScope.of(context).unfocus(); // This will dismiss the keyboard
-
-    bool isValid = _validateCurrentPage();
-
-    if (isValid) {
-      if (_currentPage < 6) {
-        _pageController.nextPage(
-          duration: Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
-      } else {
-        // Handle profile creation or navigation to the next page
-      }
-    }
-  }
-
-  void _skipPage() {
-    if (_currentPage < 6) {
-      _pageController.nextPage(
-        duration: Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    } else {
-      // Handle profile creation or navigation to the next page
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    bool isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom != 0;
-
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: Padding(
-          padding: const EdgeInsets.only(top: 16.0, left: 24.0),
-          child: GestureDetector(
-            onTap: () {
-              if (_currentPage == 0) {
-                Navigator.pop(context);
-              } else {
-                _pageController.previousPage(
-                  duration: Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                );
-              }
-            },
-            child: Container(
-              width: 60,
-              height: 60,
-              child: SvgPicture.asset(
-                'assets/graphics/prof_erstellen_back_button.svg',
-                fit: BoxFit.contain,
-              ),
-            ),
-          ),
-        ),
-        title: Padding(
-          padding: const EdgeInsets.only(top: 16.0),
-          child: Text(
-            'Profil erstellen',
-            style: TextStyle(
-              color: Color(0xFF414254),
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: Stack(
-        children: <Widget>[
-          PageView(
-            controller: _pageController,
-            onPageChanged: _onPageChanged,
-            children: [
-              _buildPage1(),
-              _buildPage2(),
-              _buildPage3(),
-              _buildPage4(),
-              _buildPage5(),
-              _buildPage6(),
-              _buildPage7(),
-            ],
-          ),
-          if (!isKeyboardVisible || _currentPage != 6) ...[
-            Positioned(
-              bottom: 80,
-              right: 32,
-              child: GestureDetector(
-                onTap: _nextPage,
-                child: Container(
-                  child: Center(
-                    child: SvgPicture.asset(
-                      'assets/graphics/prof_erstellen_weiter_button.svg',
-                      width: 45,
-                      height: 45,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: 30,
-              left: 0,
-              right: 0,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: _buildPageIndicators(),
-              ),
-            ),
-            // Skip Button
-            Positioned(
-              bottom: 100,
-              left: 32,
-              child: GestureDetector(
-                onTap: _skipPage,
-                child: Text(
-                  "Skip",
-                  style: TextStyle(
-                    color: Color(0xFF414254),
-                    fontSize: 13,
-                    fontWeight: FontWeight.normal,
-                    fontFamily: 'Inter',
-                    height: 1.41,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
   }
 }
