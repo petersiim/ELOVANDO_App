@@ -28,7 +28,7 @@ class PartnerEinladungPage extends StatelessWidget {
                 clipBehavior: Clip.none,
                 children: [
                   Positioned(
-                    right: -20,
+                    right: -80,
                     child: SvgPicture.asset(
                       'assets/graphics/anonymus_icon_with_plus.svg',
                       width: 120,

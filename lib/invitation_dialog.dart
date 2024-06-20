@@ -1,4 +1,3 @@
-// invitation_dialog.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -32,9 +31,9 @@ void showInvitationDialog(BuildContext context) {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildInvitationOption('Whatsapp', 'assets/graphics/whatsapp_icon.svg'),
-                      _buildInvitationOption('SMS', 'assets/graphics/sms_icon.svg'),
-                      _buildInvitationOption('E-mail', 'assets/graphics/E-mail_icon.svg'),
+                      _buildInvitationOption('assets/graphics/whatsapp_icon.svg'),
+                      _buildInvitationOption('assets/graphics/sms_icon.svg'),
+                      _buildInvitationOption('assets/graphics/E-mail_icon.svg'),
                     ],
                   ),
                   SizedBox(height: 16),
@@ -70,10 +69,11 @@ void showInvitationDialog(BuildContext context) {
                       Container(
                         color: Colors.white,
                         padding: EdgeInsets.all(8),
-                        child: Image.asset(
-                          'assets/graphics/qr_code.png',
-                          width: 80,
-                          height: 80,
+                        child: Placeholder(
+                          fallbackWidth: 80,
+                          fallbackHeight: 80,
+                          color: Colors.grey,
+                          strokeWidth: 2,
                         ),
                       ),
                     ],
@@ -113,24 +113,10 @@ void showInvitationDialog(BuildContext context) {
   );
 }
 
-Widget _buildInvitationOption(String label, String iconPath) {
-  return Column(
-    children: [
-      SvgPicture.asset(
-        iconPath,
-        width: 48,
-        height: 48,
-      ),
-      SizedBox(height: 8),
-      Text(
-        label,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF414254),
-          fontFamily: 'Inter',
-        ),
-      ),
-    ],
+Widget _buildInvitationOption(String iconPath) {
+  return SvgPicture.asset(
+    iconPath,
+    width: 48,
+    height: 48,
   );
 }
