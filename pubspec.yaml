@@ -113,6 +113,8 @@ flutter:
     - assets\graphics\profil_erstellen_MC_item_selected.svg
     - assets\graphics\send_message_icon.svg
     - assets\graphics\voice_input_icon.svg
+    - assets\graphics\bell_icon.svg
+    - assets\graphics\anonymus_icon.svg
 
 
 
