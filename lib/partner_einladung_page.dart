@@ -1,9 +1,11 @@
+// partner_einladung_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'custom_app_bar.dart';
 import 'firestore_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'invitation_dialog.dart'; // Import the new dialog
 
 class PartnerEinladungPage extends StatelessWidget {
   @override
@@ -19,20 +21,41 @@ class PartnerEinladungPage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             SizedBox(height: 20),
-            FutureBuilder<String>(
-              future: _fetchUserImageUrl(userId),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return CircleAvatar(
+            Container(
+              alignment: Alignment.center,
+              child: Stack(
+                alignment: Alignment.center,
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned(
+                    right: -20,
+                    child: SvgPicture.asset(
+                      'assets/graphics/anonymus_icon_with_plus.svg',
+                      width: 120,
+                      height: 120,
+                    ),
+                  ),
+                  CircleAvatar(
                     radius: 60,
-                    backgroundColor: Colors.grey,
-                  );
-                }
-                return CircleAvatar(
-                  radius: 60,
-                  backgroundImage: NetworkImage(snapshot.data!),
-                );
-              },
+                    backgroundColor: Colors.transparent,
+                    child: FutureBuilder<String>(
+                      future: _fetchUserImageUrl(userId),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) {
+                          return CircleAvatar(
+                            radius: 60,
+                            backgroundColor: Colors.grey,
+                          );
+                        }
+                        return CircleAvatar(
+                          radius: 60,
+                          backgroundImage: NetworkImage(snapshot.data!),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
             SizedBox(height: 20),
             Text(
@@ -59,7 +82,7 @@ class PartnerEinladungPage extends StatelessWidget {
             SizedBox(height: 20),
             ElevatedButton.icon(
               onPressed: () {
-                // Handle sending invitation
+                showInvitationDialog(context); // Show the dialog
               },
               icon: Icon(Icons.share),
               label: Text('Partner-Einladung'),

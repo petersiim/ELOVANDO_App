@@ -115,6 +115,11 @@ flutter:
     - assets\graphics\voice_input_icon.svg
     - assets\graphics\bell_icon.svg
     - assets\graphics\anonymus_icon.svg
+    - assets\graphics\anonymus_icon_with_plus.svg
+    - assets\graphics\E-mail_icon.svg
+    - assets\graphics\whatsapp_icon.svg
+    - assets\graphics\sms_icon.svg
+    - assets\graphics\pop_up_X_button.svg
 
 
 
