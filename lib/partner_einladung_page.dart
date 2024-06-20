@@ -86,7 +86,7 @@ class PartnerEinladungPage extends StatelessWidget {
               icon: Icon(Icons.share),
               label: Text('Partner-Einladung'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF915C9D), // Background color
+                backgroundColor: Color(0xFF7D4666), // Background color
                 foregroundColor: Colors.white, // Text color
                 textStyle: TextStyle(
                   fontSize: 16,
