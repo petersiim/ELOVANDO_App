@@ -1,4 +1,3 @@
-// partner_einladung_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -70,7 +69,7 @@ class PartnerEinladungPage extends StatelessWidget {
             ),
             SizedBox(height: 16),
             Text(
-              'Lass uns jetzt noch deinen Partner überzeugen, damit ihr gemeinsam Descalate für eure Beziehung nutzen könnt, denn unsere Love Sessions könnt ihr nur gemeinsam durchführen. Sende deinem Partner eine Einladung, um die Descalate-App zu nutzen.',
+              'Lass uns jetzt noch deinen Partner überzeugen, damit ihr gemeinsam ELOVANDO für eure Beziehung nutzen könnt, denn unsere Love Sessions könnt ihr nur gemeinsam durchführen. Sende deinem Partner eine Einladung, um die ELOVANDO-App zu nutzen.',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.normal,
