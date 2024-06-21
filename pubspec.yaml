@@ -120,9 +120,12 @@ flutter:
     - assets\graphics\whatsapp_icon.svg
     - assets\graphics\sms_icon.svg
     - assets\graphics\pop_up_X_button.svg
-
-
-
+    - assets\graphics\home_love_session_starten_animation_graphic.svg
+    - assets\graphics\home_screen_background_for_names_inkl_logo.svg
+    - assets\graphics\home_screen_heart_dialoge.svg
+    - assets\graphics\home_screen_love_session_starten_background_without animation.svg
+    - assets\graphics\home_screen_mint_star.svg
+    - assets\graphics\home_screen_white_heart.svg
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
 
