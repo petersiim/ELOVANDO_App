@@ -26,7 +26,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    userFuture = FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
+    userFuture =
+        FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
     _initializeLeavesControllers();
     _startLeavesAnimations();
   }
@@ -65,8 +66,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   void _setRandomTransformations(int index) {
     if (_flipHorizontally.length <= index) {
       _flipHorizontally.add(random.nextBool());
-      _rotationAngles.add((random.nextDouble() - 0.5) * pi / 3); // Rotate between -60 to 60 degrees
-      _scaleFactors.add(0.8 + random.nextDouble() * 0.4); // Scale between 0.8 and 1.2
+      _rotationAngles.add((random.nextDouble() - 0.5) *
+          pi /
+          3); // Rotate between -60 to 60 degrees
+      _scaleFactors
+          .add(0.8 + random.nextDouble() * 0.4); // Scale between 0.8 and 1.2
     } else {
       _flipHorizontally[index] = random.nextBool();
       _rotationAngles[index] = (random.nextDouble() - 0.5) * pi / 3;
@@ -178,25 +182,34 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           child: LayoutBuilder(
                             builder: (context, constraints) {
                               return SizedBox(
-                                width: constraints.maxWidth*0.9,
-                                height: constraints.maxHeight *0.9,
+                                width: constraints.maxWidth * 0.9,
+                                height: constraints.maxHeight * 0.9,
                                 child: Stack(
                                   children: [
-                                    for (int i = 0; i < _leavesControllers.length; i++)
+                                    for (int i = 0;
+                                        i < _leavesControllers.length;
+                                        i++)
                                       AnimatedBuilder(
                                         animation: _leavesControllers[i],
                                         builder: (context, child) {
                                           return Transform.translate(
-                                            offset: _leavesAnimations[i].value * constraints.maxWidth,
+                                            offset: _leavesAnimations[i].value *
+                                                constraints.maxWidth,
                                             child: Transform(
                                               alignment: Alignment.center,
                                               transform: Matrix4.identity()
-                                                ..scale(_flipHorizontally[i] ? -_scaleFactors[i] : _scaleFactors[i], _scaleFactors[i])
+                                                ..scale(
+                                                    _flipHorizontally[i]
+                                                        ? -_scaleFactors[i]
+                                                        : _scaleFactors[i],
+                                                    _scaleFactors[i])
                                                 ..rotateZ(_rotationAngles[i]),
                                               child: SvgPicture.asset(
                                                 'assets/graphics/home_love_session_starten_animation_graphic.svg',
-                                                width: 100, // Adjust the size as needed
-                                                height: 100, // Adjust the size as needed
+                                                width:
+                                                    100, // Adjust the size as needed
+                                                height:
+                                                    100, // Adjust the size as needed
                                               ),
                                             ),
                                           );
@@ -213,51 +226,60 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   ),
                 ),
                 SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildOptionCard(
-                      'Beziehungs-Input geben',
-                      'assets/graphics/home_screen_white_heart.svg',
-                      Color(0xFF7D4666),
-                      Colors.white,
-                    ),
-                    _buildOptionCard(
-                      'Love Session-Feedback geben',
-                      'assets/graphics/home_screen_mint_star.svg',
-                      Colors.white,
-                      Color(0xFF414254),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 20),
-                Container(
-                  padding: EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                      horizontal:
+                          10), // Absolute padding for left and right of the whole row
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      SvgPicture.asset(
-                        'assets/graphics/home_screen_heart_dialoge.svg',
-                        width: 40,
-                        height: 40,
+                      _buildOptionCard(
+                        'Beziehungs-\nInput geben',
+                        'assets/graphics/home_screen_white_heart.svg',
+                        Color(0xFF7D4666),
+                        Colors.white,
                       ),
-                      SizedBox(width: 16),
-                      Expanded(
-                        child: Text(
-                          'Ihr habt bisher 5h in eure Beziehung investiert!',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Color(0xFF414254),
-                            fontFamily: 'Inter',
-                          ),
-                        ),
+                      _buildOptionCard(
+                        'Love Session-\nFeedback geben',
+                        'assets/graphics/home_screen_mint_star.svg',
+                        Colors.white,
+                        Color(0xFF414254),
                       ),
                     ],
                   ),
                 ),
+                SizedBox(height: 20),
+                Padding(
+  padding: EdgeInsets.symmetric(horizontal: 18), // Absolute padding for left and right
+  child: Container(
+    padding: EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Row(
+      children: [
+        SvgPicture.asset(
+          'assets/graphics/home_screen_heart_dialoge.svg',
+          width: 40,
+          height: 40,
+        ),
+        SizedBox(width: 16),
+        Expanded(
+          child: Text(
+            'Ihr habt bisher 5h in eure Beziehung investiert!',
+            style: TextStyle(
+              fontSize: 16,
+              color: Color(0xFF414254),
+              fontFamily: 'Inter',
+            ),
+          ),
+        ),
+      ],
+    ),
+  ),
+),
+
               ],
             ),
           );
@@ -266,7 +288,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildOptionCard(String text, String iconPath, Color bgColor, Color textColor) {
+  Widget _buildOptionCard(
+      String text, String iconPath, Color bgColor, Color textColor) {
     return Expanded(
       child: Container(
         padding: EdgeInsets.symmetric(vertical: 16, horizontal: 8),
@@ -275,22 +298,22 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           color: bgColor,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment:
+              CrossAxisAlignment.start, // Aligns children to the left
           children: [
             SvgPicture.asset(
               iconPath,
               width: 40,
               height: 40,
             ),
-            SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                text,
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 14,
-                  fontFamily: 'Inter',
-                ),
+            SizedBox(height: 8),
+            Text(
+              text,
+              style: TextStyle(
+                color: textColor,
+                fontSize: 14,
+                fontFamily: 'Inter',
               ),
             ),
           ],
