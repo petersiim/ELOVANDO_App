@@ -20,9 +20,12 @@ class HomePage extends StatelessWidget {
               Stack(
                 alignment: Alignment.center,
                 children: [
-                  SvgPicture.asset(
-                    'assets/graphics/home_screen_background_for_names_inkl_logo.svg',
+                  SizedBox(
                     width: double.infinity,
+                    child: SvgPicture.asset(
+                      'assets/graphics/home_screen_background_for_names_inkl_logo.svg',
+                      fit: BoxFit.cover,
+                    ),
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -54,27 +57,34 @@ class HomePage extends StatelessWidget {
               ),
               SizedBox(height: 20),
               Container(
+                width: double.infinity,
                 decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage('assets/graphics/home_screen_love_session_starten_background_without animation.svg'),
-                    fit: BoxFit.cover,
-                  ),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: ListTile(
-                  title: Text(
-                    'Love Session starten',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF414254),
-                      fontFamily: 'Inter',
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    SvgPicture.asset(
+                      'assets/graphics/home_screen_love_session_starten_background_without_animation.svg',
+                      fit: BoxFit.cover,
+                      width: double.infinity,
                     ),
-                  ),
-                  trailing: Icon(Icons.arrow_forward, color: Color(0xFF414254)),
-                  onTap: () {
-                    // Handle onTap
-                  },
+                    ListTile(
+                      title: Text(
+                        'Love Session starten',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF414254),
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                      trailing: Icon(Icons.arrow_forward, color: Color(0xFF414254)),
+                      onTap: () {
+                        // Handle onTap
+                      },
+                    ),
+                  ],
                 ),
               ),
               SizedBox(height: 20),
