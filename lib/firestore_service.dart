@@ -23,4 +23,15 @@ class FirestoreService {
       print('Error marking profile step completed: $e');
     }
   }
+
+  Future<Map<String, dynamic>> getUserProfile() async {
+    try {
+      String userId = _auth.currentUser!.uid;
+      DocumentSnapshot doc = await _db.collection('users').doc(userId).get();
+      return doc.data() as Map<String, dynamic>;
+    } catch (e) {
+      print('Error fetching user profile: $e');
+      return {};
+    }
+  }
 }
