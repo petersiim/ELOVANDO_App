@@ -178,8 +178,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           child: LayoutBuilder(
                             builder: (context, constraints) {
                               return SizedBox(
-                                width: constraints.maxWidth,
-                                height: constraints.maxHeight,
+                                width: constraints.maxWidth*0.9,
+                                height: constraints.maxHeight *0.9,
                                 child: Stack(
                                   children: [
                                     for (int i = 0; i < _leavesControllers.length; i++)
