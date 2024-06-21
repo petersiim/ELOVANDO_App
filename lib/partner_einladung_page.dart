@@ -5,6 +5,7 @@ import 'custom_app_bar.dart';
 import 'firestore_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'invitation_dialog.dart'; // Import the new dialog
+import 'home_page.dart'; // Import the Home Page
 
 class PartnerEinladungPage extends StatelessWidget {
   @override
@@ -103,7 +104,10 @@ class PartnerEinladungPage extends StatelessWidget {
             SizedBox(height: 20),
             TextButton(
               onPressed: () {
-                // Handle skip action
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => HomePage(userId: userId)),
+                );
               },
               child: Text(
                 'Skip',
