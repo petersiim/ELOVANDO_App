@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'custom_app_bar.dart';
+import 'app_nav_bar.dart'; // Import the new navigation bar file
 
 class HomePage extends StatefulWidget {
   final String userId;
@@ -15,6 +16,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late Future<DocumentSnapshot> userFuture;
+  int _currentIndex = 0;
 
   final List<AnimationController> _leavesControllers = [];
   final List<Animation<Offset>> _leavesAnimations = [];
@@ -90,6 +92,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   void dispose() {
     _leavesControllers.forEach((controller) => controller.dispose());
     super.dispose();
+  }
+
+  void _onNavBarTap(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+    // Handle navigation logic here
   }
 
   @override
@@ -178,47 +187,62 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         ),
                       ),
                       Positioned.fill(
-                        child: ClipRect(
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              return SizedBox(
-                                width: constraints.maxWidth * 0.9,
-                                height: constraints.maxHeight * 0.9,
-                                child: Stack(
-                                  children: [
-                                    for (int i = 0;
-                                        i < _leavesControllers.length;
-                                        i++)
-                                      AnimatedBuilder(
-                                        animation: _leavesControllers[i],
-                                        builder: (context, child) {
-                                          return Transform.translate(
-                                            offset: _leavesAnimations[i].value *
-                                                constraints.maxWidth,
-                                            child: Transform(
-                                              alignment: Alignment.center,
-                                              transform: Matrix4.identity()
-                                                ..scale(
-                                                    _flipHorizontally[i]
-                                                        ? -_scaleFactors[i]
-                                                        : _scaleFactors[i],
-                                                    _scaleFactors[i])
-                                                ..rotateZ(_rotationAngles[i]),
-                                              child: SvgPicture.asset(
-                                                'assets/graphics/home_love_session_starten_animation_graphic.svg',
-                                                width:
-                                                    100, // Adjust the size as needed
-                                                height:
-                                                    100, // Adjust the size as needed
+                        child: Padding(
+                          padding: const EdgeInsets.all(
+                              3), // Adjust padding as needed
+                          child: ClipRRect(
+                            borderRadius:
+                                BorderRadius.circular(8), // Rounded corners
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                return Container(
+                                  width: constraints.maxWidth,
+                                  height: constraints.maxHeight,
+                                  decoration: BoxDecoration(
+                                    /* border: Border.all(
+                                        color: Colors.red,
+                                        width:
+                                            1),  */// Red border to visualize the area
+                                    borderRadius: BorderRadius.circular(
+                                        8), // Rounded corners
+                                  ),
+                                  child: Stack(
+                                    children: [
+                                      for (int i = 0;
+                                          i < _leavesControllers.length;
+                                          i++)
+                                        AnimatedBuilder(
+                                          animation: _leavesControllers[i],
+                                          builder: (context, child) {
+                                            return Transform.translate(
+                                              offset:
+                                                  _leavesAnimations[i].value *
+                                                      constraints.maxWidth,
+                                              child: Transform(
+                                                alignment: Alignment.center,
+                                                transform: Matrix4.identity()
+                                                  ..scale(
+                                                      _flipHorizontally[i]
+                                                          ? -_scaleFactors[i]
+                                                          : _scaleFactors[i],
+                                                      _scaleFactors[i])
+                                                  ..rotateZ(_rotationAngles[i]),
+                                                child: SvgPicture.asset(
+                                                  'assets/graphics/home_love_session_starten_animation_graphic.svg',
+                                                  width:
+                                                      80, // Adjust the size as needed
+                                                  height:
+                                                      80, // Adjust the size as needed
+                                                ),
                                               ),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                  ],
-                                ),
-                              );
-                            },
+                                            );
+                                          },
+                                        ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
                           ),
                         ),
                       ),
@@ -250,40 +274,44 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 ),
                 SizedBox(height: 20),
                 Padding(
-  padding: EdgeInsets.symmetric(horizontal: 18), // Absolute padding for left and right
-  child: Container(
-    padding: EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: Row(
-      children: [
-        SvgPicture.asset(
-          'assets/graphics/home_screen_heart_dialoge.svg',
-          width: 40,
-          height: 40,
-        ),
-        SizedBox(width: 16),
-        Expanded(
-          child: Text(
-            'Ihr habt bisher 5h in eure Beziehung investiert!',
-            style: TextStyle(
-              fontSize: 16,
-              color: Color(0xFF414254),
-              fontFamily: 'Inter',
-            ),
-          ),
-        ),
-      ],
-    ),
-  ),
-),
-
+                  padding: EdgeInsets.symmetric(
+                      horizontal: 18), // Absolute padding for left and right
+                  child: Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        SvgPicture.asset(
+                          'assets/graphics/home_screen_heart_dialoge.svg',
+                          width: 40,
+                          height: 40,
+                        ),
+                        SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            'Ihr habt bisher 5h in eure Beziehung investiert!',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Color(0xFF414254),
+                              fontFamily: 'Inter',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           );
         },
+      ),
+      bottomNavigationBar: AppNavBar(
+        currentIndex: _currentIndex,
+        onTap: _onNavBarTap,
       ),
     );
   }

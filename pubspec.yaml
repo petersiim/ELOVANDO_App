@@ -128,6 +128,11 @@ flutter:
     - assets\graphics\home_screen_white_heart.svg
     - assets\graphics\home_screen_background_for_names_inkl_logo.png
     - assets\graphics\home_screen_love_session_starten_background_without_animation.png
+    - assets\graphics\icon_menu_chat.svg
+    - assets\graphics\icon_menu_home.svg
+    - assets\graphics\icon_menu_inputs.svg
+    - assets\graphics\icon_menu_love_session.svg
+    - assets\graphics\icon_menu_sessions.svg
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
 
