@@ -54,6 +54,7 @@ dependencies:
   firebase_ui_auth: ^1.14.0
   sign_in_with_apple: ^6.1.0
   device_info_plus: ^10.1.0
+  shared_preferences: ^2.2.3
 
 dev_dependencies:
   flutter_test:
@@ -133,6 +134,7 @@ flutter:
     - assets\graphics\icon_menu_inputs.svg
     - assets\graphics\icon_menu_love_session.svg
     - assets\graphics\icon_menu_sessions.svg
+    - assets\graphics\logo_white_with_text.svg
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
 
