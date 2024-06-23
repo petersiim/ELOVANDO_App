@@ -135,6 +135,11 @@ flutter:
     - assets\graphics\icon_menu_love_session.svg
     - assets\graphics\icon_menu_sessions.svg
     - assets\graphics\logo_white_with_text.svg
+    - assets\graphics\profile_screen_X_icon.svg
+    - assets\graphics\profile_datenschutz_icon.svg
+    - assets\graphics\profile_settings_icon.svg
+    - assets\graphics\profile_star_icon.svg
+    - assets\graphics\profile_ueberuns_icon.svg
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
 
