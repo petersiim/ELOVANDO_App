@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'chat_page.dart'; // Import the ChatPage widget
-import 'love_session_page.dart';
+import 'chat_page_old.dart'; // Import the ChatPage widget
+import 'love_session_page_old.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'microphone_permission.dart';
 import 'microphone_permission_factory.dart';
