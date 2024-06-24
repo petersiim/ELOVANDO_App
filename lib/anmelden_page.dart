@@ -76,7 +76,7 @@ class _AnmeldenPageState extends State<AnmeldenPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xFF7D4666),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.0),
+                    borderRadius: BorderRadius.circular(8.0),
                   ),
                 ),
                 child: Text(
@@ -122,6 +122,25 @@ class _AnmeldenPageState extends State<AnmeldenPage> {
         );
       },
     );
+  }
+
+  void _resetPassword() {
+    final String email = _emailController.text.trim();
+    if (email.isNotEmpty) {
+      _auth.sendPasswordResetEmail(email: email).then((value) {
+        setState(() {
+          _errorMessage = 'Password reset email sent. Please check your email.';
+        });
+      }).catchError((error) {
+        setState(() {
+          _errorMessage = error.message ?? 'An error occurred';
+        });
+      });
+    } else {
+      setState(() {
+        _errorMessage = 'Please enter your email to reset your password.';
+      });
+    }
   }
 
   @override
@@ -252,6 +271,35 @@ class _AnmeldenPageState extends State<AnmeldenPage> {
                                 context,
                                 MaterialPageRoute(builder: (context) => RegistrationPage()),
                               );
+                            },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: 10),
+                Center(
+                  child: RichText(
+                    text: TextSpan(
+                      text: 'Passwort vergessen? ',
+                      style: TextStyle(
+                        color: Color(0xFF757575), // The grey color for the first part
+                        fontSize: 16,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.normal,
+                      ),
+                      children: [
+                        TextSpan(
+                          text: 'Zurücksetzen',
+                          style: TextStyle(
+                            color: Color(0xFF7FCCB1), // The green color for the clickable part
+                            fontSize: 16,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.normal,
+                          ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () {
+                              _resetPassword();
                             },
                         ),
                       ],

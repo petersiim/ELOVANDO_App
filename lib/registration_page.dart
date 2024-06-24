@@ -104,7 +104,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xFF7D4666),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.0),
+                    borderRadius: BorderRadius.circular(8.0),
                   ),
                 ),
                 child: Text(
@@ -374,7 +374,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                   ),
                 ),
                 SizedBox(height: 10),
-                Center(
+                /* Center(
                   child: TextButton(
                     onPressed: () {
                       Navigator.pushReplacement(
@@ -392,7 +392,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                       ),
                     ),
                   ),
-                ),
+                ), */
                 if (_errorMessage.isNotEmpty)
                   Center(
                     child: Padding(

@@ -95,31 +95,30 @@ class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
   }
 
   Future<void> _uploadImageToFirebase(File image) async {
-  try {
-    String userId = FirebaseAuth.instance.currentUser!.uid;
-    String fileName = 'user_images/$userId/profile_image.jpg';
+    try {
+      String userId = FirebaseAuth.instance.currentUser!.uid;
+      String fileName = 'user_images/$userId/profile_image.jpg';
 
-    // Upload image to Firebase Storage
-    Reference ref = FirebaseStorage.instance.ref().child(fileName);
-    await ref.putFile(image);
+      // Upload image to Firebase Storage
+      Reference ref = FirebaseStorage.instance.ref().child(fileName);
+      await ref.putFile(image);
 
-    // Get the download URL
-    String downloadURL = await ref.getDownloadURL();
+      // Get the download URL
+      String downloadURL = await ref.getDownloadURL();
 
-    // Store the image URL in Firestore
-    await _firestoreService.updateUserProfile({
-      'profileImageUrl': downloadURL,
-    });
+      // Store the image URL in Firestore
+      await _firestoreService.updateUserProfile({
+        'profileImageUrl': downloadURL,
+      });
 
-    print('Image uploaded and URL stored in Firestore.');
-  } catch (e) {
-    setState(() {
-      _errorMessage = 'Failed to upload image: $e';
-    });
-    print('Failed to upload image: $e');
+      print('Image uploaded and URL stored in Firestore.');
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to upload image: $e';
+      });
+      print('Failed to upload image: $e');
+    }
   }
-}
-
 
   void _nextPage() async {
     FocusScope.of(context).unfocus(); // This will dismiss the keyboard
@@ -254,33 +253,40 @@ class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
               ),
             ),
             // Skip Button
-            Positioned(
-              bottom: 100,
-              left: 32,
-              child: GestureDetector(
-                onTap: () async {
-                  await _firestoreService
-                      .markProfileStepCompleted('profileStep1Completed');
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ProfilErstellen2Page(),
+            if (_currentPage > 0)
+              Positioned(
+                bottom: 100,
+                left: 32,
+                child: GestureDetector(
+                  onTap: () async {
+                    // Ensure the name is saved if the user skips
+                    if (_nameController.text.isNotEmpty) {
+                      await _firestoreService.updateUserProfile({
+                        'name': _nameController.text,
+                      });
+                    }
+                    await _firestoreService
+                        .markProfileStepCompleted('profileStep1Completed');
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProfilErstellen2Page(),
+                      ),
+                    );
+                  },
+                  child: Text(
+                    "Skip",
+                    style: TextStyle(
+                      color: Color(0xFF414254),
+                      fontSize: 13,
+                      fontWeight: FontWeight.normal,
+                      fontFamily: 'Inter',
+                      height: 1.41,
+                      letterSpacing: -0.5,
                     ),
-                  );
-                },
-                child: Text(
-                  "Skip",
-                  style: TextStyle(
-                    color: Color(0xFF414254),
-                    fontSize: 13,
-                    fontWeight: FontWeight.normal,
-                    fontFamily: 'Inter',
-                    height: 1.41,
-                    letterSpacing: -0.5,
                   ),
                 ),
               ),
-            ),
           ],
         ],
       ),

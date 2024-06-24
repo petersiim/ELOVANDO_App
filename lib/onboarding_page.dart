@@ -267,7 +267,7 @@ class _OnboardingPageState extends State<OnboardingPage> with TickerProviderStat
             ),
           // Navigation Indicator
           Positioned(
-            bottom: MediaQuery.of(context).size.height * 0.25 - 20, // Adjusted up
+            bottom: 200, // Adjusted up
             left: 0,
             right: 0,
             child: Row(
@@ -311,7 +311,7 @@ class _OnboardingPageState extends State<OnboardingPage> with TickerProviderStat
           ),
           // Button
           Positioned(
-            bottom: 100, // Position remains the same
+            bottom: 120, // Position remains the same
             left: 23,
             right: 23,
             child: GestureDetector(
