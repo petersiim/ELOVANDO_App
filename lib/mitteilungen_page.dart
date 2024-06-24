@@ -18,6 +18,21 @@ class _MitteilungenPageState extends State<MitteilungenPage> {
       'message': 'Zeit für eure wöchentliche Deeskalationssitzung! Jetzt starten und eure Beziehung stärken.'
     },
     {
+      'title': 'Erinnerung2',
+      'icon': 'assets/graphics/logo_circle_icon.png',
+      'message': 'Zeit für eure wöchentliche Deeskalationssitzung! Jetzt starten und eure Beziehung stärken.'
+    },
+    {
+      'title': 'Erinnerung3',
+      'icon': 'assets/graphics/logo_circle_icon.png',
+      'message': 'Zeit für eure wöchentliche Deeskalationssitzung! Jetzt starten und eure Beziehung stärken.'
+    },
+    {
+      'title': 'Test',
+      'icon': 'assets/graphics/logo_circle_icon.png',
+      'message': 'Easter Egg: Hallo Linus :)'
+    },
+    {
       'title': 'Tipp des Tages',
       'icon': 'assets/graphics/logo_circle_icon.png',
       'message': 'Hört einander zu, ohne zu unterbrechen. Verständnis ist der Schlüssel zu einer harmonischen Beziehung.'
