@@ -10,6 +10,7 @@ import 'love_session_page.dart';
 import 'inputs_page.dart';
 import 'chat_page.dart';
 import 'beziehungsinput_page.dart';
+import 'feedback_page.dart'; // Import the feedback page
 
 class HomePage extends StatefulWidget {
   final String userId;
@@ -253,6 +254,14 @@ class __HomePageContentState extends State<_HomePageContent> with TickerProvider
                       'assets/graphics/home_screen_mint_star.svg',
                       Colors.white,
                       Color(0xFF414254),
+                      onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => FeedbackPage(),
+                        ),
+                      );
+                    },
                     ),
                   ],
                 ),
