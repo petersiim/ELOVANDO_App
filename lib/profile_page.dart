@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'kostenpflichtig_dialog.dart'; // Import the KostenpflichtigDialog widget
 
 class ProfilePage extends StatelessWidget {
   final String userId;
   ProfilePage({required this.userId});
 
   Future<Map<String, dynamic>> _fetchUserData() async {
-    DocumentSnapshot userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .get();
+    DocumentSnapshot userDoc =
+        await FirebaseFirestore.instance.collection('users').doc(userId).get();
 
     return userDoc.data() as Map<String, dynamic>;
   }
@@ -24,7 +23,8 @@ class ProfilePage extends StatelessWidget {
     DateTime birthDate = DateTime(year, month, day);
     DateTime today = DateTime.now();
     int age = today.year - birthDate.year;
-    if (today.month < birthDate.month || (today.month == birthDate.month && today.day < birthDate.day)) {
+    if (today.month < birthDate.month ||
+        (today.month == birthDate.month && today.day < birthDate.day)) {
       age--;
     }
     return age;
@@ -60,19 +60,24 @@ class ProfilePage extends StatelessWidget {
                         backgroundImage: NetworkImage(userImageUrl),
                       ),
                     ),
-                    SizedBox(height: 10), // Add space between the profile picture and the rest of the content
+                    SizedBox(
+                        height:
+                            10), // Add space between the profile picture and the rest of the content
                     Center(
                       child: Text(
                         '$userName, $userAge', // Display name and age
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w500,
-                          fontFamily: 'Medium', // Ensure the correct font is loaded in your project
+                          fontFamily:
+                              'Medium', // Ensure the correct font is loaded in your project
                           color: Color(0xFF414254),
                         ),
                       ),
                     ),
-                    SizedBox(height: 30), // Add space between the location and the violet box
+                    SizedBox(
+                        height:
+                            30), // Add space between the location and the violet box
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       child: Container(
@@ -80,7 +85,8 @@ class ProfilePage extends StatelessWidget {
                           color: Color(0xFF7D4666),
                           borderRadius: BorderRadius.circular(8.0),
                         ),
-                        padding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
+                        padding: EdgeInsets.symmetric(
+                            vertical: 16.0, horizontal: 16.0),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -92,7 +98,8 @@ class ProfilePage extends StatelessWidget {
                                   child: CircularProgressIndicator(
                                     value: 0.7, // Example progress value
                                     strokeWidth: 6.0,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE8C3E6)),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Color(0xFFE8C3E6)),
                                     backgroundColor: Color(0xFFDDDDDD),
                                   ),
                                 ),
@@ -130,7 +137,9 @@ class ProfilePage extends StatelessWidget {
                         ),
                       ),
                     ),
-                    SizedBox(height: 20), // Adjust space between the violet box and the line
+                    SizedBox(
+                        height:
+                            20), // Adjust space between the violet box and the line
                     Container(
                       height: 1.0,
                       color: Color(0xFF98999D),
@@ -139,7 +148,9 @@ class ProfilePage extends StatelessWidget {
                       color: Color(0xFFDEDEDE),
                       child: Column(
                         children: [
-                          SizedBox(height: 20), // Add space between the line and the first box
+                          SizedBox(
+                              height:
+                                  20), // Add space between the line and the first box
                           _buildMenuItem(
                             context,
                             'Einstellungen',
@@ -199,7 +210,12 @@ class ProfilePage extends StatelessWidget {
                                     ),
                                   ),
                                   onPressed: () {
-                                    // Handle upgrade action
+                                    showDialog(
+                                      context: context,
+                                      builder: (BuildContext context) {
+                                        return KostenpflichtigDialog();
+                                      },
+                                    );
                                   },
                                   child: Text(
                                     'Jetzt upgraden!',
