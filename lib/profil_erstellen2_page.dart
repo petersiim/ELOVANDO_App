@@ -303,80 +303,81 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
   }
 
   Widget _buildPage7() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 34.0, vertical: 52.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            'Erzähle uns doch noch etwas mehr über eure Beziehung. Wie läuft es?',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF414254),
-            ),
+  return SingleChildScrollView(
+    padding: EdgeInsets.symmetric(horizontal: 34.0, vertical: 52.0),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          'Erzähle uns doch noch etwas mehr über eure Beziehung. Wie läuft es?',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF414254),
           ),
-          SizedBox(height: 16),
-          Text(
-            'Was begeistert dich immer wieder an deinem Partner / deiner Partnerin?',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF414254),
-            ),
+        ),
+        SizedBox(height: 16),
+        Text(
+          'Was begeistert dich immer wieder an deinem Partner / deiner Partnerin?',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF414254),
           ),
-          SizedBox(height: 16),
-          Text(
-            'Was stört dich vielleicht aktuell ein wenig?',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF414254),
-            ),
+        ),
+        SizedBox(height: 16),
+        Text(
+          'Was stört dich vielleicht aktuell ein wenig?',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF414254),
           ),
-          SizedBox(height: 44),
-          Container(
-            height: 150, // Set a fixed height for the text field container
-            decoration: BoxDecoration(
-              color: Color(0xFFF7F7F7),
-              borderRadius: BorderRadius.circular(8.0),
-            ),
-            child: Scrollbar(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                child: TextField(
-                  controller: _lastQuestionController,
-                  maxLines: null,
-                  decoration: InputDecoration(
-                    hintText: 'Text eingeben...',
-                    hintStyle: TextStyle(color: Color(0xFF979797)),
-                    border: InputBorder.none,
-                  ),
+        ),
+        SizedBox(height: 44),
+        Container(
+          height: 150, // Set a fixed height for the text field container
+          decoration: BoxDecoration(
+            color: Color(0xFFF7F7F7),
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+          child: Scrollbar(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              child: TextField(
+                controller: _lastQuestionController,
+                maxLines: null,
+                decoration: InputDecoration(
+                  hintText: 'Text eingeben...',
+                  hintStyle: TextStyle(color: Color(0xFF979797)),
+                  border: InputBorder.none,
                 ),
               ),
             ),
           ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              IconButton(
-                icon: SvgPicture.asset('assets/graphics/voice_input_icon.svg'),
-                onPressed: () {
-                  // Handle voice input action
-                },
-              ),
-              IconButton(
-                icon: SvgPicture.asset('assets/graphics/send_message_icon.svg'),
-                onPressed: () {
-                  // Handle send message action
-                },
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            IconButton(
+              icon: SvgPicture.asset('assets/graphics/voice_input_icon.svg'),
+              onPressed: () {
+                // Handle voice input action
+              },
+            ),
+            IconButton(
+              icon: SvgPicture.asset('assets/graphics/send_message_icon.svg'),
+              onPressed: () {
+                // Handle send message action
+              },
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
 
   Widget _buildOptionPage(String question, List<String> options, int pageIndex) {
     return Padding(
