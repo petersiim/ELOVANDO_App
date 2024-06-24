@@ -244,7 +244,7 @@ class __HomePageContentState extends State<_HomePageContent> with TickerProvider
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => BeziehungsInputPage(),
+                          builder: (context) => BeziehungsInputPage(userId: widget.userId),
                         ),
                       );
                     },
@@ -258,7 +258,7 @@ class __HomePageContentState extends State<_HomePageContent> with TickerProvider
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => FeedbackPage(),
+                          builder: (context) => FeedbackPage(userId: widget.userId),
                         ),
                       );
                     },

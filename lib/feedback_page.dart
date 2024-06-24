@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'bestaetigung_page.dart';
 
 class FeedbackPage extends StatefulWidget {
+  final String userId;
+
+  FeedbackPage({required this.userId}); 
   @override
   _FeedbackPageState createState() => _FeedbackPageState();
 }
@@ -79,25 +83,26 @@ class _FeedbackPageState extends State<FeedbackPage> {
               ),
               SizedBox(height: 8),
               Center(
-  child: Row(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: List.generate(5, (index) {
-      return IconButton(
-        iconSize: 36, // Increase the size of the star icons
-        icon: Icon(
-          index < rating ? Icons.star : Icons.star,
-          color: index < rating ? Color(0xFF7FCCB1) : Color(0xFFDEDEDE),
-        ),
-        onPressed: () {
-          setState(() {
-            rating = index + 1.0;
-          });
-        },
-      );
-    }),
-  ),
-),
-
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(5, (index) {
+                    return IconButton(
+                      iconSize: 36, // Increase the size of the star icons
+                      icon: Icon(
+                        index < rating ? Icons.star : Icons.star,
+                        color: index < rating
+                            ? Color(0xFF7FCCB1)
+                            : Color(0xFFDEDEDE),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          rating = index + 1.0;
+                        });
+                      },
+                    );
+                  }),
+                ),
+              ),
               SizedBox(height: 16),
               _buildFeedbackInput('Das hat mir gefallen:'),
               SizedBox(height: 16),
@@ -141,6 +146,12 @@ class _FeedbackPageState extends State<FeedbackPage> {
                       padding: EdgeInsets.symmetric(vertical: 16),
                     ),
                     onPressed: () {
+                      Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BestaetigungPage(userId: widget.userId),
+          ),
+        );
                       // Handle send action
                     },
                     child: Text(

@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'bestaetigung_page.dart';
 
 class BeziehungsInputPage extends StatefulWidget {
+  final String userId;
+
+  BeziehungsInputPage({required this.userId});
+
   @override
   _BeziehungsInputPageState createState() => _BeziehungsInputPageState();
 }
@@ -206,7 +211,8 @@ class _BeziehungsInputPageState extends State<BeziehungsInputPage> {
                             ),
                           ),
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 16.0),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: List.generate(10, (index) {
@@ -240,7 +246,12 @@ class _BeziehungsInputPageState extends State<BeziehungsInputPage> {
                       padding: EdgeInsets.symmetric(vertical: 16),
                     ),
                     onPressed: () {
-                      // Handle send action
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => BestaetigungPage(userId: widget.userId),
+                        ),
+                      );
                     },
                     child: Text(
                       'Senden',

@@ -142,10 +142,10 @@ class ProfilePage extends StatelessWidget {
                             20), // Adjust space between the violet box and the line
                     Container(
                       height: 1.0,
-                      color: Color(0xFF98999D),
+                      color: Color(0xFFDEDEDE),
                     ),
                     Container(
-                      color: Color(0xFFDEDEDE),
+                      color: Color(0xFFF7F7F7),
                       child: Column(
                         children: [
                           SizedBox(
