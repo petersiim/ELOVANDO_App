@@ -143,6 +143,8 @@ flutter:
     - assets\graphics\credit_card_icon.svg
     - assets\graphics\star_icon.svg
     - assets\graphics\bestaetigung_icon.svg
+    - assets\graphics\logo_circle_icon.png
+    - assets\graphics\trash_icon.svg
 
 
 

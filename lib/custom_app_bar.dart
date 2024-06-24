@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'profile_page.dart'; // Import the ProfilePage
+import 'mitteilungen_page.dart'; // Import the MitteilungenPage
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String userId;
@@ -57,7 +58,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => ProfilePage(userId: userId,)), // Navigate to the ProfilePage
+                MaterialPageRoute(builder: (context) => ProfilePage(userId: userId)), // Navigate to the ProfilePage
               );
             },
             child: Text(
@@ -65,7 +66,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               style: TextStyle(
                 color: Color(0xFF414254),
                 fontSize: 18,
-                fontWeight: FontWeight.w600,
                 fontFamily: 'Inter',
               ),
             ),
@@ -77,7 +77,10 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               child: IconButton(
                 icon: SvgPicture.asset('assets/graphics/bell_icon.svg'),
                 onPressed: () {
-                  // Handle notification bell press
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => MitteilungenPage(userId: userId)), // Navigate to the MitteilungenPage
+                  );
                 },
               ),
             ),
@@ -85,10 +88,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           bottom: PreferredSize(
             preferredSize: Size.fromHeight(30.0), // Adjust the height as needed
             child: Container(
-              child: Container(
-                color: Color(0xFFDEDEDE),
-                height: 2.0,
-              ),
+              color: Color(0xFFDEDEDE),
+              height: 2.0,
             ),
           ),
         );

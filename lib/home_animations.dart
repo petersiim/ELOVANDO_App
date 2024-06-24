@@ -6,7 +6,7 @@ void initializeLeavesControllers(TickerProvider vsync, List<AnimationController>
   for (int i = 0; i < 3; i++) {
     final controller = AnimationController(
       vsync: vsync,
-      duration: Duration(seconds: 5),
+      duration: Duration(seconds: 7),
     );
 
     controller.addStatusListener((status) {
