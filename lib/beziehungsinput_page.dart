@@ -176,7 +176,7 @@ class _BeziehungsInputPageState extends State<BeziehungsInputPage> {
                               thumbColor: Colors.white,
                               overlayColor: Color(0xFFDEDEDE),
                               activeTrackColor: Color(0xFF7FCCB1),
-                              inactiveTrackColor: Color(0xFF98999D),
+                              inactiveTrackColor: Color(0xFFF7F7F7),
                               overlayShape: RoundSliderOverlayShape(
                                 overlayRadius: 20.0,
                               ),
