@@ -17,7 +17,7 @@ class _KostenpflichtigDialogState extends State<KostenpflichtigDialog> {
         borderRadius: BorderRadius.circular(10),
       ),
       child: Container(
-        width: MediaQuery.of(context).size.width * 0.95, // Make the dialog wider
+        width: MediaQuery.of(context).size.width , // Make the dialog wider
         child: Stack(
           clipBehavior:
               Clip.none, // Allow the close button to be outside the dialog

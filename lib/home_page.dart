@@ -9,6 +9,7 @@ import 'sessions_page.dart';
 import 'love_session_page.dart';
 import 'inputs_page.dart';
 import 'chat_page.dart';
+import 'beziehungsinput_page.dart';
 
 class HomePage extends StatefulWidget {
   final String userId;
@@ -238,6 +239,14 @@ class __HomePageContentState extends State<_HomePageContent> with TickerProvider
                       'assets/graphics/home_screen_white_heart.svg',
                       Color(0xFF7D4666),
                       Colors.white,
+                      onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => BeziehungsInputPage(),
+                        ),
+                      );
+                    },
                     ),
                     _buildOptionCard(
                       'Love Session-\nFeedback geben',
@@ -288,8 +297,10 @@ class __HomePageContentState extends State<_HomePageContent> with TickerProvider
   }
 
   Widget _buildOptionCard(
-      String text, String iconPath, Color bgColor, Color textColor) {
-    return Expanded(
+  String text, String iconPath, Color bgColor, Color textColor, {VoidCallback? onTap}) {
+  return Expanded(
+    child: GestureDetector(
+      onTap: onTap,
       child: Container(
         padding: EdgeInsets.symmetric(vertical: 16, horizontal: 8),
         margin: EdgeInsets.symmetric(horizontal: 8),
@@ -298,8 +309,7 @@ class __HomePageContentState extends State<_HomePageContent> with TickerProvider
           borderRadius: BorderRadius.circular(8),
         ),
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start, // Aligns children to the left
+          crossAxisAlignment: CrossAxisAlignment.start, // Aligns children to the left
           children: [
             SvgPicture.asset(
               iconPath,
@@ -318,6 +328,8 @@ class __HomePageContentState extends State<_HomePageContent> with TickerProvider
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
 }
