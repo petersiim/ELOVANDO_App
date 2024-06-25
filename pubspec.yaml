@@ -56,11 +56,14 @@ dependencies:
   device_info_plus: ^10.1.0
   shared_preferences: ^2.2.3
 
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   build_runner: ^2.1.4
   build_web_compilers: ^4.0.4
+  flutter_native_splash: ^2.4.0
+
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -146,7 +149,12 @@ flutter:
     - assets\graphics\logo_circle_icon.png
     - assets\graphics\trash_icon.svg
 
-
+flutter_native_splash:
+  color: "#414143"
+  image: assets/graphics/logo_black.png
+  android: true
+  ios: true
+  web: true
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

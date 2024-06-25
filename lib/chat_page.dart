@@ -13,7 +13,7 @@ class ChatPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Color(0xFFF7F7F7),
       body: Center(
-        child: Text('Chateeeeeeet Page'),
+        child: Text('Chat Page'),
       ),
     );
   }
