@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'chat_page.dart';
 
 class AppNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
+  final String userId; // Add userId parameter
 
-  const AppNavBar({required this.currentIndex, required this.onTap});
+  const AppNavBar({required this.currentIndex, required this.onTap, required this.userId});
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +18,20 @@ class AppNavBar extends StatelessWidget {
           height: 80, // Increase the height of the BottomNavigationBar
           child: BottomNavigationBar(
             currentIndex: currentIndex,
-            onTap: onTap,
+            onTap: (index) {
+              if (index == 4) { // Chat icon
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => ChatPage(userId: userId),
+                  ),
+                ).then((_) {
+                  // When returning from ChatPage, select the home item
+                  onTap(0);
+                });
+              } else {
+                onTap(index);
+              }
+            },
             type: BottomNavigationBarType.fixed,
             items: [
               BottomNavigationBarItem(

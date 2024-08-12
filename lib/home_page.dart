@@ -56,6 +56,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       bottomNavigationBar: AppNavBar(
         currentIndex: _currentIndex,
         onTap: _onNavBarTap,
+        userId: widget.userId,
       ),
     );
   }
