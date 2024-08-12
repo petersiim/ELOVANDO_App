@@ -17,6 +17,7 @@ Future<String> readFile(String path) async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
   openai.OpenAI.apiKey = Env.apiKey;
 
   await Firebase.initializeApp(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'speech_to_text_service.dart';
 
 class ChatPage extends StatefulWidget {
   final String userId;
@@ -16,15 +17,21 @@ class _ChatPageState extends State<ChatPage> {
   final List<ChatMessage> _messages = [];
   bool _showIntroBox = true;
   String? _userProfileImageUrl;
+  late SpeechToTextService _speechToTextService = SpeechToTextService();
 
   @override
   void initState() {
     super.initState();
     _fetchUserProfileImage();
+    _speechToTextService = SpeechToTextService();
+
   }
 
   Future<void> _fetchUserProfileImage() async {
-    final userDoc = await FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.userId)
+        .get();
     setState(() {
       _userProfileImageUrl = userDoc.data()?['profileImageUrl'];
     });
@@ -130,14 +137,14 @@ class _ChatPageState extends State<ChatPage> {
   Widget _buildMessageInput() {
     return Container(
       color: Colors.white,
-      padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
+      padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
       child: Row(
         children: [
           Expanded(
             child: Container(
               decoration: BoxDecoration(
                 color: Color(0xFFF7F7F7),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
                 children: [
@@ -152,9 +159,16 @@ class _ChatPageState extends State<ChatPage> {
                     ),
                   ),
                   IconButton(
-                    icon: SvgPicture.asset('assets/graphics/voice_input_icon.svg'),
-                    onPressed: () {
-                      // Handle voice input
+                    icon: SvgPicture.asset(
+                        'assets/graphics/voice_input_icon.svg'),
+                    onPressed: () async {
+                      final text =
+                          await _speechToTextService.recordAndTranscribe();
+                      if (text != null) {
+                        setState(() {
+                          _messageController.text = text;
+                        });
+                      }
                     },
                   ),
                 ],
@@ -178,13 +192,14 @@ class _ChatPageState extends State<ChatPage> {
           text: _messageController.text,
           isUser: true,
           userIcon: _userProfileImageUrl != null
-              ? CircleAvatar(backgroundImage: NetworkImage(_userProfileImageUrl!))
+              ? CircleAvatar(
+                  backgroundImage: NetworkImage(_userProfileImageUrl!))
               : CircleAvatar(child: Icon(Icons.person)),
         ));
         _showIntroBox = false;
         _messageController.clear();
       });
-      
+
       // Simulate therapist response
       Future.delayed(Duration(seconds: 1), () {
         setState(() {
@@ -193,7 +208,8 @@ class _ChatPageState extends State<ChatPage> {
             isUser: false,
             userIcon: CircleAvatar(
               child: Padding(
-                padding: EdgeInsets.all(3.0), // Adjust padding to change image size
+                padding:
+                    EdgeInsets.all(3.0), // Adjust padding to change image size
                 child: Image.asset('assets/graphics/logo_black.png'),
               ),
               backgroundColor: Color(0xFF414254),
@@ -204,6 +220,7 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 }
+
 class ChatMessage extends StatelessWidget {
   final String text;
   final bool isUser;
@@ -222,9 +239,10 @@ class ChatMessage extends StatelessWidget {
       margin: EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment:
+            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         children: [
-          if (!isUser) 
+          if (!isUser)
             SizedBox(
               width: 30, // Adjust size as needed
               height: 30, // Adjust size as needed

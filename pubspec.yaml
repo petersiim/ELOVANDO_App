@@ -55,6 +55,8 @@ dependencies:
   sign_in_with_apple: ^6.1.0
   device_info_plus: ^10.1.0
   shared_preferences: ^2.2.3
+  http: ^1.2.2
+
 
 
 dev_dependencies:
@@ -150,7 +152,7 @@ flutter:
     - assets\graphics\trash_icon.svg
     - assets\graphics\therapeuten_chat_icon.svg
     - assets\graphics\logo_black.png
-
+    - .env
 flutter_native_splash:
   color: "#414143"
   image: assets/graphics/logo_black.png
