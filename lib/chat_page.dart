@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ChatPage extends StatefulWidget {
   final String userId;
@@ -14,6 +15,20 @@ class _ChatPageState extends State<ChatPage> {
   final TextEditingController _messageController = TextEditingController();
   final List<ChatMessage> _messages = [];
   bool _showIntroBox = true;
+  String? _userProfileImageUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserProfileImage();
+  }
+
+  Future<void> _fetchUserProfileImage() async {
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
+    setState(() {
+      _userProfileImageUrl = userDoc.data()?['profileImageUrl'];
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,30 +39,21 @@ class _ChatPageState extends State<ChatPage> {
         elevation: 1,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Color(0xFF414254)),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
+          onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Padding(
-          padding: const EdgeInsets.only(top: 0, bottom: 0),
-          child: Text(
-            'Therapeuten-Chat',
-            style: TextStyle(
-              color: Color(0xFF414254),
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'Inter',
-            ),
+        title: Text(
+          'Therapeuten-Chat',
+          style: TextStyle(
+            color: Color(0xFF414254),
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Inter',
           ),
         ),
         centerTitle: true,
         bottom: PreferredSize(
           preferredSize: Size.fromHeight(0.2),
-          child: Divider(
-            color: Color(0xFFDEDEDE),
-            thickness: 1,
-            height: 1,
-          ),
+          child: Divider(color: Color(0xFFDEDEDE), thickness: 1, height: 1),
         ),
       ),
       body: Column(
@@ -124,24 +130,38 @@ class _ChatPageState extends State<ChatPage> {
   Widget _buildMessageInput() {
     return Container(
       color: Colors.white,
-      padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+      padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
       child: Row(
         children: [
-          IconButton(
-            icon: SvgPicture.asset('assets/graphics/voice_input_icon.svg'),
-            onPressed: () {
-              // Handle voice input
-            },
-          ),
           Expanded(
-            child: TextField(
-              controller: _messageController,
-              decoration: InputDecoration(
-                hintText: 'Nachricht eingeben...',
-                border: InputBorder.none,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Color(0xFFF7F7F7),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _messageController,
+                      decoration: InputDecoration(
+                        hintText: 'Nachricht eingeben...',
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16),
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: SvgPicture.asset('assets/graphics/voice_input_icon.svg'),
+                    onPressed: () {
+                      // Handle voice input
+                    },
+                  ),
+                ],
               ),
             ),
           ),
+          SizedBox(width: 8),
           IconButton(
             icon: SvgPicture.asset('assets/graphics/send_message_icon.svg'),
             onPressed: _sendMessage,
@@ -157,9 +177,9 @@ class _ChatPageState extends State<ChatPage> {
         _messages.add(ChatMessage(
           text: _messageController.text,
           isUser: true,
-          userIcon: CircleAvatar(
-            backgroundImage: NetworkImage('URL_TO_USER_PROFILE_IMAGE'),
-          ),
+          userIcon: _userProfileImageUrl != null
+              ? CircleAvatar(backgroundImage: NetworkImage(_userProfileImageUrl!))
+              : CircleAvatar(child: Icon(Icons.person)),
         ));
         _showIntroBox = false;
         _messageController.clear();
@@ -171,10 +191,12 @@ class _ChatPageState extends State<ChatPage> {
           _messages.add(ChatMessage(
             text: 'This is a simulated therapist response.',
             isUser: false,
-            userIcon: SvgPicture.asset(
-              'assets/graphics/logo_circle_icon.png',
-              width: 40,
-              height: 40,
+            userIcon: CircleAvatar(
+              child: Padding(
+                padding: EdgeInsets.all(3.0), // Adjust padding to change image size
+                child: Image.asset('assets/graphics/logo_black.png'),
+              ),
+              backgroundColor: Color(0xFF414254),
             ),
           ));
         });
@@ -182,7 +204,6 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 }
-
 class ChatMessage extends StatelessWidget {
   final String text;
   final bool isUser;
@@ -203,7 +224,12 @@ class ChatMessage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         children: [
-          if (!isUser) userIcon,
+          if (!isUser) 
+            SizedBox(
+              width: 30, // Adjust size as needed
+              height: 30, // Adjust size as needed
+              child: userIcon,
+            ),
           SizedBox(width: 8.0),
           Flexible(
             child: Container(
@@ -222,7 +248,12 @@ class ChatMessage extends StatelessWidget {
             ),
           ),
           SizedBox(width: 8.0),
-          if (isUser) userIcon,
+          if (isUser)
+            SizedBox(
+              width: 30, // Adjust size as needed
+              height: 30, // Adjust size as needed
+              child: userIcon,
+            ),
         ],
       ),
     );

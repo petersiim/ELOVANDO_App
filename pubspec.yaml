@@ -149,6 +149,7 @@ flutter:
     - assets\graphics\logo_circle_icon.png
     - assets\graphics\trash_icon.svg
     - assets\graphics\therapeuten_chat_icon.svg
+    - assets\graphics\logo_black.png
 
 flutter_native_splash:
   color: "#414143"
