@@ -24,7 +24,7 @@ class _SplashScreenState extends State<SplashScreen> {
     User? user = FirebaseAuth.instance.currentUser;
 
     // Additional delay to ensure the home screen is ready
-    Future.delayed(Duration(seconds: 1), () {
+    Future.delayed(Duration(seconds: 2), () {
       if (user != null) {
         Navigator.pushReplacement(
           context,
