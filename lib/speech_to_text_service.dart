@@ -5,8 +5,15 @@ import 'dart:io';
 import 'package:dart_openai/dart_openai.dart';
 
 class SpeechToTextService {
+  static final SpeechToTextService _instance = SpeechToTextService._internal();
+  factory SpeechToTextService() => _instance;
+  SpeechToTextService._internal();
+
   final Record _recorder = Record();
   String? _path;
+  bool _isRecording = false;
+
+  bool get isRecording => _isRecording;
 
   Future<void> startRecording() async {
     if (await _recorder.hasPermission()) {
@@ -18,6 +25,7 @@ class SpeechToTextService {
         bitRate: 128000,
         samplingRate: 44100,
       );
+      _isRecording = true;
     } else {
       print('Microphone permission not granted');
     }
@@ -25,6 +33,7 @@ class SpeechToTextService {
 
   Future<void> stopRecording() async {
     await _recorder.stop();
+    _isRecording = false;
   }
 
   Future<String?> transcribeAudio() async {

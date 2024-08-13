@@ -143,7 +143,7 @@ class _ChatPageState extends State<ChatPage> {
             child: Container(
               decoration: BoxDecoration(
                 color: Color(0xFFF7F7F7),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 children: [

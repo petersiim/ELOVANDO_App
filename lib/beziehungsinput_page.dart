@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'bestaetigung_page.dart';
+import 'speech_to_text_service.dart';
 
 class BeziehungsInputPage extends StatefulWidget {
   final String userId;
@@ -13,11 +14,13 @@ class BeziehungsInputPage extends StatefulWidget {
 
 class _BeziehungsInputPageState extends State<BeziehungsInputPage> {
   double sliderValue = 6.0;
+  final TextEditingController _inputController = TextEditingController();
+  final SpeechToTextService _speechToTextService = SpeechToTextService();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF7F7F7), // General background color
+      backgroundColor: Color(0xFFF7F7F7),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 1,
@@ -28,8 +31,7 @@ class _BeziehungsInputPageState extends State<BeziehungsInputPage> {
           },
         ),
         title: Padding(
-          padding: const EdgeInsets.only(
-              top: 0, bottom: 0), // Adjust top and bottom padding
+          padding: const EdgeInsets.only(top: 0, bottom: 0),
           child: Text(
             'Beziehungsinput',
             style: TextStyle(
@@ -60,7 +62,7 @@ class _BeziehungsInputPageState extends State<BeziehungsInputPage> {
                 padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  border: Border.all(color: Color(0xFFDEDEDE)), // Border color
+                  border: Border.all(color: Color(0xFFDEDEDE)),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
@@ -94,6 +96,7 @@ class _BeziehungsInputPageState extends State<BeziehungsInputPage> {
                           ),
                           SizedBox(height: 16),
                           TextField(
+                            controller: _inputController,
                             decoration: InputDecoration(
                               hintText: 'Dein Input hier...',
                               hintStyle: TextStyle(color: Color(0xFF98999D)),
@@ -119,12 +122,16 @@ class _BeziehungsInputPageState extends State<BeziehungsInputPage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              IconButton(
-                                icon: SvgPicture.asset(
-                                    'assets/graphics/voice_input_icon.svg'),
-                                onPressed: () {
-                                  // Handle voice input action
-                                },
+                              GestureDetector(
+                                onLongPressStart: (_) => _startRecording(),
+                                onLongPressEnd: (_) => _stopRecording(),
+                                child: IconButton(
+                                  icon: SvgPicture.asset(
+                                    'assets/graphics/voice_input_icon.svg',
+                                    color: _speechToTextService.isRecording ? Colors.red : null,
+                                  ),
+                                  onPressed: () {}, // Disable normal press
+                                ),
                               ),
                               IconButton(
                                 icon: SvgPicture.asset(
@@ -146,7 +153,7 @@ class _BeziehungsInputPageState extends State<BeziehungsInputPage> {
                 padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  border: Border.all(color: Color(0xFFDEDEDE)), // Border color
+                  border: Border.all(color: Color(0xFFDEDEDE)),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
@@ -236,7 +243,7 @@ class _BeziehungsInputPageState extends State<BeziehungsInputPage> {
               SizedBox(height: 10),
               Center(
                 child: Container(
-                  width: double.infinity, // Make the button full width
+                  width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color(0xFF7D4666),
@@ -269,5 +276,21 @@ class _BeziehungsInputPageState extends State<BeziehungsInputPage> {
         ),
       ),
     );
+  }
+
+  void _startRecording() async {
+    await _speechToTextService.startRecording();
+    setState(() {});
+  }
+
+  void _stopRecording() async {
+    await _speechToTextService.stopRecording();
+    String? transcription = await _speechToTextService.transcribeAudio();
+    if (transcription != null) {
+      setState(() {
+        _inputController.text = transcription;
+      });
+    }
+    setState(() {});
   }
 }

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'bestaetigung_page.dart';
+import 'speech_to_text_service.dart';
 
 class FeedbackPage extends StatefulWidget {
   final String userId;
 
-  FeedbackPage({required this.userId}); 
+  FeedbackPage({required this.userId});
   @override
   _FeedbackPageState createState() => _FeedbackPageState();
 }
@@ -13,6 +14,9 @@ class FeedbackPage extends StatefulWidget {
 class _FeedbackPageState extends State<FeedbackPage> {
   double rating = 3.0;
   int selectedOption = 0;
+  final TextEditingController _likedController = TextEditingController();
+  final TextEditingController _dislikedController = TextEditingController();
+  final SpeechToTextService _speechToTextService = SpeechToTextService();
 
   @override
   Widget build(BuildContext context) {
@@ -104,9 +108,9 @@ class _FeedbackPageState extends State<FeedbackPage> {
                 ),
               ),
               SizedBox(height: 16),
-              _buildFeedbackInput('Das hat mir gefallen:'),
+              _buildFeedbackInput('Das hat mir gefallen:', _likedController),
               SizedBox(height: 16),
-              _buildFeedbackInput('Das war weniger gut:'),
+              _buildFeedbackInput('Das war weniger gut:', _dislikedController),
               SizedBox(height: 16),
               /* Container(
                 padding: EdgeInsets.all(16),
@@ -147,11 +151,12 @@ class _FeedbackPageState extends State<FeedbackPage> {
                     ),
                     onPressed: () {
                       Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => BestaetigungPage(userId: widget.userId),
-          ),
-        );
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              BestaetigungPage(userId: widget.userId),
+                        ),
+                      );
                       // Handle send action
                     },
                     child: Text(
@@ -172,12 +177,12 @@ class _FeedbackPageState extends State<FeedbackPage> {
     );
   }
 
-  Widget _buildFeedbackInput(String label) {
+  Widget _buildFeedbackInput(String label, TextEditingController controller) {
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: Color(0xFFDEDEDE)), // Border color
+        border: Border.all(color: Color(0xFFDEDEDE)),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -194,6 +199,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
           ),
           SizedBox(height: 8),
           TextField(
+            controller: controller,
             decoration: InputDecoration(
               hintText: 'Geben Sie Feedback ein',
               hintStyle: TextStyle(color: Color(0xFF98999D)),
@@ -217,11 +223,16 @@ class _FeedbackPageState extends State<FeedbackPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              IconButton(
-                icon: SvgPicture.asset('assets/graphics/voice_input_icon.svg'),
-                onPressed: () {
-                  // Handle voice input action
-                },
+              GestureDetector(
+                onLongPressStart: (_) => _startRecording(controller),
+                onLongPressEnd: (_) => _stopRecording(controller),
+                child: IconButton(
+                  icon: SvgPicture.asset(
+                    'assets/graphics/voice_input_icon.svg',
+                    color: _speechToTextService.isRecording ? Colors.red : null,
+                  ),
+                  onPressed: () {}, // Disable normal press
+                ),
               ),
               IconButton(
                 icon: SvgPicture.asset('assets/graphics/send_message_icon.svg'),
@@ -234,6 +245,22 @@ class _FeedbackPageState extends State<FeedbackPage> {
         ],
       ),
     );
+  }
+
+  void _startRecording(TextEditingController controller) async {
+    await _speechToTextService.startRecording();
+    setState(() {});
+  }
+
+  void _stopRecording(TextEditingController controller) async {
+    await _speechToTextService.stopRecording();
+    String? transcription = await _speechToTextService.transcribeAudio();
+    if (transcription != null) {
+      setState(() {
+        controller.text = transcription;
+      });
+    }
+    setState(() {});
   }
 
   Widget _buildOption(int index, String text) {

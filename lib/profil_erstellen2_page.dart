@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'partner_einladung_page.dart';
 import 'firestore_service.dart';
+import 'speech_to_text_service.dart';
 
 class ProfilErstellen2Page extends StatefulWidget {
   @override
@@ -10,6 +11,7 @@ class ProfilErstellen2Page extends StatefulWidget {
 
 class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
   final FirestoreService _firestoreService = FirestoreService();
+  final SpeechToTextService _speechToTextService = SpeechToTextService();
 
   PageController _pageController = PageController();
   int _currentPage = 0;
@@ -53,7 +55,8 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
       if (_currentPage < 6) {
         // Store the selected option for the current page in Firestore
         await _firestoreService.updateUserProfile({
-          'question${_currentPage + 1}': _getAnswerText(_currentPage, selectedOptionIndexes[_currentPage]),
+          'question${_currentPage + 1}':
+              _getAnswerText(_currentPage, selectedOptionIndexes[_currentPage]),
         });
 
         _pageController.nextPage(
@@ -67,7 +70,8 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
         });
 
         // Mark profile step 2 completed
-        await _firestoreService.markProfileStepCompleted('profileStep2Completed');
+        await _firestoreService
+            .markProfileStepCompleted('profileStep2Completed');
         // Navigate to PartnerEinladungPage
         Navigator.push(
           context,
@@ -89,12 +93,44 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
 
   String _getAnswerText(int questionIndex, int answerIndex) {
     List<List<String>> options = [
-      ['Romantische Komödie', 'Action-Abenteuer', 'Mystery-Thriller', 'Dokumentarfilm'],
-      ['Löwen, die beschützend sind', 'Papageien, die kommunikativ sind', 'Füchse, die schlau und verspielt sind', 'Elefanten, die liebevoll und gedächtnisstark sind'],
-      ['Der Chefkoch, der die Hauptgerichte zubereitet', 'Der Sous-Chef, der assistiert und experimentiert', 'Der Geschmackstester, der die Qualität sicherstellt', 'Der Organisator, der dafür sorgt, dass alles am richtigen Platz ist'],
-      ['Der Chefkoch, der die Hauptgerichte zubereitet', 'Der Sous-Chef, der assistiert und experimentiert', 'Der Geschmackstester, der die Qualität sicherstellt', 'Der Organisator, der dafür sorgt, dass alles am richtigen Platz ist'],
-      ['Wie ein Cheerleader, der anfeuert', 'Wie ein Coach, der Lösungen bietet', 'Wie ein stiller Unterstützer, der im Hintergrund hilft'],
-      ['Hochmut, dem Anerkennung über alles wichtig in einer Beziehung', 'Habgier, dem ein schöner Lifestyle gefällt für dich zu einer erfüllten Beziehung', 'Wollust, denn Körperlichkeit spielt für dich eine große Rolle', 'Zorn, weil du mit vollem Herz dabei bist', 'Völlerei, weil deine Beziehung ohne Genuss für dich nicht geht', 'Neid, weil du dir nur das Beste für dich und deinen Partner / deine Partnerin wünschst', 'Trägheit, weil Gemütlichkeit und Liebe für dich zusammengehören']
+      [
+        'Romantische Komödie',
+        'Action-Abenteuer',
+        'Mystery-Thriller',
+        'Dokumentarfilm'
+      ],
+      [
+        'Löwen, die beschützend sind',
+        'Papageien, die kommunikativ sind',
+        'Füchse, die schlau und verspielt sind',
+        'Elefanten, die liebevoll und gedächtnisstark sind'
+      ],
+      [
+        'Der Chefkoch, der die Hauptgerichte zubereitet',
+        'Der Sous-Chef, der assistiert und experimentiert',
+        'Der Geschmackstester, der die Qualität sicherstellt',
+        'Der Organisator, der dafür sorgt, dass alles am richtigen Platz ist'
+      ],
+      [
+        'Der Chefkoch, der die Hauptgerichte zubereitet',
+        'Der Sous-Chef, der assistiert und experimentiert',
+        'Der Geschmackstester, der die Qualität sicherstellt',
+        'Der Organisator, der dafür sorgt, dass alles am richtigen Platz ist'
+      ],
+      [
+        'Wie ein Cheerleader, der anfeuert',
+        'Wie ein Coach, der Lösungen bietet',
+        'Wie ein stiller Unterstützer, der im Hintergrund hilft'
+      ],
+      [
+        'Hochmut, dem Anerkennung über alles wichtig in einer Beziehung',
+        'Habgier, dem ein schöner Lifestyle gefällt für dich zu einer erfüllten Beziehung',
+        'Wollust, denn Körperlichkeit spielt für dich eine große Rolle',
+        'Zorn, weil du mit vollem Herz dabei bist',
+        'Völlerei, weil deine Beziehung ohne Genuss für dich nicht geht',
+        'Neid, weil du dir nur das Beste für dich und deinen Partner / deine Partnerin wünschst',
+        'Trägheit, weil Gemütlichkeit und Liebe für dich zusammengehören'
+      ]
     ];
 
     return options[questionIndex][answerIndex];
@@ -303,83 +339,104 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
   }
 
   Widget _buildPage7() {
-  return SingleChildScrollView(
-    padding: EdgeInsets.symmetric(horizontal: 34.0, vertical: 52.0),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          'Erzähle uns doch noch etwas mehr über eure Beziehung. Wie läuft es?',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF414254),
+    return SingleChildScrollView(
+      padding: EdgeInsets.symmetric(horizontal: 34.0, vertical: 52.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            'Erzähle uns doch noch etwas mehr über eure Beziehung. Wie läuft es?',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF414254),
+            ),
           ),
-        ),
-        SizedBox(height: 16),
-        Text(
-          'Was begeistert dich immer wieder an deinem Partner / deiner Partnerin?',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF414254),
+          SizedBox(height: 16),
+          Text(
+            'Was begeistert dich immer wieder an deinem Partner / deiner Partnerin?',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF414254),
+            ),
           ),
-        ),
-        SizedBox(height: 16),
-        Text(
-          'Was stört dich vielleicht aktuell ein wenig?',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF414254),
+          SizedBox(height: 16),
+          Text(
+            'Was stört dich vielleicht aktuell ein wenig?',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF414254),
+            ),
           ),
-        ),
-        SizedBox(height: 44),
-        Container(
-          height: 150, // Set a fixed height for the text field container
-          decoration: BoxDecoration(
-            color: Color(0xFFF7F7F7),
-            borderRadius: BorderRadius.circular(8.0),
-          ),
-          child: Scrollbar(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-              child: TextField(
-                controller: _lastQuestionController,
-                maxLines: null,
-                decoration: InputDecoration(
-                  hintText: 'Text eingeben...',
-                  hintStyle: TextStyle(color: Color(0xFF979797)),
-                  border: InputBorder.none,
+          SizedBox(height: 44),
+          Container(
+            height: 150,
+            decoration: BoxDecoration(
+              color: Color(0xFFF7F7F7),
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            child: Scrollbar(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                child: TextField(
+                  controller: _lastQuestionController,
+                  maxLines: null,
+                  decoration: InputDecoration(
+                    hintText: 'Text eingeben...',
+                    hintStyle: TextStyle(color: Color(0xFF979797)),
+                    border: InputBorder.none,
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            IconButton(
-              icon: SvgPicture.asset('assets/graphics/voice_input_icon.svg'),
-              onPressed: () {
-                // Handle voice input action
-              },
-            ),
-            IconButton(
-              icon: SvgPicture.asset('assets/graphics/send_message_icon.svg'),
-              onPressed: () {
-                // Handle send message action
-              },
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
-}
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              GestureDetector(
+                onLongPressStart: (_) => _startRecording(),
+                onLongPressEnd: (_) => _stopRecording(),
+                child: IconButton(
+                  icon: SvgPicture.asset(
+                    'assets/graphics/voice_input_icon.svg',
+                    color: _speechToTextService.isRecording ? Colors.red : null,
+                  ),
+                  onPressed: () {}, // Disable normal press
+                ),
+              ),
+              IconButton(
+                icon: SvgPicture.asset('assets/graphics/send_message_icon.svg'),
+                onPressed: () {
+                  // Handle send message action
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
+  void _startRecording() async {
+    await _speechToTextService.startRecording();
+    setState(() {});
+  }
 
-  Widget _buildOptionPage(String question, List<String> options, int pageIndex) {
+  void _stopRecording() async {
+    await _speechToTextService.stopRecording();
+    String? transcription = await _speechToTextService.transcribeAudio();
+    if (transcription != null) {
+      setState(() {
+        _lastQuestionController.text = transcription;
+      });
+    }
+    setState(() {});
+  }
+
+  Widget _buildOptionPage(
+      String question, List<String> options, int pageIndex) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 34.0, vertical: 52.0),
       child: Column(
