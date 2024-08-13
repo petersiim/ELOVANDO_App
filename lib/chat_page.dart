@@ -38,8 +38,7 @@ class _ChatPageState extends State<ChatPage> {
   bool _isLoading = false;
   String _loadingText = "";
   late Timer _loadingTimer;
-    bool _isProcessingSpeech = false;
-
+  bool _isProcessingSpeech = false;
 
   @override
   void initState() {
@@ -61,9 +60,21 @@ class _ChatPageState extends State<ChatPage> {
         .collection('users')
         .doc(widget.userId)
         .get();
+
+    Map<String, dynamic> userInfo = userDoc.data() ?? {};
+    userInfo.remove('password');
+    String userInfoString =
+        userInfo.entries.map((e) => "${e.key}: ${e.value}").join("\n");
+    print("User Information:\n$userInfoString");
+
     _threadId = userDoc.data()!['threadId'] as String?;
     if (_threadId == null) {
-      _threadId = await _aiChatService.createThread(widget.userId);
+      _threadId =
+          await _aiChatService.createThread(widget.userId, userInfoString);
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.userId)
+          .update({'threadId': _threadId});
     }
     _updateRemainingMessages();
   }
@@ -258,9 +269,12 @@ class _ChatPageState extends State<ChatPage> {
                         TextField(
                           controller: _messageController,
                           decoration: InputDecoration(
-                            hintText: _isProcessingSpeech ? '' : 'Nachricht eingeben...',
+                            hintText: _isProcessingSpeech
+                                ? ''
+                                : 'Nachricht eingeben...',
                             border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16),
+                            contentPadding:
+                                EdgeInsets.symmetric(horizontal: 16),
                           ),
                         ),
                         if (_isProcessingSpeech)
@@ -271,7 +285,8 @@ class _ChatPageState extends State<ChatPage> {
                               height: 15,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7D4666)),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                    Color(0xFF7D4666)),
                               ),
                             ),
                           ),
@@ -279,7 +294,8 @@ class _ChatPageState extends State<ChatPage> {
                     ),
                   ),
                   GestureDetector(
-                    onLongPressStart: (_) => _startRecording(_messageController),
+                    onLongPressStart: (_) =>
+                        _startRecording(_messageController),
                     onLongPressEnd: (_) => _stopRecording(_messageController),
                     child: IconButton(
                       icon: SvgPicture.asset(
@@ -400,12 +416,109 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void _resetThread() async {
-    await _aiChatService.resetThread(widget.userId);
-    setState(() {
-      _messages.clear();
-      _showIntroBox = true;
-    });
+  bool? confirm = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        title: Text(
+          'Chat zurücksetzen',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF414254),
+            fontFamily: 'Inter',
+          ),
+        ),
+        content: Text(
+          'Der Chat wird neu erstellt. Dies kann einige Minuten dauern. Möchten Sie fortfahren?',
+          style: TextStyle(
+            fontSize: 16,
+            color: Color(0xFF414254),
+            fontFamily: 'Inter',
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            child: Text(
+              'Nein',
+              style: TextStyle(
+                color: Color(0xFF7D4666),
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Inter',
+              ),
+            ),
+            onPressed: () {
+              Navigator.of(context).pop(false);
+            },
+          ),
+          TextButton(
+            child: Text(
+              'Ja, fortfahren',
+              style: TextStyle(
+                color: Color(0xFF7FCCB1),
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Inter',
+              ),
+            ),
+            onPressed: () {
+              Navigator.of(context).pop(true);
+            },
+          ),
+        ],
+      );
+    },
+  );
+
+  if (confirm == true) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return WillPopScope(
+          onWillPop: () async => false,
+          child: Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7D4666)),
+            ),
+          ),
+        );
+      },
+    );
+
+    try {
+      await _aiChatService.resetThread(widget.userId);
+      var userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.userId)
+          .get();
+
+      Map<String, dynamic> userInfo = userDoc.data() ?? {};
+      userInfo.remove('password');
+      String userInfoString =
+          userInfo.entries.map((e) => "${e.key}: ${e.value}").join("\n");
+      print("Reset Thread - User Information:\n$userInfoString");
+
+      setState(() {
+        _messages.clear();
+        _showIntroBox = true;
+        _threadId = userDoc.data()!['threadId'] as String?;
+      });
+    } catch (e) {
+      print("Error resetting thread: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Fehler beim Zurücksetzen des Chats. Bitte versuchen Sie es erneut.")),
+      );
+    } finally {
+      Navigator.of(context).pop(); // Remove the progress indicator
+    }
   }
+}
 }
 
 class ChatMessage extends StatelessWidget {
@@ -472,7 +585,6 @@ class ChatMessage extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        
         SizedBox(
           width: 15,
           height: 15,

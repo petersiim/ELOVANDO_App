@@ -11,22 +11,23 @@ class AIChatService {
 
   AIChatService(this.apiKey, this.organizationId);
 
-  Future<String> createThread(String userId) async {
-    final response = await http.post(
-      Uri.parse('https://api.openai.com/v1/threads'),
-      headers: _getHeaders(),
-    );
+  Future<String> createThread(String userId, String userInfo) async {
+  final response = await http.post(
+    Uri.parse('https://api.openai.com/v1/threads'),
+    headers: _getHeaders(),
+  );
 
-    if (response.statusCode == 200) {
-      final threadId = jsonDecode(response.body)['id'];
-      await _firestore.collection('users').doc(userId).update({
-        'threadId': threadId,
-      });
-      return threadId;
-    } else {
-      throw Exception('Failed to create thread');
-    }
+  if (response.statusCode == 200) {
+    final threadId = jsonDecode(response.body)['id'];
+    
+    // Send user information as the first message in the thread
+    await sendMessage(userId, threadId, "User Information:\n$userInfo");
+    print(userInfo);
+    return threadId;
+  } else {
+    throw Exception('Failed to create thread');
   }
+}
 
   Future<String> sendMessage(String userId, String threadId, String message) async {
     var userDoc = await _firestore.collection('users').doc(userId).get();
@@ -80,11 +81,28 @@ class AIChatService {
   }
 
   Future<void> resetThread(String userId) async {
-    var newThreadId = await createThread(userId);
-    await _firestore.collection('users').doc(userId).update({
-      'threadId': newThreadId,
-    });
-  }
+  DocumentSnapshot userDoc = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(userId)
+      .get();
+
+  Map<String, dynamic> userInfo = userDoc.data() as Map<String, dynamic>? ?? {};
+  userInfo.remove('password');
+  String userInfoString = userInfo.entries.map((e) => "${e.key}: ${e.value}").join("\n");
+
+  var newThreadId = await createThread(userId, userInfoString);
+  print("New thread created with ID: $newThreadId");
+  print("Reset Thread - User Information:\n$userInfoString");
+
+  await FirebaseFirestore.instance
+      .collection('users')
+      .doc(userId)
+      .update({
+    'threadId': newThreadId,
+    'messagesRemaining': 6,
+    'nextResetTime': Timestamp.fromDate(DateTime.now().add(Duration(hours: 24))),
+  });
+}
 
   Future<int> getRemainingMessages(String userId) async {
     var userDoc = await _firestore.collection('users').doc(userId).get();
