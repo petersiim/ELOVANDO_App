@@ -8,6 +8,7 @@ class SpeechToTextService {
   static final SpeechToTextService _instance = SpeechToTextService._internal();
   factory SpeechToTextService() => _instance;
   SpeechToTextService._internal();
+  TextEditingController? currentController;
 
   final Record _recorder = Record();
   String? _path;
@@ -15,7 +16,7 @@ class SpeechToTextService {
 
   bool get isRecording => _isRecording;
 
-  Future<void> startRecording() async {
+  Future<void> startRecording(TextEditingController controller) async {
     if (await _recorder.hasPermission()) {
       final directory = await getTemporaryDirectory();
       _path = '${directory.path}/audio.mp3';
@@ -26,6 +27,7 @@ class SpeechToTextService {
         samplingRate: 44100,
       );
       _isRecording = true;
+      currentController = controller;
     } else {
       print('Microphone permission not granted');
     }
@@ -34,8 +36,8 @@ class SpeechToTextService {
   Future<void> stopRecording() async {
     await _recorder.stop();
     _isRecording = false;
+    currentController = null;
   }
-
   Future<String?> transcribeAudio() async {
     if (_path == null) return null;
     try {

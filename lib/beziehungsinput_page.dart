@@ -123,12 +123,14 @@ class _BeziehungsInputPageState extends State<BeziehungsInputPage> {
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
                               GestureDetector(
-                                onLongPressStart: (_) => _startRecording(),
-                                onLongPressEnd: (_) => _stopRecording(),
+                                onLongPressStart: (_) => _startRecording(_inputController),
+                                onLongPressEnd: (_) => _stopRecording(_inputController),
                                 child: IconButton(
                                   icon: SvgPicture.asset(
                                     'assets/graphics/voice_input_icon.svg',
-                                    color: _speechToTextService.isRecording ? Colors.red : null,
+                                    color: _speechToTextService.isRecording && _speechToTextService.currentController == _inputController
+                                        ? Colors.red
+                                        : null,
                                   ),
                                   onPressed: () {}, // Disable normal press
                                 ),
@@ -278,17 +280,17 @@ class _BeziehungsInputPageState extends State<BeziehungsInputPage> {
     );
   }
 
-  void _startRecording() async {
-    await _speechToTextService.startRecording();
+  void _startRecording(TextEditingController controller) async {
+    await _speechToTextService.startRecording(controller);
     setState(() {});
   }
 
-  void _stopRecording() async {
+  void _stopRecording(TextEditingController controller) async {
     await _speechToTextService.stopRecording();
     String? transcription = await _speechToTextService.transcribeAudio();
     if (transcription != null) {
       setState(() {
-        _inputController.text = transcription;
+        controller.text = transcription;
       });
     }
     setState(() {});

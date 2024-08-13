@@ -158,12 +158,12 @@ class _ChatPageState extends State<ChatPage> {
                     ),
                   ),
                   GestureDetector(
-                    onLongPressStart: (_) => _startRecording(),
-                    onLongPressEnd: (_) => _stopRecording(),
+                    onLongPressStart: (_) => _startRecording(_messageController),
+                    onLongPressEnd: (_) => _stopRecording(_messageController),
                     child: IconButton(
                       icon: SvgPicture.asset(
                         'assets/graphics/voice_input_icon.svg',
-                        color: _isRecording ? Colors.red : null,
+                        color: _isRecording && _speechToTextService.currentController == _messageController? Colors.red : null,
                       ),
                       onPressed: () {}, // Disable normal press
                     ),
@@ -182,25 +182,21 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
-  void _startRecording() async {
-    setState(() {
-      _isRecording = true;
-    });
-    await _speechToTextService.startRecording();
-  }
+  void _startRecording(TextEditingController controller) async {
+  await _speechToTextService.startRecording(controller);
+  setState(() {});
+}
 
-  void _stopRecording() async {
+void _stopRecording(TextEditingController controller) async {
+  await _speechToTextService.stopRecording();
+  String? transcription = await _speechToTextService.transcribeAudio();
+  if (transcription != null) {
     setState(() {
-      _isRecording = false;
+      controller.text = transcription;
     });
-    await _speechToTextService.stopRecording();
-    String? transcription = await _speechToTextService.transcribeAudio();
-    if (transcription != null) {
-      setState(() {
-        _messageController.text = transcription;
-      });
-    }
   }
+  setState(() {});
+}
 
   void _sendMessage() {
     if (_messageController.text.isNotEmpty) {

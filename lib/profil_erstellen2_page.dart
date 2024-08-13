@@ -396,12 +396,12 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               GestureDetector(
-                onLongPressStart: (_) => _startRecording(),
-                onLongPressEnd: (_) => _stopRecording(),
+                onLongPressStart: (_) => _startRecording(_lastQuestionController),
+                onLongPressEnd: (_) => _stopRecording(_lastQuestionController),
                 child: IconButton(
                   icon: SvgPicture.asset(
                     'assets/graphics/voice_input_icon.svg',
-                    color: _speechToTextService.isRecording ? Colors.red : null,
+                    color: _speechToTextService.isRecording && _speechToTextService.currentController== _lastQuestionController? Colors.red : null,
                   ),
                   onPressed: () {}, // Disable normal press
                 ),
@@ -419,21 +419,21 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
     );
   }
 
-  void _startRecording() async {
-    await _speechToTextService.startRecording();
-    setState(() {});
-  }
+  void _startRecording(TextEditingController controller) async {
+  await _speechToTextService.startRecording(controller);
+  setState(() {});
+}
 
-  void _stopRecording() async {
-    await _speechToTextService.stopRecording();
-    String? transcription = await _speechToTextService.transcribeAudio();
-    if (transcription != null) {
-      setState(() {
-        _lastQuestionController.text = transcription;
-      });
-    }
-    setState(() {});
+void _stopRecording(TextEditingController controller) async {
+  await _speechToTextService.stopRecording();
+  String? transcription = await _speechToTextService.transcribeAudio();
+  if (transcription != null) {
+    setState(() {
+      controller.text = transcription;
+    });
   }
+  setState(() {});
+}
 
   Widget _buildOptionPage(
       String question, List<String> options, int pageIndex) {

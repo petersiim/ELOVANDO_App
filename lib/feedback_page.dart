@@ -178,90 +178,91 @@ class _FeedbackPageState extends State<FeedbackPage> {
   }
 
   Widget _buildFeedbackInput(String label, TextEditingController controller) {
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Color(0xFFDEDEDE)),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: Color(0xFF414254),
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'Inter',
+  return Container(
+    padding: EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border.all(color: Color(0xFFDEDEDE)),
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: Color(0xFF414254),
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Inter',
+          ),
+        ),
+        SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            hintText: 'Geben Sie Feedback ein',
+            hintStyle: TextStyle(color: Color(0xFF98999D)),
+            border: InputBorder.none,
+            filled: true,
+            fillColor: Color(0xFFF7F7F7),
+            contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.transparent),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.transparent),
             ),
           ),
-          SizedBox(height: 8),
-          TextField(
-            controller: controller,
-            decoration: InputDecoration(
-              hintText: 'Geben Sie Feedback ein',
-              hintStyle: TextStyle(color: Color(0xFF98999D)),
-              border: InputBorder.none,
-              filled: true,
-              fillColor: Color(0xFFF7F7F7),
-              contentPadding:
-                  EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.transparent),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.transparent),
-              ),
-            ),
-            maxLines: 3,
-          ),
-          SizedBox(height: 0),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              GestureDetector(
-                onLongPressStart: (_) => _startRecording(controller),
-                onLongPressEnd: (_) => _stopRecording(controller),
-                child: IconButton(
-                  icon: SvgPicture.asset(
-                    'assets/graphics/voice_input_icon.svg',
-                    color: _speechToTextService.isRecording ? Colors.red : null,
-                  ),
-                  onPressed: () {}, // Disable normal press
+          maxLines: 3,
+        ),
+        SizedBox(height: 0),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            GestureDetector(
+              onLongPressStart: (_) => _startRecording(controller),
+              onLongPressEnd: (_) => _stopRecording(controller),
+              child: IconButton(
+                icon: SvgPicture.asset(
+                  'assets/graphics/voice_input_icon.svg',
+                  color: _speechToTextService.isRecording && _speechToTextService.currentController == controller
+                      ? Colors.red
+                      : null,
                 ),
+                onPressed: () {}, // Disable normal press
               ),
-              IconButton(
-                icon: SvgPicture.asset('assets/graphics/send_message_icon.svg'),
-                onPressed: () {
-                  // Handle send message action
-                },
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+            ),
+            IconButton(
+              icon: SvgPicture.asset('assets/graphics/send_message_icon.svg'),
+              onPressed: () {
+                // Handle send message action
+              },
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
 
   void _startRecording(TextEditingController controller) async {
-    await _speechToTextService.startRecording();
-    setState(() {});
-  }
+  await _speechToTextService.startRecording(controller);
+  setState(() {});
+}
 
-  void _stopRecording(TextEditingController controller) async {
-    await _speechToTextService.stopRecording();
-    String? transcription = await _speechToTextService.transcribeAudio();
-    if (transcription != null) {
-      setState(() {
-        controller.text = transcription;
-      });
-    }
-    setState(() {});
+void _stopRecording(TextEditingController controller) async {
+  await _speechToTextService.stopRecording();
+  String? transcription = await _speechToTextService.transcribeAudio();
+  if (transcription != null) {
+    setState(() {
+      controller.text = transcription;
+    });
   }
+  setState(() {});
+}
 
   Widget _buildOption(int index, String text) {
     bool isSelected = selectedOption == index;
