@@ -16,6 +16,7 @@ class _BeziehungsInputPageState extends State<BeziehungsInputPage> {
   double sliderValue = 6.0;
   final TextEditingController _inputController = TextEditingController();
   final SpeechToTextService _speechToTextService = SpeechToTextService();
+  bool _isProcessingSpeech = false;
 
   @override
   Widget build(BuildContext context) {
@@ -95,28 +96,45 @@ class _BeziehungsInputPageState extends State<BeziehungsInputPage> {
                             ),
                           ),
                           SizedBox(height: 16),
-                          TextField(
-                            controller: _inputController,
-                            decoration: InputDecoration(
-                              hintText: 'Dein Input hier...',
-                              hintStyle: TextStyle(color: Color(0xFF98999D)),
-                              border: InputBorder.none,
-                              filled: true,
-                              fillColor: Color(0xFFF7F7F7),
-                              contentPadding: EdgeInsets.symmetric(
-                                  vertical: 10, horizontal: 16),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide:
-                                    BorderSide(color: Colors.transparent),
+                          Stack(
+                            alignment: Alignment.centerRight,
+                            children: [
+                              TextField(
+                                controller: _inputController,
+                                decoration: InputDecoration(
+                                  hintText: _isProcessingSpeech ? '' : 'Dein Input hier...',
+                                  hintStyle: TextStyle(color: Color(0xFF98999D)),
+                                  border: InputBorder.none,
+                                  filled: true,
+                                  fillColor: Color(0xFFF7F7F7),
+                                  contentPadding: EdgeInsets.symmetric(
+                                      vertical: 10, horizontal: 16),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide:
+                                        BorderSide(color: Colors.transparent),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide:
+                                        BorderSide(color: Colors.transparent),
+                                  ),
+                                ),
+                                maxLines: 4,
                               ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide:
-                                    BorderSide(color: Colors.transparent),
-                              ),
-                            ),
-                            maxLines: 4,
+                              if (_isProcessingSpeech)
+                                Padding(
+                                  padding: EdgeInsets.only(right: 16),
+                                  child: SizedBox(
+                                    width: 15,
+                                    height: 15,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7D4666)),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                           SizedBox(height: 5),
                           Row(
@@ -282,7 +300,9 @@ class _BeziehungsInputPageState extends State<BeziehungsInputPage> {
 
   void _startRecording(TextEditingController controller) async {
     await _speechToTextService.startRecording(controller);
-    setState(() {});
+    setState(() {
+      _isProcessingSpeech = true;
+    });
   }
 
   void _stopRecording(TextEditingController controller) async {
@@ -293,6 +313,8 @@ class _BeziehungsInputPageState extends State<BeziehungsInputPage> {
         controller.text = transcription;
       });
     }
-    setState(() {});
+    setState(() {
+      _isProcessingSpeech = false;
+    });
   }
 }

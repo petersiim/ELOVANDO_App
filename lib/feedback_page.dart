@@ -17,11 +17,12 @@ class _FeedbackPageState extends State<FeedbackPage> {
   final TextEditingController _likedController = TextEditingController();
   final TextEditingController _dislikedController = TextEditingController();
   final SpeechToTextService _speechToTextService = SpeechToTextService();
+  bool _isProcessingSpeech = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF7F7F7), // General background color
+      backgroundColor: Color(0xFFF7F7F7),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 1,
@@ -32,8 +33,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
           },
         ),
         title: Padding(
-          padding: const EdgeInsets.only(
-              top: 0, bottom: 0), // Adjust top and bottom padding
+          padding: const EdgeInsets.only(top: 0, bottom: 0),
           child: Text(
             'Feedback zur Love Session',
             style: TextStyle(
@@ -91,7 +91,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(5, (index) {
                     return IconButton(
-                      iconSize: 36, // Increase the size of the star icons
+                      iconSize: 36,
                       icon: Icon(
                         index < rating ? Icons.star : Icons.star,
                         color: index < rating
@@ -107,40 +107,14 @@ class _FeedbackPageState extends State<FeedbackPage> {
                   }),
                 ),
               ),
-              SizedBox(height: 16),
+SizedBox(height: 16),
               _buildFeedbackInput('Das hat mir gefallen:', _likedController),
               SizedBox(height: 16),
               _buildFeedbackInput('Das war weniger gut:', _dislikedController),
-              SizedBox(height: 16),
-              /* Container(
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: Color(0xFFDEDEDE)), // Border color
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Ich möchte:',
-                      style: TextStyle(
-                        color: Color(0xFF414254),
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Inter',
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    _buildOption(0, 'Eine neue Stimme ausprobieren'),
-                    _buildOption(1, 'Ein neues Sound-Design ausprobieren'),
-                  ],
-                ),
-              ), */
               SizedBox(height: 20),
               Center(
                 child: Container(
-                  width: double.infinity, // Make the button full width
+                  width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color(0xFF7D4666),
@@ -157,7 +131,6 @@ class _FeedbackPageState extends State<FeedbackPage> {
                               BestaetigungPage(userId: widget.userId),
                         ),
                       );
-                      // Handle send action
                     },
                     child: Text(
                       'Senden',
@@ -178,132 +151,110 @@ class _FeedbackPageState extends State<FeedbackPage> {
   }
 
   Widget _buildFeedbackInput(String label, TextEditingController controller) {
-  return Container(
-    padding: EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      border: Border.all(color: Color(0xFFDEDEDE)),
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: Color(0xFF414254),
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            fontFamily: 'Inter',
-          ),
-        ),
-        SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            hintText: 'Geben Sie Feedback ein',
-            hintStyle: TextStyle(color: Color(0xFF98999D)),
-            border: InputBorder.none,
-            filled: true,
-            fillColor: Color(0xFFF7F7F7),
-            contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.transparent),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.transparent),
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Color(0xFFDEDEDE)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: Color(0xFF414254),
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Inter',
             ),
           ),
-          maxLines: 3,
-        ),
-        SizedBox(height: 0),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            GestureDetector(
-              onLongPressStart: (_) => _startRecording(controller),
-              onLongPressEnd: (_) => _stopRecording(controller),
-              child: IconButton(
-                icon: SvgPicture.asset(
-                  'assets/graphics/voice_input_icon.svg',
-                  color: _speechToTextService.isRecording && _speechToTextService.currentController == controller
-                      ? Colors.red
-                      : null,
+          SizedBox(height: 8),
+          Stack(
+            alignment: Alignment.centerRight,
+            children: [
+              TextField(
+                controller: controller,
+                decoration: InputDecoration(
+                  hintText: _isProcessingSpeech ? '' : 'Geben Sie Feedback ein',
+                  hintStyle: TextStyle(color: Color(0xFF98999D)),
+                  border: InputBorder.none,
+                  filled: true,
+                  fillColor: Color(0xFFF7F7F7),
+                  contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.transparent),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.transparent),
+                  ),
                 ),
-                onPressed: () {}, // Disable normal press
+                maxLines: 3,
               ),
-            ),
-            IconButton(
-              icon: SvgPicture.asset('assets/graphics/send_message_icon.svg'),
-              onPressed: () {
-                // Handle send message action
-              },
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
-}
-
-  void _startRecording(TextEditingController controller) async {
-  await _speechToTextService.startRecording(controller);
-  setState(() {});
-}
-
-void _stopRecording(TextEditingController controller) async {
-  await _speechToTextService.stopRecording();
-  String? transcription = await _speechToTextService.transcribeAudio();
-  if (transcription != null) {
-    setState(() {
-      controller.text = transcription;
-    });
-  }
-  setState(() {});
-}
-
-  Widget _buildOption(int index, String text) {
-    bool isSelected = selectedOption == index;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          selectedOption = index;
-        });
-      },
-      child: Container(
-        margin: EdgeInsets.symmetric(vertical: 8.0),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Color(0xFFDEDEDE),
-          borderRadius: BorderRadius.circular(8),
-          border: isSelected
-              ? Border.all(color: Color(0xFF7FCCB1), width: 2)
-              : Border.all(color: Color(0xFFDEDEDE), width: 1),
-        ),
-        padding: EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                text,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF414254),
-                  fontFamily: 'Inter',
+              if (_isProcessingSpeech && _speechToTextService.currentController == controller)
+                Padding(
+                  padding: EdgeInsets.only(right: 16),
+                  child: SizedBox(
+                    width: 15,
+                    height: 15,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7D4666)),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          SizedBox(height: 0),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              GestureDetector(
+                onLongPressStart: (_) => _startRecording(controller),
+                onLongPressEnd: (_) => _stopRecording(controller),
+                child: IconButton(
+                  icon: SvgPicture.asset(
+                    'assets/graphics/voice_input_icon.svg',
+                    color: _speechToTextService.isRecording && _speechToTextService.currentController == controller
+                        ? Colors.red
+                        : null,
+                  ),
+                  onPressed: () {}, // Disable normal press
                 ),
               ),
-            ),
-            SvgPicture.asset(
-              isSelected
-                  ? 'assets/graphics/profil_erstellen_MC_item_selected.svg'
-                  : 'assets/graphics/profil_erstellen_MC_item_not_selected.svg',
-              width: 24,
-              height: 24,
-            ),
-          ],
-        ),
+              IconButton(
+                icon: SvgPicture.asset('assets/graphics/send_message_icon.svg'),
+                onPressed: () {
+                  // Handle send message action
+                },
+              ),
+            ],
+          ),
+        ],
       ),
     );
+  }
+
+  void _startRecording(TextEditingController controller) async {
+    await _speechToTextService.startRecording(controller);
+    setState(() {
+      _isProcessingSpeech = true;
+    });
+  }
+
+  void _stopRecording(TextEditingController controller) async {
+    await _speechToTextService.stopRecording();
+    String? transcription = await _speechToTextService.transcribeAudio();
+    if (transcription != null) {
+      setState(() {
+        controller.text = transcription;
+      });
+    }
+    setState(() {
+      _isProcessingSpeech = false;
+    });
   }
 }

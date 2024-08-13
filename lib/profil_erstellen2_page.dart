@@ -12,7 +12,7 @@ class ProfilErstellen2Page extends StatefulWidget {
 class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
   final FirestoreService _firestoreService = FirestoreService();
   final SpeechToTextService _speechToTextService = SpeechToTextService();
-
+  bool _isProcessingSpeech = false;
   PageController _pageController = PageController();
   int _currentPage = 0;
   List<int> selectedOptionIndexes = List<int>.generate(6, (index) => -1);
@@ -377,31 +377,55 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
               color: Color(0xFFF7F7F7),
               borderRadius: BorderRadius.circular(8.0),
             ),
-            child: Scrollbar(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                child: TextField(
-                  controller: _lastQuestionController,
-                  maxLines: null,
-                  decoration: InputDecoration(
-                    hintText: 'Text eingeben...',
-                    hintStyle: TextStyle(color: Color(0xFF979797)),
-                    border: InputBorder.none,
+            child: Stack(
+              alignment: Alignment.centerRight,
+              children: [
+                Scrollbar(
+                  child: SingleChildScrollView(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    child: TextField(
+                      controller: _lastQuestionController,
+                      maxLines: null,
+                      decoration: InputDecoration(
+                        hintText: _isProcessingSpeech ? '' : 'Text eingeben...',
+                        hintStyle: TextStyle(color: Color(0xFF979797)),
+                        border: InputBorder.none,
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                if (_isProcessingSpeech)
+                  Padding(
+                    padding: EdgeInsets.only(right: 16),
+                    child: SizedBox(
+                      width: 15,
+                      height: 15,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(Color(0xFF7D4666)),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               GestureDetector(
-                onLongPressStart: (_) => _startRecording(_lastQuestionController),
+                onLongPressStart: (_) =>
+                    _startRecording(_lastQuestionController),
                 onLongPressEnd: (_) => _stopRecording(_lastQuestionController),
                 child: IconButton(
                   icon: SvgPicture.asset(
                     'assets/graphics/voice_input_icon.svg',
-                    color: _speechToTextService.isRecording && _speechToTextService.currentController== _lastQuestionController? Colors.red : null,
+                    color: _speechToTextService.isRecording &&
+                            _speechToTextService.currentController ==
+                                _lastQuestionController
+                        ? Colors.red
+                        : null,
                   ),
                   onPressed: () {}, // Disable normal press
                 ),
@@ -421,7 +445,9 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
 
   void _startRecording(TextEditingController controller) async {
   await _speechToTextService.startRecording(controller);
-  setState(() {});
+  setState(() {
+    _isProcessingSpeech = true;
+  });
 }
 
 void _stopRecording(TextEditingController controller) async {
@@ -432,7 +458,9 @@ void _stopRecording(TextEditingController controller) async {
       controller.text = transcription;
     });
   }
-  setState(() {});
+  setState(() {
+    _isProcessingSpeech = false;
+  });
 }
 
   Widget _buildOptionPage(

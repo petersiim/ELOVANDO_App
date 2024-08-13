@@ -34,13 +34,25 @@ class _ChatPageState extends State<ChatPage> {
   bool _isRecording = false;
   late AIChatService _aiChatService;
   String? _threadId;
-  int _remainingMessages = 6;
+  int _remainingMessages = 100;
+  bool _isLoading = false;
+  String _loadingText = "";
+  late Timer _loadingTimer;
+    bool _isProcessingSpeech = false;
+
 
   @override
   void initState() {
     super.initState();
     _fetchUserProfileImage();
     _initializeAIChatService();
+    _loadingTimer = Timer(Duration.zero, () {});
+  }
+
+  @override
+  void dispose() {
+    _loadingTimer.cancel();
+    super.dispose();
   }
 
   Future<void> _initializeAIChatService() async {
@@ -147,6 +159,18 @@ class _ChatPageState extends State<ChatPage> {
           Expanded(
             child: _showIntroBox ? _buildIntroBox() : _buildChatList(),
           ),
+          if (_isLoading)
+            Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Text(
+                "Loading: $_loadingText", // Modified for debugging
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF414254),
+                ),
+              ),
+            ),
           _buildMessageInput(),
         ],
       ),
@@ -228,18 +252,34 @@ class _ChatPageState extends State<ChatPage> {
               child: Row(
                 children: [
                   Expanded(
-                    child: TextField(
-                      controller: _messageController,
-                      decoration: InputDecoration(
-                        hintText: 'Nachricht eingeben...',
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 16),
-                      ),
+                    child: Stack(
+                      alignment: Alignment.centerRight,
+                      children: [
+                        TextField(
+                          controller: _messageController,
+                          decoration: InputDecoration(
+                            hintText: _isProcessingSpeech ? '' : 'Nachricht eingeben...',
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(horizontal: 16),
+                          ),
+                        ),
+                        if (_isProcessingSpeech)
+                          Padding(
+                            padding: EdgeInsets.only(right: 16),
+                            child: SizedBox(
+                              width: 15,
+                              height: 15,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7D4666)),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                   GestureDetector(
-                    onLongPressStart: (_) =>
-                        _startRecording(_messageController),
+                    onLongPressStart: (_) => _startRecording(_messageController),
                     onLongPressEnd: (_) => _stopRecording(_messageController),
                     child: IconButton(
                       icon: SvgPicture.asset(
@@ -267,18 +307,20 @@ class _ChatPageState extends State<ChatPage> {
     await _speechToTextService.startRecording(controller);
     setState(() {
       _isRecording = true;
+      _isProcessingSpeech = true;
     });
   }
 
   void _stopRecording(TextEditingController controller) async {
     await _speechToTextService.stopRecording();
     String? transcription = await _speechToTextService.transcribeAudio();
-    if (transcription != null) {
-      setState(() {
+    setState(() {
+      _isRecording = false;
+      _isProcessingSpeech = false;
+      if (transcription != null) {
         controller.text = transcription;
-        _isRecording = false;
-      });
-    }
+      }
+    });
   }
 
   void _sendMessage() async {
@@ -295,12 +337,29 @@ class _ChatPageState extends State<ChatPage> {
         ));
         _messageController.clear();
         _showIntroBox = false;
+
+        // Add loading message
+        _messages.add(ChatMessage(
+          text: '',
+          isUser: false,
+          userIcon: CircleAvatar(
+            child: Padding(
+              padding: EdgeInsets.all(3.0),
+              child: Image.asset('assets/graphics/logo_black.png'),
+            ),
+            backgroundColor: Color(0xFF414254),
+          ),
+          isLoading: true,
+        ));
       });
 
       try {
         String aiResponse = await _aiChatService.sendMessage(
             widget.userId, _threadId!, message);
         setState(() {
+          // Remove loading message
+          _messages.removeLast();
+          // Add actual AI response
           _messages.add(ChatMessage(
             text: aiResponse,
             isUser: false,
@@ -315,11 +374,29 @@ class _ChatPageState extends State<ChatPage> {
         });
         _updateRemainingMessages();
       } catch (e) {
+        setState(() {
+          // Remove loading message
+          _messages.removeLast();
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(e.toString())),
         );
       }
     }
+  }
+
+  void _startLoadingAnimation() {
+    _loadingText = ".";
+    _loadingTimer = Timer.periodic(Duration(milliseconds: 500), (timer) {
+      setState(() {
+        if (_loadingText.length == 3) {
+          _loadingText = ".";
+        } else {
+          _loadingText += ".";
+        }
+        print("Loading text: $_loadingText"); // Add this line
+      });
+    });
   }
 
   void _resetThread() async {
@@ -335,12 +412,14 @@ class ChatMessage extends StatelessWidget {
   final String text;
   final bool isUser;
   final Widget userIcon;
+  final bool isLoading;
 
   const ChatMessage({
     Key? key,
     required this.text,
     required this.isUser,
     required this.userIcon,
+    this.isLoading = false,
   }) : super(key: key);
 
   @override
@@ -366,13 +445,15 @@ class ChatMessage extends StatelessWidget {
                 color: isUser ? Color(0xFF7D4666) : Colors.white,
                 borderRadius: BorderRadius.circular(8.0),
               ),
-              child: Text(
-                text,
-                style: TextStyle(
-                  color: isUser ? Colors.white : Colors.black,
-                  fontSize: 16,
-                ),
-              ),
+              child: isLoading
+                  ? _buildLoadingIndicator()
+                  : Text(
+                      text,
+                      style: TextStyle(
+                        color: isUser ? Colors.white : Colors.black,
+                        fontSize: 16,
+                      ),
+                    ),
             ),
           ),
           SizedBox(width: 8.0),
@@ -384,6 +465,23 @@ class ChatMessage extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+
+  Widget _buildLoadingIndicator() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        
+        SizedBox(
+          width: 15,
+          height: 15,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+          ),
+        ),
+      ],
     );
   }
 }
