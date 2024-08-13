@@ -19,13 +19,14 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   openai.OpenAI.apiKey = Env.apiKey;
+  openai.OpenAI.organization = "org-fZRna2F4kfSff4YTG4Lx15mM";
+
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
   runApp(const MyApp());
 }
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 

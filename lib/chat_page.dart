@@ -1,7 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'ai_chat_service.dart';
+import 'main.dart';
 import 'speech_to_text_service.dart';
+import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart' as dotenv;
+import 'package:envied/envied.dart';
+import 'env/env.dart';
+import 'package:dart_openai/dart_openai.dart' as openai;
+import 'dart:developer';
+import 'package:flutter/services.dart';
+import 'dart:async';
+import 'splash_screen.dart'; // Import the SplashScreen widget
 
 class ChatPage extends StatefulWidget {
   final String userId;
@@ -19,11 +32,26 @@ class _ChatPageState extends State<ChatPage> {
   String? _userProfileImageUrl;
   final SpeechToTextService _speechToTextService = SpeechToTextService();
   bool _isRecording = false;
+  late AIChatService _aiChatService;
+  String? _threadId;
+  int _remainingMessages = 6;
 
   @override
   void initState() {
     super.initState();
     _fetchUserProfileImage();
+    _initializeAIChatService();
+  }
+
+  Future<void> _initializeAIChatService() async {
+    _aiChatService = AIChatService(Env.apiKey, "org-fZRna2F4kfSff4YTG4Lx15mM");
+    var userDoc = await FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
+    _threadId = userDoc.data()!['threadId'] as String?;
+    if (_threadId == null) {
+      _threadId = await _aiChatService.createThread(widget.userId);
+    }
+    _updateRemainingMessages();
+    _loadMessages();
   }
 
   Future<void> _fetchUserProfileImage() async {
@@ -34,6 +62,49 @@ class _ChatPageState extends State<ChatPage> {
     setState(() {
       _userProfileImageUrl = userDoc.data()?['profileImageUrl'];
     });
+  }
+
+  Future<void> _updateRemainingMessages() async {
+    var userDoc = await FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
+    var messageCount = userDoc.data()!['messageCount'] as int;
+    var lastMessageTimestamp = userDoc.data()!['lastMessageTimestamp'] as Timestamp;
+    
+    if (DateTime.now().difference(lastMessageTimestamp.toDate()).inHours >= 24) {
+      await FirebaseFirestore.instance.collection('users').doc(widget.userId).update({
+        'messageCount': 0,
+        'lastMessageTimestamp': FieldValue.serverTimestamp(),
+      });
+      messageCount = 0;
+    }
+
+    setState(() {
+      _remainingMessages = 6 - messageCount;
+    });
+  }
+
+  Future<void> _loadMessages() async {
+    if (_threadId != null) {
+      var messages = await _aiChatService.getThreadMessages(_threadId!);
+      setState(() {
+        _messages.clear();
+        _messages.addAll(messages.map((m) => ChatMessage(
+          text: m['content'],
+          isUser: m['role'] == 'user',
+          userIcon: m['role'] == 'user'
+              ? (_userProfileImageUrl != null
+                  ? CircleAvatar(backgroundImage: NetworkImage(_userProfileImageUrl!))
+                  : CircleAvatar(child: Icon(Icons.person)))
+              : CircleAvatar(
+                  child: Padding(
+                    padding: EdgeInsets.all(3.0),
+                    child: Image.asset('assets/graphics/logo_black.png'),
+                  ),
+                  backgroundColor: Color(0xFF414254),
+                ),
+        )));
+        _showIntroBox = false;
+      });
+    }
   }
 
   @override
@@ -57,6 +128,12 @@ class _ChatPageState extends State<ChatPage> {
           ),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh, color: Color(0xFF414254)),
+            onPressed: _resetThread,
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: Size.fromHeight(0.2),
           child: Divider(color: Color(0xFFDEDEDE), thickness: 1, height: 1),
@@ -64,6 +141,17 @@ class _ChatPageState extends State<ChatPage> {
       ),
       body: Column(
         children: [
+          Padding(
+            padding: EdgeInsets.all(8.0),
+            child: Text(
+              'Verbleibende Nachrichten: $_remainingMessages',
+              style: TextStyle(
+                color: Color(0xFF414254),
+                fontSize: 14,
+                fontFamily: 'Inter',
+              ),
+            ),
+          ),
           Expanded(
             child: _showIntroBox ? _buildIntroBox() : _buildChatList(),
           ),
@@ -163,7 +251,7 @@ class _ChatPageState extends State<ChatPage> {
                     child: IconButton(
                       icon: SvgPicture.asset(
                         'assets/graphics/voice_input_icon.svg',
-                        color: _isRecording && _speechToTextService.currentController == _messageController? Colors.red : null,
+                        color: _isRecording ? Colors.red : null,
                       ),
                       onPressed: () {}, // Disable normal press
                     ),
@@ -183,41 +271,43 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void _startRecording(TextEditingController controller) async {
-  await _speechToTextService.startRecording(controller);
-  setState(() {});
-}
-
-void _stopRecording(TextEditingController controller) async {
-  await _speechToTextService.stopRecording();
-  String? transcription = await _speechToTextService.transcribeAudio();
-  if (transcription != null) {
+    await _speechToTextService.startRecording(controller);
     setState(() {
-      controller.text = transcription;
+      _isRecording = true;
     });
   }
-  setState(() {});
-}
 
-  void _sendMessage() {
+  void _stopRecording(TextEditingController controller) async {
+    await _speechToTextService.stopRecording();
+    String? transcription = await _speechToTextService.transcribeAudio();
+    if (transcription != null) {
+      setState(() {
+        controller.text = transcription;
+        _isRecording = false;
+      });
+    }
+  }
+
+  void _sendMessage() async {
     if (_messageController.text.isNotEmpty) {
+      String message = _messageController.text;
       setState(() {
         _messages.add(ChatMessage(
-          text: _messageController.text,
+          text: message,
           isUser: true,
           userIcon: _userProfileImageUrl != null
-              ? CircleAvatar(
-                  backgroundImage: NetworkImage(_userProfileImageUrl!))
+              ? CircleAvatar(backgroundImage: NetworkImage(_userProfileImageUrl!))
               : CircleAvatar(child: Icon(Icons.person)),
         ));
-        _showIntroBox = false;
         _messageController.clear();
+        _showIntroBox = false;
       });
 
-      // Simulate therapist response
-      Future.delayed(Duration(seconds: 1), () {
+      try {
+        String aiResponse = await _aiChatService.sendMessage(widget.userId, _threadId!, message);
         setState(() {
           _messages.add(ChatMessage(
-            text: 'This is a simulated therapist response.',
+            text: aiResponse,
             isUser: false,
             userIcon: CircleAvatar(
               child: Padding(
@@ -228,8 +318,23 @@ void _stopRecording(TextEditingController controller) async {
             ),
           ));
         });
-      });
+        _updateRemainingMessages();
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
     }
+  }
+
+  void _resetThread() async {
+    await _aiChatService.resetThread(widget.userId);
+    setState(() {
+      _messages.clear();
+      _showIntroBox = true;
+    });
+    _updateRemainingMessages();
+    _loadMessages();
   }
 }
 

@@ -49,6 +49,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.4.2"
+  assistant_openai:
+    dependency: "direct main"
+    description:
+      name: assistant_openai
+      sha256: "0b784757ec4b1e088acb931bb6aca58634803ce4b665c34ee44b6815ae84e082"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.4"
   async:
     dependency: transitive
     description:
