@@ -21,8 +21,6 @@ class AIChatService {
       final threadId = jsonDecode(response.body)['id'];
       await _firestore.collection('users').doc(userId).update({
         'threadId': threadId,
-        'lastMessageTimestamp': FieldValue.serverTimestamp(),
-        'messageCount': 0,
       });
       return threadId;
     } else {
@@ -32,11 +30,20 @@ class AIChatService {
 
   Future<String> sendMessage(String userId, String threadId, String message) async {
     var userDoc = await _firestore.collection('users').doc(userId).get();
-    var messageCount = userDoc.data()!['messageCount'] as int;
-    var lastMessageTimestamp = userDoc.data()!['lastMessageTimestamp'] as Timestamp;
+    var messagesRemaining = userDoc.data()!['messagesRemaining'] as int;
+    var nextResetTime = userDoc.data()!['nextResetTime'] as Timestamp;
 
-    if (messageCount >= 6 && DateTime.now().difference(lastMessageTimestamp.toDate()).inHours < 24) {
-      throw Exception('Message limit reached. Please wait before sending more messages.');
+    if (DateTime.now().isAfter(nextResetTime.toDate())) {
+      // Reset the message count and update the next reset time
+      await _firestore.collection('users').doc(userId).update({
+        'messagesRemaining': 6,
+        'nextResetTime': Timestamp.fromDate(DateTime.now().add(Duration(hours: 24))),
+      });
+      messagesRemaining = 6;
+    }
+
+    if (messagesRemaining <= 0) {
+      throw Exception('Message limit reached. Please wait until ${nextResetTime.toDate()} before sending more messages.');
     }
 
     await _addMessage(threadId, message);
@@ -56,7 +63,7 @@ class AIChatService {
     final aiResponse = messages[0]['content'][0]['text']['value'];
 
     await _firestore.collection('users').doc(userId).update({
-      'messageCount': FieldValue.increment(1),
+      'messagesRemaining': FieldValue.increment(-1),
       'lastMessageTimestamp': FieldValue.serverTimestamp(),
     });
 
@@ -76,10 +83,26 @@ class AIChatService {
     var newThreadId = await createThread(userId);
     await _firestore.collection('users').doc(userId).update({
       'threadId': newThreadId,
-      'messageCount': 0,
-      'lastMessageTimestamp': FieldValue.serverTimestamp(),
     });
   }
+
+  Future<int> getRemainingMessages(String userId) async {
+    var userDoc = await _firestore.collection('users').doc(userId).get();
+    var messagesRemaining = userDoc.data()!['messagesRemaining'] as int;
+    var nextResetTime = userDoc.data()!['nextResetTime'] as Timestamp;
+
+    if (DateTime.now().isAfter(nextResetTime.toDate())) {
+      // Reset the message count and update the next reset time
+      await _firestore.collection('users').doc(userId).update({
+        'messagesRemaining': 6,
+        'nextResetTime': Timestamp.fromDate(DateTime.now().add(Duration(hours: 24))),
+      });
+      return 6;
+    }
+
+    return messagesRemaining;
+  }
+
 
   Future<http.Response> _addMessage(String threadId, String message) async {
     return await http.post(

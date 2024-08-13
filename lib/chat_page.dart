@@ -45,13 +45,15 @@ class _ChatPageState extends State<ChatPage> {
 
   Future<void> _initializeAIChatService() async {
     _aiChatService = AIChatService(Env.apiKey, "org-fZRna2F4kfSff4YTG4Lx15mM");
-    var userDoc = await FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
+    var userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.userId)
+        .get();
     _threadId = userDoc.data()!['threadId'] as String?;
     if (_threadId == null) {
       _threadId = await _aiChatService.createThread(widget.userId);
     }
     _updateRemainingMessages();
-    _loadMessages();
   }
 
   Future<void> _fetchUserProfileImage() async {
@@ -65,20 +67,9 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Future<void> _updateRemainingMessages() async {
-    var userDoc = await FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
-    var messageCount = userDoc.data()!['messageCount'] as int;
-    var lastMessageTimestamp = userDoc.data()!['lastMessageTimestamp'] as Timestamp;
-    
-    if (DateTime.now().difference(lastMessageTimestamp.toDate()).inHours >= 24) {
-      await FirebaseFirestore.instance.collection('users').doc(widget.userId).update({
-        'messageCount': 0,
-        'lastMessageTimestamp': FieldValue.serverTimestamp(),
-      });
-      messageCount = 0;
-    }
-
+    int remaining = await _aiChatService.getRemainingMessages(widget.userId);
     setState(() {
-      _remainingMessages = 6 - messageCount;
+      _remainingMessages = remaining;
     });
   }
 
@@ -88,20 +79,21 @@ class _ChatPageState extends State<ChatPage> {
       setState(() {
         _messages.clear();
         _messages.addAll(messages.map((m) => ChatMessage(
-          text: m['content'],
-          isUser: m['role'] == 'user',
-          userIcon: m['role'] == 'user'
-              ? (_userProfileImageUrl != null
-                  ? CircleAvatar(backgroundImage: NetworkImage(_userProfileImageUrl!))
-                  : CircleAvatar(child: Icon(Icons.person)))
-              : CircleAvatar(
-                  child: Padding(
-                    padding: EdgeInsets.all(3.0),
-                    child: Image.asset('assets/graphics/logo_black.png'),
-                  ),
-                  backgroundColor: Color(0xFF414254),
-                ),
-        )));
+              text: m['content'],
+              isUser: m['role'] == 'user',
+              userIcon: m['role'] == 'user'
+                  ? (_userProfileImageUrl != null
+                      ? CircleAvatar(
+                          backgroundImage: NetworkImage(_userProfileImageUrl!))
+                      : CircleAvatar(child: Icon(Icons.person)))
+                  : CircleAvatar(
+                      child: Padding(
+                        padding: EdgeInsets.all(3.0),
+                        child: Image.asset('assets/graphics/logo_black.png'),
+                      ),
+                      backgroundColor: Color(0xFF414254),
+                    ),
+            )));
         _showIntroBox = false;
       });
     }
@@ -246,7 +238,8 @@ class _ChatPageState extends State<ChatPage> {
                     ),
                   ),
                   GestureDetector(
-                    onLongPressStart: (_) => _startRecording(_messageController),
+                    onLongPressStart: (_) =>
+                        _startRecording(_messageController),
                     onLongPressEnd: (_) => _stopRecording(_messageController),
                     child: IconButton(
                       icon: SvgPicture.asset(
@@ -296,7 +289,8 @@ class _ChatPageState extends State<ChatPage> {
           text: message,
           isUser: true,
           userIcon: _userProfileImageUrl != null
-              ? CircleAvatar(backgroundImage: NetworkImage(_userProfileImageUrl!))
+              ? CircleAvatar(
+                  backgroundImage: NetworkImage(_userProfileImageUrl!))
               : CircleAvatar(child: Icon(Icons.person)),
         ));
         _messageController.clear();
@@ -304,7 +298,8 @@ class _ChatPageState extends State<ChatPage> {
       });
 
       try {
-        String aiResponse = await _aiChatService.sendMessage(widget.userId, _threadId!, message);
+        String aiResponse = await _aiChatService.sendMessage(
+            widget.userId, _threadId!, message);
         setState(() {
           _messages.add(ChatMessage(
             text: aiResponse,
@@ -333,8 +328,6 @@ class _ChatPageState extends State<ChatPage> {
       _messages.clear();
       _showIntroBox = true;
     });
-    _updateRemainingMessages();
-    _loadMessages();
   }
 }
 
