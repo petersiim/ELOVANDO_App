@@ -17,14 +17,13 @@ class _ChatPageState extends State<ChatPage> {
   final List<ChatMessage> _messages = [];
   bool _showIntroBox = true;
   String? _userProfileImageUrl;
-  late SpeechToTextService _speechToTextService = SpeechToTextService();
+  final SpeechToTextService _speechToTextService = SpeechToTextService();
+  bool _isRecording = false;
 
   @override
   void initState() {
     super.initState();
     _fetchUserProfileImage();
-    _speechToTextService = SpeechToTextService();
-
   }
 
   Future<void> _fetchUserProfileImage() async {
@@ -158,18 +157,16 @@ class _ChatPageState extends State<ChatPage> {
                       ),
                     ),
                   ),
-                  IconButton(
-                    icon: SvgPicture.asset(
-                        'assets/graphics/voice_input_icon.svg'),
-                    onPressed: () async {
-                      final text =
-                          await _speechToTextService.recordAndTranscribe();
-                      if (text != null) {
-                        setState(() {
-                          _messageController.text = text;
-                        });
-                      }
-                    },
+                  GestureDetector(
+                    onLongPressStart: (_) => _startRecording(),
+                    onLongPressEnd: (_) => _stopRecording(),
+                    child: IconButton(
+                      icon: SvgPicture.asset(
+                        'assets/graphics/voice_input_icon.svg',
+                        color: _isRecording ? Colors.red : null,
+                      ),
+                      onPressed: () {}, // Disable normal press
+                    ),
                   ),
                 ],
               ),
@@ -183,6 +180,26 @@ class _ChatPageState extends State<ChatPage> {
         ],
       ),
     );
+  }
+
+  void _startRecording() async {
+    setState(() {
+      _isRecording = true;
+    });
+    await _speechToTextService.startRecording();
+  }
+
+  void _stopRecording() async {
+    setState(() {
+      _isRecording = false;
+    });
+    await _speechToTextService.stopRecording();
+    String? transcription = await _speechToTextService.transcribeAudio();
+    if (transcription != null) {
+      setState(() {
+        _messageController.text = transcription;
+      });
+    }
   }
 
   void _sendMessage() {
@@ -208,8 +225,7 @@ class _ChatPageState extends State<ChatPage> {
             isUser: false,
             userIcon: CircleAvatar(
               child: Padding(
-                padding:
-                    EdgeInsets.all(3.0), // Adjust padding to change image size
+                padding: EdgeInsets.all(3.0),
                 child: Image.asset('assets/graphics/logo_black.png'),
               ),
               backgroundColor: Color(0xFF414254),
@@ -244,8 +260,8 @@ class ChatMessage extends StatelessWidget {
         children: [
           if (!isUser)
             SizedBox(
-              width: 30, // Adjust size as needed
-              height: 30, // Adjust size as needed
+              width: 30,
+              height: 30,
               child: userIcon,
             ),
           SizedBox(width: 8.0),
@@ -268,8 +284,8 @@ class ChatMessage extends StatelessWidget {
           SizedBox(width: 8.0),
           if (isUser)
             SizedBox(
-              width: 30, // Adjust size as needed
-              height: 30, // Adjust size as needed
+              width: 30,
+              height: 30,
               child: userIcon,
             ),
         ],
