@@ -15,6 +15,7 @@ import 'dart:developer';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'splash_screen.dart'; // Import the SplashScreen widget
+import 'home_page.dart';
 
 class ChatPage extends StatefulWidget {
   final String userId;
@@ -124,66 +125,80 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color(0xFFF7F7F7),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 1,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Color(0xFF414254)),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          'Therapeuten-Chat',
-          style: TextStyle(
-            color: Color(0xFF414254),
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            fontFamily: 'Inter',
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => HomePage(userId: widget.userId, initialIndex: 0)),
+          (Route<dynamic> route) => false,
+        );
+        return false;
+      },
+      child: Scaffold(
+        backgroundColor: Color(0xFFF7F7F7),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 1,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: Color(0xFF414254)),
+            onPressed: () {
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (context) => HomePage(userId: widget.userId, initialIndex: 0)),
+                (Route<dynamic> route) => false,
+              );
+            },
           ),
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh, color: Color(0xFF414254)),
-            onPressed: _resetThread,
-          ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: Size.fromHeight(0.2),
-          child: Divider(color: Color(0xFFDEDEDE), thickness: 1, height: 1),
-        ),
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: EdgeInsets.all(8.0),
-            child: Text(
-              'Verbleibende Nachrichten: $_remainingMessages',
-              style: TextStyle(
-                color: Color(0xFF414254),
-                fontSize: 14,
-                fontFamily: 'Inter',
-              ),
+          title: Text(
+            'Therapeuten-Chat',
+            style: TextStyle(
+              color: Color(0xFF414254),
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Inter',
             ),
           ),
-          Expanded(
-            child: _showIntroBox ? _buildIntroBox() : _buildChatList(),
+          centerTitle: true,
+          actions: [
+            IconButton(
+              icon: Icon(Icons.refresh, color: Color(0xFF414254)),
+              onPressed: _resetThread,
+            ),
+          ],
+          bottom: PreferredSize(
+            preferredSize: Size.fromHeight(0.2),
+            child: Divider(color: Color(0xFFDEDEDE), thickness: 1, height: 1),
           ),
-          if (_isLoading)
+        ),
+        body: Column(
+          children: [
             Padding(
               padding: EdgeInsets.all(8.0),
               child: Text(
-                "Loading: $_loadingText", // Modified for debugging
+                'Verbleibende Nachrichten: $_remainingMessages',
                 style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
                   color: Color(0xFF414254),
+                  fontSize: 14,
+                  fontFamily: 'Inter',
                 ),
               ),
             ),
-          _buildMessageInput(),
-        ],
+            Expanded(
+              child: _showIntroBox ? _buildIntroBox() : _buildChatList(),
+            ),
+            if (_isLoading)
+              Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Text(
+                  "Loading: $_loadingText",
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF414254),
+                  ),
+                ),
+              ),
+            _buildMessageInput(),
+          ],
+        ),
       ),
     );
   }

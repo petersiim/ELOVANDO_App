@@ -27,7 +27,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return AppBar(
-            title: Text('Loading...'),
+            title: Text(''),
             centerTitle: true,
           );
         }

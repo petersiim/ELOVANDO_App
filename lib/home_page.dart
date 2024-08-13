@@ -1,3 +1,4 @@
+// home_page.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -10,28 +11,29 @@ import 'love_session_page.dart';
 import 'inputs_page.dart';
 import 'chat_page.dart';
 import 'beziehungsinput_page.dart';
-import 'feedback_page.dart'; // Import the feedback page
+import 'feedback_page.dart';
 
 class HomePage extends StatefulWidget {
   final String userId;
+  final int initialIndex;
 
-  HomePage({required this.userId});
+  HomePage({required this.userId, this.initialIndex = 0});
 
   @override
   _HomePageState createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
+class _HomePageState extends State<HomePage> {
   late Future<DocumentSnapshot> userFuture;
-  int _currentIndex = 0;
+  late int _currentIndex;
 
   final List<Widget> _pages = [];
 
   @override
   void initState() {
     super.initState();
-    userFuture =
-        FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
+    _currentIndex = widget.initialIndex;
+    userFuture = FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
     _pages.addAll([
       _HomePageContent(userId: widget.userId),
       SessionsPage(userId: widget.userId),
