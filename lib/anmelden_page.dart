@@ -3,6 +3,9 @@ import 'package:flutter/gestures.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'bez_prof_erstellen.dart'; // Import the BezProfErstellen page
 import 'registration_page.dart'; // Import the RegistrationPage
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 
 class AnmeldenPage extends StatefulWidget {
   @override
@@ -10,6 +13,7 @@ class AnmeldenPage extends StatefulWidget {
 }
 
 class _AnmeldenPageState extends State<AnmeldenPage> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -27,6 +31,8 @@ class _AnmeldenPageState extends State<AnmeldenPage> {
         password: _passwordController.text.trim(),
       );
 
+      await _checkAndProcessInvitationCode(userCredential.user!);
+
       if (userCredential.user!.emailVerified) {
         Navigator.pushReplacement(
           context,
@@ -42,6 +48,45 @@ class _AnmeldenPageState extends State<AnmeldenPage> {
       setState(() {
         _errorMessage = 'Anmeldung fehlgeschlagen: ${e.message}';
       });
+    }
+  }
+  Future<void> _checkAndProcessInvitationCode(User user) async {
+  final prefs = await SharedPreferences.getInstance();
+  String? storedInvitationCode = prefs.getString('pending_invitation_code');
+  
+  if (storedInvitationCode != null) {
+    await _processInvitationCode(user, storedInvitationCode);
+    // Clear the stored invitation code
+    await prefs.remove('pending_invitation_code');
+  }
+}
+
+Future<void> _processInvitationCode(User user, String invitationCode) async {
+    if (invitationCode.isNotEmpty) {
+      QuerySnapshot query = await _firestore
+          .collection('users')
+          .where('invitationCode', isEqualTo: invitationCode)
+          .limit(1)
+          .get();
+
+      if (query.docs.isNotEmpty) {
+        String inviterId = query.docs.first.id;
+        
+        // Link the current user to the inviter
+        await _firestore.collection('users').doc(user.uid).update({
+          'invitedBy': inviterId,
+        });
+
+        // Update the inviter's document
+        await _firestore.collection('users').doc(inviterId).update({
+          'invitedUsers': FieldValue.arrayUnion([user.uid]),
+        });
+
+        // Show success message to the user
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Successfully connected with your partner!')),
+        );
+      }
     }
   }
 

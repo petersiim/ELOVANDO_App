@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'kostenpflichtig_dialog.dart'; // Import the KostenpflichtigDialog widget
-
+import 'partner_einladung_page.dart';
 class ProfilePage extends StatelessWidget {
   final String userId;
   ProfilePage({required this.userId});
@@ -46,6 +46,7 @@ class ProfilePage extends StatelessWidget {
           final userImageUrl = userData['profileImageUrl'];
           final userBirthdate = userData['birthdate']; // Fetch the birthdate
           final userAge = _calculateAge(userBirthdate);
+          final hasInvitedPartner = userData['invitedUsers'] != null && (userData['invitedUsers'] as List).isNotEmpty;
 
           return SingleChildScrollView(
             child: Stack(
@@ -136,6 +137,50 @@ class ProfilePage extends StatelessWidget {
                           ],
                         ),
                       ),
+                    ),
+                    if (!hasInvitedPartner) ...[
+                      SizedBox(height: 20),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFF7FCCB1),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                            padding: EdgeInsets.symmetric(
+                                vertical: 16.0, horizontal: 16.0),
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => PartnerEinladungPage(),
+                              ),
+                            );
+                          },
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.person_add, color: Colors.white),
+                              SizedBox(width: 8),
+                              Text(
+                                'Partner einladen',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                    SizedBox(height: 20),
+                    Container(
+                      height: 1.0,
+                      color: Color(0xFFDEDEDE),
                     ),
                     SizedBox(
                         height:
