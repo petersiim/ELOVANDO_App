@@ -3,15 +3,38 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'kostenpflichtig_dialog.dart'; // Import the KostenpflichtigDialog widget
 import 'partner_einladung_page.dart';
+import 'complete_profile_page.dart';
+
 class ProfilePage extends StatelessWidget {
   final String userId;
   ProfilePage({required this.userId});
 
   Future<Map<String, dynamic>> _fetchUserData() async {
+  DocumentSnapshot userDoc =
+      await FirebaseFirestore.instance.collection('users').doc(userId).get();
+
+  Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+  
+  // Ensure profileCompletion exists in the user data
+  if (!userData.containsKey('profileCompletion')) {
+    userData['profileCompletion'] = {};
+  }
+
+  return userData;
+}
+
+  bool _isProfileComplete(Map<String, bool> completedQuestions) {
+    return completedQuestions.values.every((value) => value);
+  }
+
+  Future<Map<String, bool>> _fetchCompletedQuestions() async {
     DocumentSnapshot userDoc =
         await FirebaseFirestore.instance.collection('users').doc(userId).get();
-
-    return userDoc.data() as Map<String, dynamic>;
+    Map<String, dynamic>? data = userDoc.data() as Map<String, dynamic>?;
+    if (data != null && data.containsKey('profileCompletion')) {
+      return Map<String, bool>.from(data['profileCompletion']);
+    }
+    return {};
   }
 
   int _calculateAge(String birthdate) {
@@ -44,9 +67,12 @@ class ProfilePage extends StatelessWidget {
           final userData = snapshot.data!;
           final userName = userData['name'];
           final userImageUrl = userData['profileImageUrl'];
-          final userBirthdate = userData['birthdate']; // Fetch the birthdate
+          final userBirthdate = userData['birthdate'];
           final userAge = _calculateAge(userBirthdate);
-          final hasInvitedPartner = userData['invitedUsers'] != null && (userData['invitedUsers'] as List).isNotEmpty;
+          final hasInvitedPartner = userData['invitedUsers'] != null &&
+              (userData['invitedUsers'] as List).isNotEmpty;
+          final completedQuestions =
+              Map<String, bool>.from(userData['profileCompletion'] ?? {});
 
           return SingleChildScrollView(
             child: Stack(
@@ -79,65 +105,77 @@ class ProfilePage extends StatelessWidget {
                     SizedBox(
                         height:
                             30), // Add space between the location and the violet box
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Color(0xFF7D4666),
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                        padding: EdgeInsets.symmetric(
-                            vertical: 16.0, horizontal: 16.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  width: 30,
-                                  height: 30,
-                                  child: CircularProgressIndicator(
-                                    value: 0.7, // Example progress value
-                                    strokeWidth: 6.0,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                        Color(0xFFE8C3E6)),
-                                    backgroundColor: Color(0xFFDDDDDD),
+                    if (!_isProfileComplete(completedQuestions))
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Color(0xFF7D4666),
+                            borderRadius: BorderRadius.circular(8.0),
+                          ),
+                          padding: EdgeInsets.symmetric(
+                              vertical: 16.0, horizontal: 16.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 30,
+                                    height: 30,
+                                    child: CircularProgressIndicator(
+                                      value: completedQuestions.values
+                                              .where((v) => v)
+                                              .length /
+                                          completedQuestions.length,
+                                      strokeWidth: 6.0,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          Color(0xFFE8C3E6)),
+                                      backgroundColor: Color(0xFFDDDDDD),
+                                    ),
+                                  ),
+                                  SizedBox(width: 16),
+                                  Text(
+                                    'Vervollständigen \nSie Ihr Profil',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
                                   ),
                                 ),
-                                SizedBox(width: 16),
-                                Text(
-                                  'Vervollständigen \nSie Ihr Profil',
+                                onPressed: () async {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => CompleteProfilePage(
+                                        userId: userData['userId'],
+                                        completedQuestions: completedQuestions,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: Text(
+                                  'Bearbeiten',
                                   style: TextStyle(
-                                    color: Colors.white,
+                                    color: Color(0xFF7D4666),
                                     fontSize: 16,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
-                              ],
-                            ),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
                               ),
-                              onPressed: () {
-                                // Handle edit profile action
-                              },
-                              child: Text(
-                                'Bearbeiten',
-                                style: TextStyle(
-                                  color: Color(0xFF7D4666),
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                    ),
                     if (!hasInvitedPartner) ...[
                       SizedBox(height: 20),
                       Padding(
@@ -177,7 +215,7 @@ class ProfilePage extends StatelessWidget {
                         ),
                       ),
                     ],
-                    
+
                     SizedBox(
                         height:
                             20), // Adjust space between the violet box and the line

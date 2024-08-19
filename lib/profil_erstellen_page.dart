@@ -16,6 +16,19 @@ class ProfilErstellenPage extends StatefulWidget {
 }
 
 class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
+  final List<String> questions = [
+    'So möchtest du von deinem Partner / deiner Partnerin genannt werden:',
+    'Gender:',
+    'Geburtsdatum:',
+    'Welche Art von Film repräsentiert am besten eure Beziehung?',
+    'Welches Tierduo beschreibt eure Partnerschaft am besten?',
+    'Wenn ihr zusammen kochen würdet, welche Rolle übernimmst du?',
+    'Welche Rolle würde dein Partner übernehmen?',
+    'Wie unterstützt du deinen Partner in einer schwierigen Situation?',
+    'Für welche der sieben Todsünden bist du am ehesten empfänglich?',
+    'Erzähle uns doch noch etwas mehr über eure Beziehung. Wie läuft es?',
+    'Was begeistert dich immer wieder an deinem Partner / deiner Partnerin?'
+  ];
   final FirestoreService _firestoreService = FirestoreService();
 
   PageController _pageController = PageController();
@@ -36,6 +49,16 @@ class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
     setState(() {
       _currentPage = index;
     });
+  }
+
+  void _updateQuestionCompletion(String questionKey, bool completed) async {
+    FirestoreService firestoreService = FirestoreService();
+    String userId = FirebaseAuth.instance.currentUser!.uid;
+    Map<String, bool> completedQuestions =
+        await firestoreService.getUserProfileCompletion(userId);
+    completedQuestions[questionKey] = completed;
+    await firestoreService.updateUserProfileCompletion(
+        userId, completedQuestions);
   }
 
   bool _validatePage1() {
@@ -107,7 +130,8 @@ class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
       String downloadURL = await ref.getDownloadURL();
 
       // Store the image URL in Firestore
-      await _firestoreService.updateUserProfile({
+      await _firestoreService
+          .updateUserProfile(FirebaseAuth.instance.currentUser!.uid, {
         'profileImageUrl': downloadURL,
       });
 
@@ -121,32 +145,41 @@ class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
   }
 
   void _nextPage() async {
-    FocusScope.of(context).unfocus(); // This will dismiss the keyboard
+    FocusScope.of(context).unfocus();
 
     bool isValid = false;
+    String userId = FirebaseAuth.instance.currentUser!.uid;
+
     if (_currentPage == 0) {
       isValid = _validatePage1();
       if (isValid) {
-        await _firestoreService.updateUserProfile({
+        await _firestoreService
+            .updateUserProfile(FirebaseAuth.instance.currentUser!.uid, {
           'name': _nameController.text,
         });
+        _updateQuestionCompletion(questions[0], true);
       }
     } else if (_currentPage == 1) {
       isValid = _validatePage2();
       if (isValid) {
-        await _firestoreService.updateUserProfile({
+        await _firestoreService
+            .updateUserProfile(FirebaseAuth.instance.currentUser!.uid, {
           'gender': selectedGenderIndex,
         });
+        _updateQuestionCompletion(questions[1], true);
       }
     } else if (_currentPage == 2) {
       isValid = _validatePage3();
       if (isValid) {
-        await _firestoreService.updateUserProfile({
+        await _firestoreService
+            .updateUserProfile(FirebaseAuth.instance.currentUser!.uid, {
           'birthdate': _dateController.text,
         });
+        _updateQuestionCompletion(questions[2], true);
       }
     } else {
       isValid = true;
+      _updateQuestionCompletion(questions[3], true);
     }
 
     if (isValid) {
@@ -156,8 +189,9 @@ class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
           curve: Curves.easeInOut,
         );
       } else {
-        await _firestoreService
-            .markProfileStepCompleted('profileStep1Completed');
+        await _firestoreService.updateUserProfileCompletion(userId, {
+          'profileStep1Completed': true,
+        });
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -259,14 +293,20 @@ class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
                 left: 32,
                 child: GestureDetector(
                   onTap: () async {
-                    // Ensure the name is saved if the user skips
+                    String userId = FirebaseAuth.instance.currentUser!.uid;
                     if (_nameController.text.isNotEmpty) {
-                      await _firestoreService.updateUserProfile({
+                      await _firestoreService.updateUserProfile(userId, {
                         'name': _nameController.text,
                       });
+                      _updateQuestionCompletion(questions[0], true);
+                    }
+                    for (int i = _currentPage; i < questions.length; i++) {
+                      _updateQuestionCompletion(questions[i], false);
                     }
                     await _firestoreService
-                        .markProfileStepCompleted('profileStep1Completed');
+                        .updateUserProfileCompletion(userId, {
+                      'profileStep1Completed': true,
+                    });
                     Navigator.push(
                       context,
                       MaterialPageRoute(

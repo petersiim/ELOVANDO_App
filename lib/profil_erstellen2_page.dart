@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'partner_einladung_page.dart';
 import 'firestore_service.dart';
 import 'speech_to_text_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ProfilErstellen2Page extends StatefulWidget {
   @override
@@ -10,6 +11,19 @@ class ProfilErstellen2Page extends StatefulWidget {
 }
 
 class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
+  final List<String> questions = [
+    'So möchtest du von deinem Partner / deiner Partnerin genannt werden:',
+    'Gender:',
+    'Geburtsdatum:',
+    'Welche Art von Film repräsentiert am besten eure Beziehung?',
+    'Welches Tierduo beschreibt eure Partnerschaft am besten?',
+    'Wenn ihr zusammen kochen würdet, welche Rolle übernimmst du?',
+    'Welche Rolle würde dein Partner übernehmen?',
+    'Wie unterstützt du deinen Partner in einer schwierigen Situation?',
+    'Für welche der sieben Todsünden bist du am ehesten empfänglich?',
+    'Erzähle uns doch noch etwas mehr über eure Beziehung. Wie läuft es?',
+    'Was begeistert dich immer wieder an deinem Partner / deiner Partnerin?'
+  ];
   final FirestoreService _firestoreService = FirestoreService();
   final SpeechToTextService _speechToTextService = SpeechToTextService();
   bool _isProcessingSpeech = false;
@@ -54,7 +68,8 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
     if (isValid) {
       if (_currentPage < 6) {
         // Store the selected option for the current page in Firestore
-        await _firestoreService.updateUserProfile({
+        await _firestoreService
+            .updateUserProfile(FirebaseAuth.instance.currentUser!.uid, {
           'question${_currentPage + 1}':
               _getAnswerText(_currentPage, selectedOptionIndexes[_currentPage]),
         });
@@ -65,13 +80,18 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
         );
       } else {
         // Store the answer for the last question
-        await _firestoreService.updateUserProfile({
+        await _firestoreService
+            .updateUserProfile(FirebaseAuth.instance.currentUser!.uid, {
           'question7': _lastQuestionController.text,
         });
 
         // Mark profile step 2 completed
-        await _firestoreService
-            .markProfileStepCompleted('profileStep2Completed');
+        await _firestoreService.updateUserProfileCompletion(
+            FirebaseAuth.instance.currentUser!.uid, {
+          'profileStep2Completed': true,
+        });
+
+// Similar change for profileStep2Completed
         // Navigate to PartnerEinladungPage
         Navigator.push(
           context,
@@ -82,15 +102,15 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
   }
 
   void _skipPage() async {
-    // Mark profile step 2 completed
-    await _firestoreService.markProfileStepCompleted('profileStep2Completed');
-    // Navigate to PartnerEinladungPage
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => PartnerEinladungPage()),
-    );
+  String userId = FirebaseAuth.instance.currentUser!.uid;
+  await _firestoreService.updateUserProfileCompletion(userId, {
+    'profileStep2Completed': true,
+  });
+  Navigator.push(
+    context,
+    MaterialPageRoute(builder: (context) => PartnerEinladungPage()),
+  );
   }
-
   String _getAnswerText(int questionIndex, int answerIndex) {
     List<List<String>> options = [
       [
@@ -444,24 +464,24 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
   }
 
   void _startRecording(TextEditingController controller) async {
-  await _speechToTextService.startRecording(controller);
-  setState(() {
-    _isProcessingSpeech = true;
-  });
-}
-
-void _stopRecording(TextEditingController controller) async {
-  await _speechToTextService.stopRecording();
-  String? transcription = await _speechToTextService.transcribeAudio();
-  if (transcription != null) {
+    await _speechToTextService.startRecording(controller);
     setState(() {
-      controller.text = transcription;
+      _isProcessingSpeech = true;
     });
   }
-  setState(() {
-    _isProcessingSpeech = false;
-  });
-}
+
+  void _stopRecording(TextEditingController controller) async {
+    await _speechToTextService.stopRecording();
+    String? transcription = await _speechToTextService.transcribeAudio();
+    if (transcription != null) {
+      setState(() {
+        controller.text = transcription;
+      });
+    }
+    setState(() {
+      _isProcessingSpeech = false;
+    });
+  }
 
   Widget _buildOptionPage(
       String question, List<String> options, int pageIndex) {
