@@ -148,7 +148,7 @@ class _ChatPageState extends State<ChatPage> {
             },
           ),
           title: Text(
-            'Therapeuten-Chat',
+            'Paar-Chat',
             style: TextStyle(
               color: Color(0xFF414254),
               fontSize: 18,
@@ -227,7 +227,7 @@ class _ChatPageState extends State<ChatPage> {
                   ),
                   SizedBox(height: 16),
                   Text(
-                    'Therapeuten-Chat',
+                    'Paar-Chat',
                     style: TextStyle(
                       color: Color(0xFF414254),
                       fontSize: 18,
@@ -237,7 +237,7 @@ class _ChatPageState extends State<ChatPage> {
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'Hast du Fragen zu Liebe, Beziehung oder Sexualität? Unser kostenloser, anonymer Deescalate Therapeuten-Chat bietet dir jederzeit Unterstützung und hilfreiche Ratschläge.',
+                    'Hast du Fragen zu Liebe, Beziehung oder Sexualität? Unser kostenloser, anonymer ELOVANDO Paar-Chat bietet dir jederzeit Unterstützung und hilfreiche Ratschläge.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Color(0xFF98999D),
