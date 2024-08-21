@@ -33,7 +33,8 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
-    userFuture = FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
+    userFuture =
+        FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
     _pages = [
       _HomePageContent(userId: widget.userId),
       SessionsPage(userId: widget.userId),
@@ -73,7 +74,8 @@ class _HomePageContent extends StatefulWidget {
   __HomePageContentState createState() => __HomePageContentState();
 }
 
-class __HomePageContentState extends State<_HomePageContent> with TickerProviderStateMixin {
+class __HomePageContentState extends State<_HomePageContent>
+    with TickerProviderStateMixin {
   late Future<DocumentSnapshot> userFuture;
 
   final List<AnimationController> _leavesControllers = [];
@@ -88,7 +90,8 @@ class __HomePageContentState extends State<_HomePageContent> with TickerProvider
     super.initState();
     userFuture =
         FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
-    initializeLeavesControllers(this, _leavesControllers, _leavesAnimations, _flipHorizontally, _rotationAngles, _scaleFactors, random);
+    initializeLeavesControllers(this, _leavesControllers, _leavesAnimations,
+        _flipHorizontally, _rotationAngles, _scaleFactors, random);
     startLeavesAnimations(_leavesControllers, random);
   }
 
@@ -156,9 +159,12 @@ class __HomePageContentState extends State<_HomePageContent> with TickerProvider
               SizedBox(height: 20),
               GestureDetector(
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => LoveSessionPage(userId: widget.userId)),
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          LoveSessionPage(userId: widget.userId),
+                      fullscreenDialog: true,
+                    ),
                   );
                 },
                 child: Container(
@@ -202,12 +208,16 @@ class __HomePageContentState extends State<_HomePageContent> with TickerProvider
                                   ),
                                   child: Stack(
                                     children: [
-                                      for (int i = 0; i < _leavesControllers.length; i++)
+                                      for (int i = 0;
+                                          i < _leavesControllers.length;
+                                          i++)
                                         AnimatedBuilder(
                                           animation: _leavesControllers[i],
                                           builder: (context, child) {
                                             return Transform.translate(
-                                              offset: _leavesAnimations[i].value * constraints.maxWidth,
+                                              offset:
+                                                  _leavesAnimations[i].value *
+                                                      constraints.maxWidth,
                                               child: Transform(
                                                 alignment: Alignment.center,
                                                 transform: Matrix4.identity()
@@ -253,7 +263,8 @@ class __HomePageContentState extends State<_HomePageContent> with TickerProvider
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => BeziehungsInputPage(userId: widget.userId),
+                            builder: (context) =>
+                                BeziehungsInputPage(userId: widget.userId),
                           ),
                         );
                       },
@@ -267,7 +278,8 @@ class __HomePageContentState extends State<_HomePageContent> with TickerProvider
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => FeedbackPage(userId: widget.userId),
+                            builder: (context) =>
+                                FeedbackPage(userId: widget.userId),
                           ),
                         );
                       },

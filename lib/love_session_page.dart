@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'elovando_love_session_service.dart';
 import 'feedback_page.dart';
-import 'env/env.dart'; // Import the environment variables
+import 'env/env.dart';
 
 class LoveSessionPage extends StatefulWidget {
   final String userId;
@@ -19,6 +19,7 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
   bool _isLoading = true;
   double _progressValue = 0.0;
   String _progressText = '';
+  bool _isCancelled = false;
 
   @override
   void initState() {
@@ -36,11 +37,14 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
       });
 
       final introResponse = await _service.startLoveSession((message, progress) {
+        if (_isCancelled) return;
         setState(() {
           _progressText = message;
           _progressValue = progress;
         });
       });
+
+      if (_isCancelled) return;
 
       if (introResponse.containsKey('error')) {
         _handleError(introResponse['error']);
@@ -53,6 +57,7 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
         _isLoading = false;
       });
     } catch (e) {
+      if (_isCancelled) return;
       print("Fehler beim Starten der Love Session: $e");
       _handleError("Fehler beim Starten der Love Session. Bitte versuchen Sie es erneut.");
     }
@@ -83,6 +88,8 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
           return;
       }
 
+      if (_isCancelled) return;
+
       if (response.containsKey('error')) {
         _handleError(response['error']);
       } else {
@@ -93,12 +100,14 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
         });
       }
     } catch (e) {
+      if (_isCancelled) return;
       print("Fehler beim Verarbeiten des nächsten Schritts: $e");
       _handleError("Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.");
     }
   }
 
   void _handleError(String errorMessage) {
+    if (_isCancelled) return;
     setState(() {
       _displayText = errorMessage;
       _currentStep = 'error';
@@ -110,6 +119,7 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
   }
 
   void _endSession() {
+    if (_isCancelled) return;
     print("Sitzung wird beendet. Navigation zur FeedbackPage");
     Navigator.pushReplacement(
       context,
@@ -120,68 +130,109 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+Widget build(BuildContext context) {
+  return WillPopScope(
+    onWillPop: () async {
+      setState(() {
+        _isCancelled = true;
+      });
+      return true;
+    },
+    child: Scaffold(
+      backgroundColor: Color(0xFFF7F7F7),
       appBar: AppBar(
-        title: Text('Love Session'),
-        backgroundColor: Color(0xFF7FCCB1),
-      ),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (_isLoading)
-              Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(
-                        value: _progressValue,
-                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7FCCB1)),
-                      ),
-                      SizedBox(height: 16),
-                      Text(
-                        _progressText,
-                        style: TextStyle(fontSize: 18, color: Color(0xFF414254)),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Text(
-                    _displayText,
-                    style: TextStyle(fontSize: 18, color: Color(0xFF414254)),
-                  ),
-                ),
-              ),
-            SizedBox(height: 16),
-            if (_currentStep != 'end' && !_isLoading)
-              ElevatedButton(
-                onPressed: _handleNextStep,
-                child: Text('Weiter'),
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: Color(0xFF7FCCB1),
-                ),
-              )
-            else if (_currentStep == 'end' && !_isLoading)
-              ElevatedButton(
-                onPressed: _endSession,
-                child: Text('Beenden'),
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: Color(0xFF7D4666),
-                ),
-              ),
-          ],
+        backgroundColor: Colors.white,
+        elevation: 1,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Color(0xFF414254)),
+          onPressed: () {
+            setState(() {
+              _isCancelled = true;
+            });
+            Navigator.of(context).pop();
+          },
+        ),
+        title: Padding(
+          padding: const EdgeInsets.only(top: 0, bottom: 0),
+          child: Text(
+            'Love-Session',
+            style: TextStyle(
+              color: Color(0xFF414254),
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Inter',
+            ),
+          ),
+        ),
+        centerTitle: true,
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(0.2),
+          child: Divider(
+            color: Color(0xFFDEDEDE),
+            thickness: 1,
+            height: 1,
+          ),
         ),
       ),
-    );
-  }
+      body: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_isLoading)
+                Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(
+                          value: _progressValue,
+                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7FCCB1)),
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          _progressText,
+                          style: TextStyle(fontSize: 18, color: Color(0xFF414254)),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Text(
+                      _displayText,
+                      style: TextStyle(fontSize: 18, color: Color(0xFF414254)),
+                    ),
+                  ),
+                ),
+              SizedBox(height: 16),
+              if (_currentStep != 'end' && !_isLoading)
+                ElevatedButton(
+                  onPressed: _handleNextStep,
+                  child: Text('Weiter'),
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: Color(0xFF7FCCB1),
+                  ),
+                )
+              else if (_currentStep == 'end' && !_isLoading)
+                ElevatedButton(
+                  onPressed: _endSession,
+                  child: Text('Beenden'),
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: Color(0xFF7D4666),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
 }

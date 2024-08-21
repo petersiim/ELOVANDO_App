@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'chat_page.dart';
+import 'love_session_page.dart';
 
 class AppNavBar extends StatelessWidget {
   final int currentIndex;
@@ -93,15 +94,23 @@ class AppNavBar extends StatelessWidget {
           ),
         ),
         Positioned(
-          top: -19, // Adjust the value to move the icon and text up
-          left: MediaQuery.of(context).size.width / 2 - 30, // Center the icon
+          top: -19,
+          left: MediaQuery.of(context).size.width / 2 - 30,
           child: GestureDetector(
-            onTap: () => onTap(2), // Set the index for "Love Session"
+            onTap: () {
+              // Navigate to LoveSessionPage without app bar and nav bar
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => LoveSessionPage(userId: userId),
+                  fullscreenDialog: true,
+                ),
+              );
+            },
             child: Column(
               children: [
                 Container(
-                  width: 65, // Increase the size of the icon
-                  height: 65, // Increase the size of the icon
+                  width: 65,
+                  height: 65,
                   decoration: BoxDecoration(
                     color: Color(0xFF7FCCB1),
                     shape: BoxShape.circle,
@@ -114,7 +123,7 @@ class AppNavBar extends StatelessWidget {
                     ),
                   ),
                 ),
-                SizedBox(height: 6), // Space between the icon and text
+                SizedBox(height: 6),
                 Text(
                   'Love Session',
                   style: TextStyle(
