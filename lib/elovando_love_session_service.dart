@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ElovandoLoveSessionService {
   final String apiKey;
@@ -31,6 +32,24 @@ class ElovandoLoveSessionService {
     } catch (e) {
       print("Fehler beim Starten der Love Session: $e");
       return {'error': 'Beim Starten der Love Session ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.'};
+    }
+  }
+
+  Future<void> createNewThread(String userId) async {
+    _threadId = await createThread();
+    await FirebaseFirestore.instance.collection('users').doc(userId).update({
+      'loveSessionThreadId': _threadId,
+    });
+  }
+
+  Future<void> initializeThread(String userId) async {
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    _threadId = userDoc.data()?['loveSessionThreadId'];
+    if (_threadId == null) {
+      _threadId = await createThread();
+      await FirebaseFirestore.instance.collection('users').doc(userId).update({
+        'loveSessionThreadId': _threadId,
+      });
     }
   }
 

@@ -14,6 +14,7 @@ class PartnerEinladungPage extends StatefulWidget {
 
 class _PartnerEinladungPageState extends State<PartnerEinladungPage> {
   late Future<String> _invitationCodeFuture;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   void initState() {
@@ -25,7 +26,7 @@ class _PartnerEinladungPageState extends State<PartnerEinladungPage> {
     final userId = FirebaseAuth.instance.currentUser!.uid;
     String invitationCode = 'ELOVANDO_${userId.substring(0, 6)}';
     
-    await FirebaseFirestore.instance
+    await _firestore
         .collection('users')
         .doc(userId)
         .update({'invitationCode': invitationCode});
@@ -33,10 +34,49 @@ class _PartnerEinladungPageState extends State<PartnerEinladungPage> {
     return invitationCode;
   }
 
-  void _shareInvitation(String invitationCode) {
+  void _shareInvitation(String invitationCode) async {
     String inviteLink = 'https://elovando.com/invite?code=$invitationCode';
-    Share.share('Join me on ELOVANDO! Download the app and use this code to connect: $invitationCode\n\nOr use this link: $inviteLink');
+    await Share.share('Join me on ELOVANDO! Download the app and use this code to connect: $invitationCode\n\nOr use this link: $inviteLink');
+    
+    User? currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      await _processInvitationCode(currentUser, invitationCode);
+    }
   }
+
+  Future<void> _processInvitationCode(User user, String invitationCode) async {
+  if (invitationCode.isNotEmpty) {
+    QuerySnapshot query = await _firestore
+        .collection('users')
+        .where('invitationCode', isEqualTo: invitationCode)
+        .limit(1)
+        .get();
+
+    if (query.docs.isNotEmpty) {
+      String inviterId = query.docs.first.id;
+      String? inviterThreadId;
+      
+      // Safely access the 'loveSessionThreadId' field
+      var data = query.docs.first.data();
+      if (data is Map<String, dynamic> && data.containsKey('loveSessionThreadId')) {
+        inviterThreadId = data['loveSessionThreadId'] as String?;
+      }
+
+      await _firestore.collection('users').doc(user.uid).update({
+        'invitedBy': inviterId,
+        if (inviterThreadId != null) 'loveSessionThreadId': inviterThreadId,
+      });
+
+      await _firestore.collection('users').doc(inviterId).update({
+        'invitedUsers': FieldValue.arrayUnion([user.uid]),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Successfully connected with your partner!')),
+      );
+    }
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -186,7 +226,7 @@ class _PartnerEinladungPageState extends State<PartnerEinladungPage> {
   }
 
   Future<String> _fetchUserImageUrl(String userId) async {
-    DocumentSnapshot userDoc = await FirebaseFirestore.instance
+    DocumentSnapshot userDoc = await _firestore
         .collection('users')
         .doc(userId)
         .get();
