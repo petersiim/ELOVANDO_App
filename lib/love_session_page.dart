@@ -16,87 +16,101 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
   late final ElovandoLoveSessionService _service;
   String _currentStep = 'intro';
   String _displayText = '';
-  String _partnerAStatement = '';
-  String _partnerBStatement = '';
+  bool _isLoading = true;
+  double _progressValue = 0.0;
+  String _progressText = '';
 
   @override
   void initState() {
     super.initState();
     _service = ElovandoLoveSessionService(Env.apiKey, "org-fZRna2F4kfSff4YTG4Lx15mM");
-    _startSession();
+    _startLoveSession();
   }
 
-  void _startSession() async {
+  Future<void> _startLoveSession() async {
     try {
-      print("Starting session...");
-      final response = await _service.startLoveSession();
-      print("Session started. Response: $response");
       setState(() {
-        _displayText = response['intro'] ?? 'No introduction provided';
-        _currentStep = response['nextStep'] ?? 'error';
+        _isLoading = true;
+        _progressValue = 0.0;
+        _progressText = 'Love Session wird initialisiert...';
       });
-      print("Current step: $_currentStep");
-      print("Display text: $_displayText");
+
+      final introResponse = await _service.startLoveSession((message, progress) {
+        setState(() {
+          _progressText = message;
+          _progressValue = progress;
+        });
+      });
+
+      if (introResponse.containsKey('error')) {
+        _handleError(introResponse['error']);
+        return;
+      }
+
+      setState(() {
+        _displayText = introResponse['intro'] ?? 'Keine Einführung vorhanden';
+        _currentStep = introResponse['nextStep'] ?? 'error';
+        _isLoading = false;
+      });
     } catch (e) {
-      print("Error starting session: $e");
-      setState(() {
-        _displayText = "Error starting session. Please try again.";
-        _currentStep = 'error';
-      });
+      print("Fehler beim Starten der Love Session: $e");
+      _handleError("Fehler beim Starten der Love Session. Bitte versuchen Sie es erneut.");
     }
   }
 
   void _handleNextStep() async {
-    print("Handling next step. Current step: $_currentStep");
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
       Map<String, dynamic> response;
       switch (_currentStep) {
-        case 'partnerAStatement':
-          response = await _service.getPartnerStatement('A');
-          setState(() {
-            _partnerAStatement = response['statement'] ?? 'No statement provided';
-            _displayText = "Partner A, please read the following statement:\n\n$_partnerAStatement";
-            _currentStep = response['nextStep'] ?? 'error';
-          });
+        case 'partnerAToB':
+          response = await _service.getPartnerStatement('A', 'B');
           break;
-        case 'partnerBStatement':
-          response = await _service.getPartnerStatement('B');
-          setState(() {
-            _partnerBStatement = response['statement'] ?? 'No statement provided';
-            _displayText = "Partner B, please read the following statement:\n\n$_partnerBStatement";
-            _currentStep = response['nextStep'] ?? 'error';
-          });
+        case 'partnerBToA':
+          response = await _service.getPartnerStatement('B', 'A');
           break;
         case 'outro':
           response = await _service.getOutro();
-          setState(() {
-            _displayText = response['outro'] ?? 'No outro provided';
-            _currentStep = 'end';
-          });
           break;
         case 'end':
-          print("Session ended. Waiting for user to press 'Beenden'");
-          break;
+          _endSession();
+          return;
         default:
-          print("Unknown step: $_currentStep");
-          setState(() {
-            _displayText = "An error occurred. Please try again.";
-            _currentStep = 'error';
-          });
+          _handleError("Ein Fehler ist aufgetreten. Unbekannter Schritt: $_currentStep");
+          return;
+      }
+
+      if (response.containsKey('error')) {
+        _handleError(response['error']);
+      } else {
+        setState(() {
+          _displayText = response['statement'] ?? response['outro'] ?? 'Kein Inhalt vorhanden';
+          _currentStep = response['nextStep'] ?? 'error';
+          _isLoading = false;
+        });
       }
     } catch (e) {
-      print("Error handling next step: $e");
-      setState(() {
-        _displayText = "An error occurred. Please try again.";
-        _currentStep = 'error';
-      });
+      print("Fehler beim Verarbeiten des nächsten Schritts: $e");
+      _handleError("Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.");
     }
-    print("After handling step. Current step: $_currentStep");
-    print("Display text: $_displayText");
+  }
+
+  void _handleError(String errorMessage) {
+    setState(() {
+      _displayText = errorMessage;
+      _currentStep = 'error';
+      _isLoading = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(errorMessage)),
+    );
   }
 
   void _endSession() {
-    print("Ending session. Navigating to FeedbackPage");
+    print("Sitzung wird beendet. Navigation zur FeedbackPage");
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -117,25 +131,46 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              child: SingleChildScrollView(
-                child: Text(
-                  _displayText,
-                  style: TextStyle(fontSize: 18, color: Color(0xFF414254)),
+            if (_isLoading)
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(
+                        value: _progressValue,
+                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7FCCB1)),
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        _progressText,
+                        style: TextStyle(fontSize: 18, color: Color(0xFF414254)),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Text(
+                    _displayText,
+                    style: TextStyle(fontSize: 18, color: Color(0xFF414254)),
+                  ),
                 ),
               ),
-            ),
             SizedBox(height: 16),
-            if (_currentStep != 'end')
+            if (_currentStep != 'end' && !_isLoading)
               ElevatedButton(
                 onPressed: _handleNextStep,
-                child: Text('Next'),
+                child: Text('Weiter'),
                 style: ElevatedButton.styleFrom(
                   foregroundColor: Colors.white,
                   backgroundColor: Color(0xFF7FCCB1),
                 ),
               )
-            else
+            else if (_currentStep == 'end' && !_isLoading)
               ElevatedButton(
                 onPressed: _endSession,
                 child: Text('Beenden'),
