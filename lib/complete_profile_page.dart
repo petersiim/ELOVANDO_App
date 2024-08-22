@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firestore_service.dart';
 import 'profile_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'speech_to_text_service.dart';
 import 'data_input_formatter.dart';
+import 'elovando_love_session_service.dart';
+import 'env/env.dart';
 
 class CompleteProfilePage extends StatefulWidget {
   final String userId;
@@ -63,56 +66,54 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     });
   }
 
-  void _nextPage() {
-  if (_validateCurrentPage()) {
-    if (_currentPage < questions.length - 1) {
-      _pageController.nextPage(
-        duration: Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    } else {
-      _finishProfileCompletion();
+  void _nextPage() async {
+    if (_validateCurrentPage()) {
+      if (_currentPage < questions.length - 1) {
+        _pageController.nextPage(
+          duration: Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      } else {
+        await _finishProfileCompletion();
+      }
     }
   }
-}
 
   bool _validateCurrentPage() {
-  showError = false;
-  switch (_currentPage) {
-    case 0:
-      if (_nameController.text.isEmpty) {
-        showError = true;
-      }
-      break;
-    case 1:
-      if (selectedOptionIndexes[_currentPage] == -1) {
-        showError = true;
-      }
-      break;
-    case 2:
-      // Date validation
-      String input = _dateController.text;
-      RegExp regExp = RegExp(r"^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/([0-9]{4})$");
-      if (!regExp.hasMatch(input)) {
-        showError = true;
-      }
-      break;
-    case 9: // Last question
-      if (_lastQuestionController.text.isEmpty) {
-        showError = true;
-      }
-      break;
-    default:
-      if (selectedOptionIndexes[_currentPage] == -1) {
-        showError = true;
-      }
+    showError = false;
+    switch (_currentPage) {
+      case 0:
+        if (_nameController.text.isEmpty) {
+          showError = true;
+        }
+        break;
+      case 1:
+        if (selectedOptionIndexes[_currentPage] == -1) {
+          showError = true;
+        }
+        break;
+      case 2:
+        String input = _dateController.text;
+        RegExp regExp = RegExp(r"^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/([0-9]{4})$");
+        if (!regExp.hasMatch(input)) {
+          showError = true;
+        }
+        break;
+      case 9:
+        if (_lastQuestionController.text.isEmpty) {
+          showError = true;
+        }
+        break;
+      default:
+        if (selectedOptionIndexes[_currentPage] == -1) {
+          showError = true;
+        }
+    }
+    setState(() {});
+    return !showError;
   }
-  setState(() {});
-  return !showError;
-}
 
-  void _finishProfileCompletion() async {
-    // Update all questions as completed
+  Future<void> _finishProfileCompletion() async {
     Map<String, bool> updatedCompletion = Map.from(widget.completedQuestions);
     for (int i = 0; i < questions.length; i++) {
       updatedCompletion[questions[i]] = true;
@@ -120,7 +121,6 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     await _firestoreService.updateUserProfileCompletion(
         widget.userId, updatedCompletion);
 
-    // Save all answers
     Map<String, dynamic> updatedUserData = {
       'name': _nameController.text,
       'gender': selectedOptionIndexes[1],
@@ -132,6 +132,9 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     updatedUserData['question10'] = _lastQuestionController.text;
 
     await _firestoreService.updateUserProfile(widget.userId, updatedUserData);
+    
+    // Update Love Session info
+    await _updateLoveSessionInfo();
 
     Navigator.pushReplacement(
       context,
@@ -140,10 +143,45 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     );
   }
 
+  Future<void> _updateLoveSessionInfo() async {
+    final service = ElovandoLoveSessionService(Env.apiKey, "org-fZRna2F4kfSff4YTG4Lx15mM");
+    await service.initializeThread(widget.userId);
+    
+    Map<String, dynamic> updatedInfo = await _gatherNewInfo();
+    if (updatedInfo.isNotEmpty) {
+      await service.updateOnboardingInfo(widget.userId, updatedInfo);
+    }
+  }
+
+  Future<Map<String, dynamic>> _gatherNewInfo() async {
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
+    final oldData = userDoc.data() ?? {};
+    
+    Map<String, dynamic> newInfo = {};
+    
+    void addIfChanged(String key, dynamic newValue) {
+      if (newValue != null && newValue != oldData[key]) {
+        newInfo[key] = newValue;
+      }
+    }
+
+    addIfChanged('name', _nameController.text);
+    addIfChanged('gender', selectedOptionIndexes[1]);
+    addIfChanged('birthdate', _dateController.text);
+    addIfChanged('question4', selectedOptionIndexes[3]);
+    addIfChanged('question5', selectedOptionIndexes[4]);
+    addIfChanged('question6', selectedOptionIndexes[5]);
+    addIfChanged('question7', selectedOptionIndexes[6]);
+    addIfChanged('question8', selectedOptionIndexes[7]);
+    addIfChanged('question9', selectedOptionIndexes[8]);
+    addIfChanged('question10', _lastQuestionController.text);
+
+    return newInfo;
+  }
+
   @override
   Widget build(BuildContext context) {
-  bool isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom != 0;
-
+    bool isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom != 0;
 
     return Scaffold(
       appBar: AppBar(
@@ -209,38 +247,38 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
             ],
           ),
           if (!isKeyboardVisible || _currentPage != 0) ...[
-          Positioned(
-            bottom: 80,
-            right: 32,
-            child: GestureDetector(
-              onTap: _nextPage,
-              child: Container(
-                child: Center(
-                  child: SvgPicture.asset(
-                    'assets/graphics/prof_erstellen_weiter_button.svg',
-                    width: 45,
-                    height: 45,
+            Positioned(
+              bottom: 80,
+              right: 32,
+              child: GestureDetector(
+                onTap: _nextPage,
+                child: Container(
+                  child: Center(
+                    child: SvgPicture.asset(
+                      'assets/graphics/prof_erstellen_weiter_button.svg',
+                      width: 45,
+                      height: 45,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-          Positioned(
-            bottom: 30,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: 40,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: _buildPageIndicators(),
+            Positioned(
+              bottom: 30,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: 40,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: _buildPageIndicators(),
+                ),
               ),
             ),
-          ),
+          ],
         ],
-      ],
-    ),
-  );
+      ),
+    );
   }
 
   Widget _buildNameInputPage() {

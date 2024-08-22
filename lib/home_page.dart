@@ -12,6 +12,8 @@ import 'inputs_page.dart';
 import 'chat_page.dart';
 import 'beziehungsinput_page.dart';
 import 'feedback_page.dart';
+import 'elovando_love_session_service.dart';
+import 'env/env.dart';
 
 class HomePage extends StatefulWidget {
   final String userId;
@@ -26,6 +28,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   late Future<DocumentSnapshot> userFuture;
   late int _currentIndex;
+  late ElovandoLoveSessionService _service;
 
   late List<Widget> _pages;
 
@@ -35,8 +38,9 @@ class _HomePageState extends State<HomePage> {
     _currentIndex = widget.initialIndex;
     userFuture =
         FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
+    _service = ElovandoLoveSessionService(Env.apiKey, "org-fZRna2F4kfSff4YTG4Lx15mM");
     _pages = [
-      _HomePageContent(userId: widget.userId),
+      _HomePageContent(userId: widget.userId, service: _service),
       SessionsPage(userId: widget.userId),
       LoveSessionPage(userId: widget.userId),
       InputsPage(userId: widget.userId),
@@ -67,8 +71,9 @@ class _HomePageState extends State<HomePage> {
 
 class _HomePageContent extends StatefulWidget {
   final String userId;
+  final ElovandoLoveSessionService service;
 
-  _HomePageContent({required this.userId});
+  _HomePageContent({required this.userId, required this.service});
 
   @override
   __HomePageContentState createState() => __HomePageContentState();
@@ -279,7 +284,7 @@ class __HomePageContentState extends State<_HomePageContent>
                           context,
                           MaterialPageRoute(
                             builder: (context) =>
-                                FeedbackPage(userId: widget.userId),
+                                FeedbackPage(userId: widget.userId, service: widget.service),
                           ),
                         );
                       },

@@ -2,6 +2,17 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+
+
+Future<void> logToFile(String message) async {
+  final directory = await getApplicationDocumentsDirectory();
+  final file = File('${directory.path}/ai_logs.txt');
+  final timestamp = DateTime.now().toIso8601String();
+  await file.writeAsString('[$timestamp] $message\n', mode: FileMode.append);
+}
+
 
 class ElovandoLoveSessionService {
   final String apiKey;
@@ -17,10 +28,11 @@ class ElovandoLoveSessionService {
     _partnerAStarts = Random().nextBool();
   }
 
-  Future<Map<String, dynamic>> startLoveSession(Function(String, double) progressCallback) async {
+  Future<Map<String, dynamic>> startLoveSession(
+      String userId, Function(String, double) progressCallback) async {
     try {
       progressCallback("Love Session wird erstellt...", 0.1);
-      _threadId = await createThread();
+      await initializeThread(userId);
       progressCallback("Love Session erstellt", 0.2);
       await preloadMessages(progressCallback);
       final response = _preloadedMessages['intro']!;
@@ -31,29 +43,52 @@ class ElovandoLoveSessionService {
       };
     } catch (e) {
       print("Fehler beim Starten der Love Session: $e");
-      return {'error': 'Beim Starten der Love Session ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.'};
+      return {
+        'error':
+            'Beim Starten der Love Session ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.'
+      };
     }
   }
 
   Future<void> createNewThread(String userId) async {
     _threadId = await createThread();
-    await FirebaseFirestore.instance.collection('users').doc(userId).update({
-      'loveSessionThreadId': _threadId,
-    });
+    await _updateUserThreadId(userId, _threadId!);
+    _isPreloaded = false;
   }
 
   Future<void> initializeThread(String userId) async {
-    final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    final userDoc =
+        await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    final partnerUserId = userDoc.data()?['partnerId'];
     _threadId = userDoc.data()?['loveSessionThreadId'];
+
     if (_threadId == null) {
       _threadId = await createThread();
-      await FirebaseFirestore.instance.collection('users').doc(userId).update({
-        'loveSessionThreadId': _threadId,
-      });
+      await _updateUserThreadId(userId, _threadId!);
+      if (partnerUserId != null) {
+        await _updateUserThreadId(partnerUserId, _threadId!);
+      }
+    } else if (partnerUserId != null) {
+      final partnerDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(partnerUserId)
+          .get();
+      final partnerThreadId = partnerDoc.data()?['loveSessionThreadId'];
+      if (partnerThreadId != null && partnerThreadId != _threadId) {
+        _threadId = partnerThreadId;
+        await _updateUserThreadId(userId, _threadId!);
+      }
     }
   }
 
-  Future<Map<String, dynamic>> getPartnerStatement(String from, String to) async {
+  Future<void> _updateUserThreadId(String userId, String threadId) async {
+    await FirebaseFirestore.instance.collection('users').doc(userId).update({
+      'loveSessionThreadId': threadId,
+    });
+  }
+
+  Future<Map<String, dynamic>> getPartnerStatement(
+      String from, String to) async {
     try {
       print("Hole Aussage von Partner $from für Partner $to");
       final key = 'partner${from}To${to}Statement';
@@ -71,7 +106,10 @@ class ElovandoLoveSessionService {
       };
     } catch (e) {
       print("Fehler beim Abrufen der Partneraussage: $e");
-      return {'error': 'Beim Abrufen der Partneraussage ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.'};
+      return {
+        'error':
+            'Beim Abrufen der Partneraussage ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.'
+      };
     }
   }
 
@@ -86,28 +124,37 @@ class ElovandoLoveSessionService {
       };
     } catch (e) {
       print("Fehler beim Abrufen des Outros: $e");
-      return {'error': 'Beim Abrufen des Outros ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.'};
+      return {
+        'error':
+            'Beim Abrufen des Outros ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.'
+      };
     }
   }
 
-  Future<void> preloadMessages(Function(String, double) progressCallback) async {
+  Future<void> preloadMessages(
+      Function(String, double) progressCallback) async {
     if (_isPreloaded) return;
     if (_threadId == null) {
-      throw Exception('Thread nicht initialisiert. Rufen Sie zuerst startLoveSession auf.');
+      throw Exception(
+          'Thread nicht initialisiert. Rufen Sie zuerst startLoveSession auf.');
     }
     try {
       progressCallback("Intro wird vorbereitet...", 0.3);
-      _preloadedMessages['intro'] = await sendMessage("Erstelle ein Intro für die Love Session");
-      
+      _preloadedMessages['intro'] =
+          await sendMessage("Erstelle ein Intro für die Love Session");
+
       progressCallback("Aussage für Partner A wird vorbereitet...", 0.5);
-      _preloadedMessages['partnerAToBStatement'] = await sendMessage("Generiere eine Aussage, die Partner A in der Love Session laut an Partner B vorlesen soll.");
-      
+      _preloadedMessages['partnerAToBStatement'] = await sendMessage(
+          "Generiere eine Aussage, die Partner A in der Love Session laut an Partner B vorlesen soll.");
+
       progressCallback("Aussage für Partner B wird vorbereitet...", 0.7);
-      _preloadedMessages['partnerBToAStatement'] = await sendMessage("Generiere eine Aussage, die Partner B in der Love Session laut an Partner A vorlesen soll.");
-      
+      _preloadedMessages['partnerBToAStatement'] = await sendMessage(
+          "Generiere eine Aussage, die Partner B in der Love Session laut an Partner A vorlesen soll.");
+
       progressCallback("Outro wird vorbereitet...", 0.9);
-      _preloadedMessages['outro'] = await sendMessage("Erstelle ein Outro für die Love Session.");
-      
+      _preloadedMessages['outro'] =
+          await sendMessage("Erstelle ein Outro für die Love Session.");
+
       _isPreloaded = true;
     } catch (e) {
       print("Fehler beim Vorladen der Nachrichten: $e");
@@ -127,8 +174,10 @@ class ElovandoLoveSessionService {
       if (response.statusCode == 200) {
         return jsonDecode(response.body)['id'];
       } else {
-        print("Fehler beim Erstellen des Threads. Statuscode: ${response.statusCode}, Antwort: ${response.body}");
-        throw Exception('Fehler beim Erstellen des Threads: ${response.statusCode}');
+        print(
+            "Fehler beim Erstellen des Threads. Statuscode: ${response.statusCode}, Antwort: ${response.body}");
+        throw Exception(
+            'Fehler beim Erstellen des Threads: ${response.statusCode}');
       }
     } catch (e) {
       print("Ausnahme beim Erstellen des Threads: $e");
@@ -136,11 +185,19 @@ class ElovandoLoveSessionService {
     }
   }
 
-  Future<String> sendMessage(String message) async {
+  Future<String> sendMessage(String message, {bool isForDisplay = true}) async {
     if (_threadId == null) {
       throw Exception('Thread nicht initialisiert. Rufen Sie zuerst startLoveSession auf.');
     }
-    String modifiedMessage = "$message\n\nHinweis: Deine Antwort wird direkt dem Benutzer angezeigt, ohne weitere Verarbeitung. Bitte stelle sicher, dass deine Ausgabe vollständig, gut formatiert und für die sofortige Anzeige bereit ist. Die Antwort sollte auf Deutsch sein.";
+    
+    String modifiedMessage = message;
+    if (isForDisplay) {
+      modifiedMessage += "\n\nHinweis: Deine Antwort wird direkt dem Benutzer angezeigt, ohne weitere Verarbeitung. Bitte stelle sicher, dass deine Ausgabe vollständig, gut formatiert und für die sofortige Anzeige bereit ist. Die Antwort sollte auf Deutsch sein.";
+    } else {
+      modifiedMessage += "\n\nHinweis: Diese Information ist nur für deine interne Verarbeitung bestimmt. Sie wird nicht direkt angezeigt oder gelesen. Bitte verwende diese Information, um den Kontext der Konversation zu verbessern und passendere Antworten zu generieren.";
+    }
+
+        await logToFile("USER: $modifiedMessage");
 
     try {
       await _retryOperation(() async {
@@ -153,7 +210,8 @@ class ElovandoLoveSessionService {
           }),
         );
         if (response.statusCode != 200) {
-          throw Exception('Fehler beim Senden der Nachricht: ${response.statusCode}');
+          throw Exception(
+              'Fehler beim Senden der Nachricht: ${response.statusCode}');
         }
       });
 
@@ -166,7 +224,8 @@ class ElovandoLoveSessionService {
           }),
         );
         if (response.statusCode != 200) {
-          throw Exception('Fehler beim Starten des Runs: ${response.statusCode}');
+          throw Exception(
+              'Fehler beim Starten des Runs: ${response.statusCode}');
         }
         return response;
       });
@@ -181,14 +240,21 @@ class ElovandoLoveSessionService {
           headers: _getHeaders(),
         );
         if (response.statusCode != 200) {
-          throw Exception('Fehler beim Abrufen der Nachrichten: ${response.statusCode}');
+          throw Exception(
+              'Fehler beim Abrufen der Nachrichten: ${response.statusCode}');
         }
         return response;
       });
 
       final messages = jsonDecode(messagesResponse.body)['data'];
-      return messages[0]['content'][0]['text']['value'];
+      String response = messages[0]['content'][0]['text']['value'];
+      
+      await logToFile("ASSISTANT: $response");
+            return response;
+
     } catch (e) {
+            await logToFile("ERROR: ${e.toString()}");
+
       print("Fehler beim Senden der Nachricht: $e");
       throw Exception('Fehler beim Senden der Nachricht: $e');
     }
@@ -208,7 +274,8 @@ class ElovandoLoveSessionService {
         if (status == 'completed') {
           return;
         } else if (status == 'failed') {
-          print("Run failed. Status: $status, Response: ${statusResponse.body}");
+          print(
+              "Run failed. Status: $status, Response: ${statusResponse.body}");
           throw Exception('Run failed: $status');
         }
       } catch (e) {
@@ -220,7 +287,8 @@ class ElovandoLoveSessionService {
     throw Exception('Timeout beim Warten auf Run-Abschluss');
   }
 
-  Future<T> _retryOperation<T>(Future<T> Function() operation, {int maxRetries = 3}) async {
+  Future<T> _retryOperation<T>(Future<T> Function() operation,
+      {int maxRetries = 3}) async {
     int retries = 0;
     while (true) {
       try {
@@ -242,5 +310,50 @@ class ElovandoLoveSessionService {
       'OpenAI-Beta': 'assistants=v2',
       'OpenAI-Organization': organizationId,
     };
+  }
+
+  Future<void> shareOnboardingInfo(String userId, Map<String, dynamic> onboardingInfo) async {
+    if (_threadId == null) {
+      throw Exception('Thread nicht initialisiert. Rufen Sie zuerst startLoveSession auf.');
+    }
+
+    final message = "Onboarding-Informationen für Benutzer $userId:\n" +
+        onboardingInfo.entries.map((e) => "${e.key}: ${e.value}").join("\n");
+    await logToFile("INITIAL ONBOARDING for $userId: $message");
+
+    await sendMessage(message, isForDisplay: false);
+  }
+
+  Future<void> updateOnboardingInfo(String userId, Map<String, dynamic> newInfo) async {
+    if (_threadId == null) {
+      throw Exception('Thread not initialized. Call initializeThread first.');
+    }
+
+    if (newInfo.isEmpty) return; // No new info to update
+
+    String formattedInfo = newInfo.entries.map((e) => "${e.key}: ${e.value}").join("\n");
+    String message = "Updated user information for $userId:\n$formattedInfo";
+    await logToFile("ONBOARDING UPDATE for $userId: $formattedInfo");
+
+    await sendMessage(message, isForDisplay: false);
+  }
+  Future<void> shareUserInput(String userId, String input) async {
+    if (_threadId == null) {
+      throw Exception(
+          'Thread nicht initialisiert. Rufen Sie zuerst startLoveSession auf.');
+    }
+
+    final message = "Eingabe von Benutzer $userId:\n$input";
+    await sendMessage(message, isForDisplay: false);
+  }
+
+  Future<void> shareFeedback(String userId, String feedback) async {
+    if (_threadId == null) {
+      throw Exception(
+          'Thread nicht initialisiert. Rufen Sie zuerst startLoveSession auf.');
+    }
+
+    final message = "Feedback von Benutzer $userId:\n$feedback";
+    await sendMessage(message, isForDisplay: false);
   }
 }

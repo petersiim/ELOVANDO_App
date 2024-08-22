@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'bestaetigung_page.dart';
 import 'speech_to_text_service.dart';
+import 'elovando_love_session_service.dart';
 
 class FeedbackPage extends StatefulWidget {
   final String userId;
+  final ElovandoLoveSessionService service;
 
-  FeedbackPage({required this.userId});
+  FeedbackPage({required this.userId, required this.service});
   @override
   _FeedbackPageState createState() => _FeedbackPageState();
 }
@@ -107,7 +109,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                   }),
                 ),
               ),
-SizedBox(height: 16),
+              SizedBox(height: 16),
               _buildFeedbackInput('Das hat mir gefallen:', _likedController),
               SizedBox(height: 16),
               _buildFeedbackInput('Das war weniger gut:', _dislikedController),
@@ -123,7 +125,13 @@ SizedBox(height: 16),
                       ),
                       padding: EdgeInsets.symmetric(vertical: 16),
                     ),
-                    onPressed: () {
+                    onPressed: () async {
+                      // Share feedback with the thread
+                      String feedback = "Bewertung: $rating/5\n"
+                          "Gefallen: ${_likedController.text}\n"
+                          "Verbesserungswürdig: ${_dislikedController.text}";
+                      await widget.service.shareFeedback(widget.userId, feedback);
+
                       Navigator.push(
                         context,
                         MaterialPageRoute(
