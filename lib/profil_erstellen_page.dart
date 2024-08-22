@@ -153,33 +153,29 @@ class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
     if (_currentPage == 0) {
       isValid = _validatePage1();
       if (isValid) {
-        await _firestoreService
-            .updateUserProfile(FirebaseAuth.instance.currentUser!.uid, {
+        await _firestoreService.updateUserProfile(userId, {
           'name': _nameController.text,
+          'profileCompletion': {'name': true},
         });
-        _updateQuestionCompletion(questions[0], true);
       }
     } else if (_currentPage == 1) {
       isValid = _validatePage2();
       if (isValid) {
-        await _firestoreService
-            .updateUserProfile(FirebaseAuth.instance.currentUser!.uid, {
+        await _firestoreService.updateUserProfile(userId, {
           'gender': selectedGenderIndex,
+          'profileCompletion': {'gender': true},
         });
-        _updateQuestionCompletion(questions[1], true);
       }
     } else if (_currentPage == 2) {
       isValid = _validatePage3();
       if (isValid) {
-        await _firestoreService
-            .updateUserProfile(FirebaseAuth.instance.currentUser!.uid, {
+        await _firestoreService.updateUserProfile(userId, {
           'birthdate': _dateController.text,
+          'profileCompletion': {'birthdate': true},
         });
-        _updateQuestionCompletion(questions[2], true);
       }
     } else {
       isValid = true;
-      _updateQuestionCompletion(questions[3], true);
     }
 
     if (isValid) {
@@ -189,13 +185,13 @@ class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
           curve: Curves.easeInOut,
         );
       } else {
-        await _firestoreService.updateUserProfileCompletion(userId, {
+        await _firestoreService.updateUserProfile(userId, {
           'profileStep1Completed': true,
         });
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ProfilErstellen2Page(),
+            builder: (context) => ProfilErstellen2Page(userId: userId),
           ),
         );
       }
@@ -310,7 +306,7 @@ class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ProfilErstellen2Page(),
+                        builder: (context) => ProfilErstellen2Page(userId: userId),
                       ),
                     );
                   },

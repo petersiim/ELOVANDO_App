@@ -5,8 +5,7 @@ import 'bez_prof_erstellen.dart'; // Import the BezProfErstellen page
 import 'registration_page.dart'; // Import the RegistrationPage
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
-
+import 'home_page.dart';
 class AnmeldenPage extends StatefulWidget {
   @override
   _AnmeldenPageState createState() => _AnmeldenPageState();
@@ -31,18 +30,25 @@ class _AnmeldenPageState extends State<AnmeldenPage> {
         password: _passwordController.text.trim(),
       );
 
-      await _checkAndProcessInvitationCode(userCredential.user!);
+      // Check if the user already exists in Firestore
+      DocumentSnapshot userDoc = await _firestore
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .get();
 
-      if (userCredential.user!.emailVerified) {
+      if (userDoc.exists) {
+        // User already exists, navigate to home screen
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (context) => HomePage(userId: userCredential.user!.uid)),
+        );
+      } else {
+        // New user, navigate to profile creation
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => BezProfErstellen()),
         );
-      } else {
-        setState(() {
-          _errorMessage = 'Bitte überprüfe deine E-Mail-Adresse, um fortzufahren.';
-        });
-        _showVerificationDialog(userCredential.user!);
       }
     } on FirebaseAuthException catch (e) {
       setState(() {
@@ -50,18 +56,19 @@ class _AnmeldenPageState extends State<AnmeldenPage> {
       });
     }
   }
-  Future<void> _checkAndProcessInvitationCode(User user) async {
-  final prefs = await SharedPreferences.getInstance();
-  String? storedInvitationCode = prefs.getString('pending_invitation_code');
-  
-  if (storedInvitationCode != null) {
-    await _processInvitationCode(user, storedInvitationCode);
-    // Clear the stored invitation code
-    await prefs.remove('pending_invitation_code');
-  }
-}
 
-Future<void> _processInvitationCode(User user, String invitationCode) async {
+  Future<void> _checkAndProcessInvitationCode(User user) async {
+    final prefs = await SharedPreferences.getInstance();
+    String? storedInvitationCode = prefs.getString('pending_invitation_code');
+
+    if (storedInvitationCode != null) {
+      await _processInvitationCode(user, storedInvitationCode);
+      // Clear the stored invitation code
+      await prefs.remove('pending_invitation_code');
+    }
+  }
+
+  Future<void> _processInvitationCode(User user, String invitationCode) async {
     if (invitationCode.isNotEmpty) {
       QuerySnapshot query = await _firestore
           .collection('users')
@@ -71,7 +78,7 @@ Future<void> _processInvitationCode(User user, String invitationCode) async {
 
       if (query.docs.isNotEmpty) {
         String inviterId = query.docs.first.id;
-        
+
         // Link the current user to the inviter
         await _firestore.collection('users').doc(user.uid).update({
           'invitedBy': inviterId,
@@ -138,7 +145,8 @@ Future<void> _processInvitationCode(User user, String invitationCode) async {
                     await user.sendEmailVerification();
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Die Bestätigungs-E-Mail wurde erneut gesendet.'),
+                        content: Text(
+                            'Die Bestätigungs-E-Mail wurde erneut gesendet.'),
                       ),
                     );
                   } catch (e) {
@@ -217,14 +225,16 @@ Future<void> _processInvitationCode(User user, String invitationCode) async {
                   decoration: InputDecoration(
                     border: InputBorder.none,
                     filled: true,
-                    fillColor: Color(0xFFF7F7F7), // Background color from the image
+                    fillColor:
+                        Color(0xFFF7F7F7), // Background color from the image
                     hintText: 'yourusername@domain.com',
                     hintStyle: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 17,
                       color: Color(0xFFB2B2B2), // Text color from the image
                     ),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                   ),
                 ),
                 SizedBox(height: 20),
@@ -241,7 +251,8 @@ Future<void> _processInvitationCode(User user, String invitationCode) async {
                       fontSize: 17,
                       color: Color(0xFFB2B2B2), // Text color from the image
                     ),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                     suffixIcon: GestureDetector(
                       onTap: () {
                         setState(() {
@@ -249,8 +260,11 @@ Future<void> _processInvitationCode(User user, String invitationCode) async {
                         });
                       },
                       child: Icon(
-                        _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                        color: Color(0xFFB2B2B2), // Icon color matching text color
+                        _isPasswordVisible
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                        color:
+                            Color(0xFFB2B2B2), // Icon color matching text color
                       ),
                     ),
                   ),
@@ -296,7 +310,8 @@ Future<void> _processInvitationCode(User user, String invitationCode) async {
                     text: TextSpan(
                       text: 'Noch keinen Account? ',
                       style: TextStyle(
-                        color: Color(0xFF757575), // The grey color for the first part
+                        color: Color(
+                            0xFF757575), // The grey color for the first part
                         fontSize: 16,
                         fontFamily: 'Inter',
                         fontWeight: FontWeight.normal,
@@ -305,7 +320,8 @@ Future<void> _processInvitationCode(User user, String invitationCode) async {
                         TextSpan(
                           text: 'Registrieren',
                           style: TextStyle(
-                            color: Color(0xFF7FCCB1), // The green color for the clickable part
+                            color: Color(
+                                0xFF7FCCB1), // The green color for the clickable part
                             fontSize: 16,
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.normal,
@@ -314,7 +330,8 @@ Future<void> _processInvitationCode(User user, String invitationCode) async {
                             ..onTap = () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) => RegistrationPage()),
+                                MaterialPageRoute(
+                                    builder: (context) => RegistrationPage()),
                               );
                             },
                         ),
@@ -328,7 +345,8 @@ Future<void> _processInvitationCode(User user, String invitationCode) async {
                     text: TextSpan(
                       text: 'Passwort vergessen? ',
                       style: TextStyle(
-                        color: Color(0xFF757575), // The grey color for the first part
+                        color: Color(
+                            0xFF757575), // The grey color for the first part
                         fontSize: 16,
                         fontFamily: 'Inter',
                         fontWeight: FontWeight.normal,
@@ -337,7 +355,8 @@ Future<void> _processInvitationCode(User user, String invitationCode) async {
                         TextSpan(
                           text: 'Zurücksetzen',
                           style: TextStyle(
-                            color: Color(0xFF7FCCB1), // The green color for the clickable part
+                            color: Color(
+                                0xFF7FCCB1), // The green color for the clickable part
                             fontSize: 16,
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.normal,

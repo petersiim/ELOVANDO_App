@@ -1,3 +1,4 @@
+import 'package:ELOVANDO_App/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -13,7 +14,8 @@ class CompleteProfilePage extends StatefulWidget {
   final String userId;
   final Map<String, bool> completedQuestions;
 
-  CompleteProfilePage({required this.userId, required this.completedQuestions});
+  CompleteProfilePage({required this.userId, required this.completedQuestions}){
+    print("CompleteProfilePage initialized with userId: $userId");}
 
   @override
   _CompleteProfilePageState createState() => _CompleteProfilePageState();
@@ -94,7 +96,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
         break;
       case 2:
         String input = _dateController.text;
-        RegExp regExp = RegExp(r"^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/([0-9]{4})$");
+        RegExp regExp =
+            RegExp(r"^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/([0-9]{4})$");
         if (!regExp.hasMatch(input)) {
           showError = true;
         }
@@ -114,10 +117,21 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
   }
 
   Future<void> _finishProfileCompletion() async {
-    Map<String, bool> updatedCompletion = Map.from(widget.completedQuestions);
-    for (int i = 0; i < questions.length; i++) {
-      updatedCompletion[questions[i]] = true;
+  if (widget.userId.isEmpty) {
+    print('Error: Invalid user ID');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('An error occurred. Please try again later.')),
+    );
+    return;
+  }
+
+  try {
+    // Update all questions as completed
+    Map<String, bool> updatedCompletion = {};
+    for (String question in questions) {
+      updatedCompletion[question] = true;
     }
+
     await _firestoreService.updateUserProfileCompletion(
         widget.userId, updatedCompletion);
 
@@ -131,22 +145,35 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     }
     updatedUserData['question10'] = _lastQuestionController.text;
 
+    // Add a new field to indicate profile completion
+    updatedUserData['isProfileCompleted'] = true;
+
     await _firestoreService.updateUserProfile(widget.userId, updatedUserData);
-    
+
     // Update Love Session info
     await _updateLoveSessionInfo();
 
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-          builder: (context) => ProfilePage(userId: widget.userId)),
+        builder: (context) => HomePage(
+          userId: widget.userId,
+        ),
+      ),
+    );
+  } catch (e) {
+    print('Error updating profile: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Failed to update profile. Please try again.')),
     );
   }
+}
 
   Future<void> _updateLoveSessionInfo() async {
-    final service = ElovandoLoveSessionService(Env.apiKey, "org-fZRna2F4kfSff4YTG4Lx15mM");
+    final service =
+        ElovandoLoveSessionService(Env.apiKey, "org-fZRna2F4kfSff4YTG4Lx15mM");
     await service.initializeThread(widget.userId);
-    
+
     Map<String, dynamic> updatedInfo = await _gatherNewInfo();
     if (updatedInfo.isNotEmpty) {
       await service.updateOnboardingInfo(widget.userId, updatedInfo);
@@ -154,11 +181,14 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
   }
 
   Future<Map<String, dynamic>> _gatherNewInfo() async {
-    final userDoc = await FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.userId)
+        .get();
     final oldData = userDoc.data() ?? {};
-    
+
     Map<String, dynamic> newInfo = {};
-    
+
     void addIfChanged(String key, dynamic newValue) {
       if (newValue != null && newValue != oldData[key]) {
         newInfo[key] = newValue;
@@ -556,115 +586,119 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
   }
 
   Widget _buildLastQuestionPage() {
-  return SingleChildScrollView(
-    padding: EdgeInsets.symmetric(horizontal: 34.0, vertical: 52.0),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          questions[9],
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF414254),
+    return SingleChildScrollView(
+      padding: EdgeInsets.symmetric(horizontal: 34.0, vertical: 52.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            questions[9],
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF414254),
+            ),
           ),
-        ),
-        SizedBox(height: 16),
-        Text(
-          'Was begeistert dich immer wieder an deinem Partner / deiner Partnerin?',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF414254),
+          SizedBox(height: 16),
+          Text(
+            'Was begeistert dich immer wieder an deinem Partner / deiner Partnerin?',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF414254),
+            ),
           ),
-        ),
-        SizedBox(height: 16),
-        Text(
-          'Was stört dich vielleicht aktuell ein wenig?',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF414254),
+          SizedBox(height: 16),
+          Text(
+            'Was stört dich vielleicht aktuell ein wenig?',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF414254),
+            ),
           ),
-        ),
-        SizedBox(height: 44),
-        Container(
-          height: 150,
-          decoration: BoxDecoration(
-            color: Color(0xFFF7F7F7),
-            borderRadius: BorderRadius.circular(8.0),
-          ),
-          child: Stack(
-            alignment: Alignment.centerRight,
-            children: [
-              Scrollbar(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                  child: TextField(
-                    controller: _lastQuestionController,
-                    maxLines: null,
-                    decoration: InputDecoration(
-                      hintText: _isProcessingSpeech ? '' : 'Text eingeben...',
-                      hintStyle: TextStyle(color: Color(0xFF979797)),
-                      border: InputBorder.none,
+          SizedBox(height: 44),
+          Container(
+            height: 150,
+            decoration: BoxDecoration(
+              color: Color(0xFFF7F7F7),
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            child: Stack(
+              alignment: Alignment.centerRight,
+              children: [
+                Scrollbar(
+                  child: SingleChildScrollView(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    child: TextField(
+                      controller: _lastQuestionController,
+                      maxLines: null,
+                      decoration: InputDecoration(
+                        hintText: _isProcessingSpeech ? '' : 'Text eingeben...',
+                        hintStyle: TextStyle(color: Color(0xFF979797)),
+                        border: InputBorder.none,
+                      ),
                     ),
                   ),
+                ),
+                if (_isProcessingSpeech)
+                  Padding(
+                    padding: EdgeInsets.only(right: 16),
+                    child: SizedBox(
+                      width: 15,
+                      height: 15,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(Color(0xFF7D4666)),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              GestureDetector(
+                onLongPressStart: (_) =>
+                    _startRecording(_lastQuestionController),
+                onLongPressEnd: (_) => _stopRecording(_lastQuestionController),
+                child: IconButton(
+                  icon: SvgPicture.asset(
+                    'assets/graphics/voice_input_icon.svg',
+                    color: _speechToTextService.isRecording &&
+                            _speechToTextService.currentController ==
+                                _lastQuestionController
+                        ? Colors.red
+                        : null,
+                  ),
+                  onPressed: () {}, // Disable normal press
                 ),
               ),
-              if (_isProcessingSpeech)
-                Padding(
-                  padding: EdgeInsets.only(right: 16),
-                  child: SizedBox(
-                    width: 15,
-                    height: 15,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7D4666)),
-                    ),
-                  ),
-                ),
+              IconButton(
+                icon: SvgPicture.asset('assets/graphics/send_message_icon.svg'),
+                onPressed: () {
+                  // Handle send message action
+                },
+              ),
             ],
           ),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            GestureDetector(
-              onLongPressStart: (_) => _startRecording(_lastQuestionController),
-              onLongPressEnd: (_) => _stopRecording(_lastQuestionController),
-              child: IconButton(
-                icon: SvgPicture.asset(
-                  'assets/graphics/voice_input_icon.svg',
-                  color: _speechToTextService.isRecording &&
-                          _speechToTextService.currentController == _lastQuestionController
-                      ? Colors.red
-                      : null,
+          if (showError)
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Text(
+                'Hinweis: Bitte geben Sie eine Antwort ein',
+                style: TextStyle(
+                  color: Color(0xFF7D4666),
                 ),
-                onPressed: () {}, // Disable normal press
               ),
             ),
-            IconButton(
-              icon: SvgPicture.asset('assets/graphics/send_message_icon.svg'),
-              onPressed: () {
-                // Handle send message action
-              },
-            ),
-          ],
-        ),
-        if (showError)
-          Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: Text(
-              'Hinweis: Bitte geben Sie eine Antwort ein',
-              style: TextStyle(
-                color: Color(0xFF7D4666),
-              ),
-            ),
-          ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 
   void _startRecording(TextEditingController controller) async {
     await _speechToTextService.startRecording(controller);

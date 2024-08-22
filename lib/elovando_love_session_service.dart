@@ -56,30 +56,34 @@ class ElovandoLoveSessionService {
     _isPreloaded = false;
   }
 
-  Future<void> initializeThread(String userId) async {
-    final userDoc =
-        await FirebaseFirestore.instance.collection('users').doc(userId).get();
-    final partnerUserId = userDoc.data()?['partnerId'];
-    _threadId = userDoc.data()?['loveSessionThreadId'];
+  Future<void> initializeThread(String? userId) async {
+  if (userId == null || userId.isEmpty) {
+    throw Exception('Invalid user ID');
+  }
 
-    if (_threadId == null) {
-      _threadId = await createThread();
+  final userDoc =
+      await FirebaseFirestore.instance.collection('users').doc(userId).get();
+  final partnerUserId = userDoc.data()?['partnerId'];
+  _threadId = userDoc.data()?['loveSessionThreadId'];
+
+  if (_threadId == null) {
+    _threadId = await createThread();
+    await _updateUserThreadId(userId, _threadId!);
+    if (partnerUserId != null) {
+      await _updateUserThreadId(partnerUserId, _threadId!);
+    }
+  } else if (partnerUserId != null) {
+    final partnerDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(partnerUserId)
+        .get();
+    final partnerThreadId = partnerDoc.data()?['loveSessionThreadId'];
+    if (partnerThreadId != null && partnerThreadId != _threadId) {
+      _threadId = partnerThreadId;
       await _updateUserThreadId(userId, _threadId!);
-      if (partnerUserId != null) {
-        await _updateUserThreadId(partnerUserId, _threadId!);
-      }
-    } else if (partnerUserId != null) {
-      final partnerDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(partnerUserId)
-          .get();
-      final partnerThreadId = partnerDoc.data()?['loveSessionThreadId'];
-      if (partnerThreadId != null && partnerThreadId != _threadId) {
-        _threadId = partnerThreadId;
-        await _updateUserThreadId(userId, _threadId!);
-      }
     }
   }
+}
 
   Future<void> _updateUserThreadId(String userId, String threadId) async {
     await FirebaseFirestore.instance.collection('users').doc(userId).update({

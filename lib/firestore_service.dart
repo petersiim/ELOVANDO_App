@@ -6,22 +6,30 @@ class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   Future<void> updateUserProfile(String userId, Map<String, dynamic> data) async {
-    try {
-      await _db.collection('users').doc(userId).set(data, SetOptions(merge: true));
-    } catch (e) {
-      print('Error updating user profile: $e');
-    }
+  if (userId.isEmpty) {
+    throw Exception('Invalid user ID');
   }
+  try {
+    await _db.collection('users').doc(userId).set(data, SetOptions(merge: true));
+  } catch (e) {
+    print('Error updating user profile: $e');
+    rethrow;
+  }
+}
 
-  Future<void> updateUserProfileCompletion(String userId, Map<String, bool> completedQuestions) async {
-    try {
-      await _db.collection('users').doc(userId).update({
-        'profileCompletion': completedQuestions,
-      });
-    } catch (e) {
-      print('Error updating user profile completion: $e');
-    }
+Future<void> updateUserProfileCompletion(String userId, Map<String, bool> completedQuestions) async {
+  if (userId.isEmpty) {
+    throw Exception('Invalid user ID');
   }
+  try {
+    await _db.collection('users').doc(userId).update({
+      'profileCompletion': completedQuestions,
+    });
+  } catch (e) {
+    print('Error updating user profile completion: $e');
+    rethrow;
+  }
+}
 
   Future<Map<String, bool>> getUserProfileCompletion(String userId) async {
     try {

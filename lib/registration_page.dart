@@ -7,6 +7,7 @@ import 'bez_prof_erstellen.dart';
 import 'anmelden_page.dart';
 import 'package:flutter/gestures.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'home_page.dart';
 
 class RegistrationPage extends StatefulWidget {
   @override
@@ -200,49 +201,52 @@ class _RegistrationPageState extends State<RegistrationPage> {
   }
 
   Future<void> _signInWithGoogle() async {
-    setState(() {
-      _errorMessage = '';
-    });
+  setState(() {
+    _errorMessage = '';
+  });
 
-    try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        return;
-      }
+  try {
+    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+    if (googleUser == null) {
+      return;
+    }
 
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
+    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+    final AuthCredential credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    UserCredential userCredential = await _auth.signInWithCredential(credential);
+    
+    // Check if the user already exists in Firestore
+    DocumentSnapshot userDoc = await _firestore.collection('users').doc(userCredential.user!.uid).get();
+    
+    if (userDoc.exists) {
+      // User already exists, navigate to home screen
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => HomePage(userId: userCredential.user!.uid)),
       );
-
-      UserCredential userCredential =
-          await _auth.signInWithCredential(credential);
-      if (userCredential.additionalUserInfo!.isNewUser) {
-        await _processInvitationCode(userCredential.user!, _invitationCodeController.text.trim());
-        await _firestore.collection('users').doc(userCredential.user!.uid).set({
-          'email': userCredential.user!.email,
-          'createdAt': Timestamp.now(),
-          'emailVerified': true,
-        }, SetOptions(merge: true));
-      }
-
+    } else {
+      // New user, create account and navigate to profile creation
+      await _firestore.collection('users').doc(userCredential.user!.uid).set({
+        'email': userCredential.user!.email,
+        'createdAt': Timestamp.now(),
+        'emailVerified': true,
+      }, SetOptions(merge: true));
+      
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => BezProfErstellen()),
       );
-    } on FirebaseAuthException catch (e) {
-      setState(() {
-        _errorMessage = 'Google Anmeldung fehlgeschlagen: ${e.message}';
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage =
-            'Ein unerwarteter Fehler ist aufgetreten: ${e.toString()}';
-      });
     }
+  } catch (e) {
+    setState(() {
+      _errorMessage = 'Ein unerwarteter Fehler ist aufgetreten: ${e.toString()}';
+    });
   }
+}
 
   Future<void> _signInWithFacebook() async {
     setState(() {

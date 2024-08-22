@@ -31,7 +31,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             centerTitle: true,
           );
         }
-
+        print(userId);
         final userData = snapshot.data!;
         final userName = userData['name'] as String? ?? 'User';
         final userImageUrl = userData['profileImageUrl'] as String?;

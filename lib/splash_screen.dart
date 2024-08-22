@@ -23,13 +23,14 @@ class _SplashScreenState extends State<SplashScreen> {
     // Check login status from Firebase Auth
 
     User? user = FirebaseAuth.instance.currentUser;
-
+    print("userid");
+    print(user?.uid);
     // Additional delay to ensure the home screen is ready
     Future.delayed(Duration(seconds: 2), () {
       if (user != null) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => FirstPage()), // Navigate to HomePage with user ID
+          MaterialPageRoute(builder: (context) => HomePage(userId: user.uid,)), // Navigate to HomePage with user ID
         );
       } else {
         Navigator.pushReplacement(

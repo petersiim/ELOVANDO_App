@@ -6,6 +6,9 @@ import 'speech_to_text_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class ProfilErstellen2Page extends StatefulWidget {
+  final String userId;
+  ProfilErstellen2Page({required this.userId});
+
   @override
   _ProfilErstellen2PageState createState() => _ProfilErstellen2PageState();
 }
@@ -60,46 +63,7 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
     return true;
   }
 
-  void _nextPage() async {
-    FocusScope.of(context).unfocus(); // This will dismiss the keyboard
-
-    bool isValid = _validateCurrentPage();
-
-    if (isValid) {
-      if (_currentPage < 6) {
-        // Store the selected option for the current page in Firestore
-        await _firestoreService
-            .updateUserProfile(FirebaseAuth.instance.currentUser!.uid, {
-          'question${_currentPage + 1}':
-              _getAnswerText(_currentPage, selectedOptionIndexes[_currentPage]),
-        });
-
-        _pageController.nextPage(
-          duration: Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
-      } else {
-        // Store the answer for the last question
-        await _firestoreService
-            .updateUserProfile(FirebaseAuth.instance.currentUser!.uid, {
-          'question7': _lastQuestionController.text,
-        });
-
-        // Mark profile step 2 completed
-        await _firestoreService.updateUserProfileCompletion(
-            FirebaseAuth.instance.currentUser!.uid, {
-          'profileStep2Completed': true,
-        });
-
-// Similar change for profileStep2Completed
-        // Navigate to PartnerEinladungPage
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => PartnerEinladungPage()),
-        );
-      }
-    }
-  }
+ 
 
   void _skipPage() async {
   String userId = FirebaseAuth.instance.currentUser!.uid;
@@ -461,6 +425,39 @@ class _ProfilErstellen2PageState extends State<ProfilErstellen2Page> {
         ],
       ),
     );
+  }
+
+  void _nextPage() async {
+    FocusScope.of(context).unfocus();
+
+    bool isValid = _validateCurrentPage();
+
+    if (isValid) {
+      if (_currentPage < 6) {
+        await _firestoreService.updateUserProfile(widget.userId, {
+          'question${_currentPage + 1}': _getAnswerText(_currentPage, selectedOptionIndexes[_currentPage]),
+          'profileCompletion': {'question${_currentPage + 1}': true},
+        });
+
+        _pageController.nextPage(
+          duration: Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      } else {
+        // Store the answer for the last question
+        await _firestoreService.updateUserProfile(widget.userId, {
+          'question7': _lastQuestionController.text,
+          'profileCompletion': {'question7': true},
+          'profileStep2Completed': true,
+        });
+
+        // Navigate to PartnerEinladungPage
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => PartnerEinladungPage()),
+        );
+      }
+    }
   }
 
   void _startRecording(TextEditingController controller) async {
