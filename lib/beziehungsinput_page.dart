@@ -4,6 +4,7 @@ import 'bestaetigung_page.dart';
 import 'speech_to_text_service.dart';
 import 'elovando_love_session_service.dart';
 import 'env/env.dart';
+import 'firestore_service.dart';
 
 class BeziehungsInputPage extends StatefulWidget {
   final String userId;
@@ -20,6 +21,8 @@ class _BeziehungsInputPageState extends State<BeziehungsInputPage> {
   final SpeechToTextService _speechToTextService = SpeechToTextService();
   bool _isProcessingSpeech = false;
   late ElovandoLoveSessionService _loveSessionService;
+    final FirestoreService _firestoreService = FirestoreService();
+
   bool _isSending = false;
 
   @override
@@ -288,6 +291,11 @@ class _BeziehungsInputPageState extends State<BeziehungsInputPage> {
                       });
                       try {
                         // Share user input
+                         await _firestoreService.addUserInput(
+      widget.userId,
+      _inputController.text,
+      sliderValue.round(),
+    );
                         await _loveSessionService.shareUserInput(
                           widget.userId,
                           "Text Input: ${_inputController.text}\nStimmungstracker: ${sliderValue.round()}",

@@ -31,6 +31,42 @@ Future<void> updateUserProfileCompletion(String userId, Map<String, bool> comple
   }
 }
 
+Future<List<Map<String, dynamic>>> getUserInputHistory(String userId) async {
+  final userRef = _db.collection('users').doc(userId);
+  final inputHistoryRef = userRef.collection('inputHistory');
+
+  final querySnapshot = await inputHistoryRef
+      .orderBy('timestamp', descending: true)
+      .limit(10)
+      .get();
+
+  return querySnapshot.docs
+      .map((doc) => doc.data() as Map<String, dynamic>)
+      .toList();
+}
+
+Future<void> addUserInput(String userId, String textInput, int moodValue) async {
+  final userRef = _db.collection('users').doc(userId);
+  final inputHistoryRef = userRef.collection('inputHistory');
+
+  await inputHistoryRef.add({
+    'textInput': textInput,
+    'moodValue': moodValue,
+    'timestamp': FieldValue.serverTimestamp(),
+  });
+
+  // Keep only the last 10 entries
+  final querySnapshot = await inputHistoryRef
+      .orderBy('timestamp', descending: true)
+      .limit(11)
+      .get();
+
+  if (querySnapshot.docs.length > 10) {
+    final lastDoc = querySnapshot.docs.last;
+    await lastDoc.reference.delete();
+  }
+}
+
   Future<Map<String, bool>> getUserProfileCompletion(String userId) async {
     try {
       DocumentSnapshot doc = await _db.collection('users').doc(userId).get();
