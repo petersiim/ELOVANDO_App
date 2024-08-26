@@ -69,7 +69,7 @@ class AIChatService {
     });
 
     // Decode and re-encode the response to handle potential encoding issues
-    return utf8.decode(utf8.encode(aiResponse));
+    return utf8.decode(aiResponse.runes.toList()).replaceAll('**', '');
   }
 
   Future<List<Map<String, dynamic>>> getThreadMessages(String threadId) async {

@@ -257,7 +257,7 @@ class ElovandoLoveSessionService {
       String response = messages[0]['content'][0]['text']['value'];
       
       await logToFile("Received response: $response");
-      return response;
+      return utf8.decode(response.runes.toList()).replaceAll('**', '');
 
     } catch (e) {
       await logToFile("Error in sendMessage: ${e.toString()}");

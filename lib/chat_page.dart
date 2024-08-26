@@ -522,6 +522,7 @@ class _ChatPageState extends State<ChatPage> {
       try {
         String aiResponse = await _aiChatService.sendMessage(
             widget.userId, _threadId!, message);
+            print(aiResponse);
         setState(() {
           // Remove loading message
           _messages.removeLast();
