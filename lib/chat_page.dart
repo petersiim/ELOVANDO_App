@@ -339,12 +339,13 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Widget _buildIntroBox() {
-    return Center(
+  return Padding(
+    padding: EdgeInsets.only(top: 20), // Add some top padding
+    child: Center(
       child: SingleChildScrollView(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SizedBox(height: 120),
             Container(
               padding: EdgeInsets.all(50),
               margin: EdgeInsets.symmetric(horizontal: 16.0),
@@ -386,8 +387,9 @@ class _ChatPageState extends State<ChatPage> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildChatList() {
     return ListView.builder(
