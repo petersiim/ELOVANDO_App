@@ -68,14 +68,15 @@ class AIChatService {
       'lastMessageTimestamp': FieldValue.serverTimestamp(),
     });
 
-    return aiResponse;
+    // Decode and re-encode the response to handle potential encoding issues
+    return utf8.decode(utf8.encode(aiResponse));
   }
 
   Future<List<Map<String, dynamic>>> getThreadMessages(String threadId) async {
     final response = await _listMessages(threadId);
     final messages = jsonDecode(response.body)['data'];
     return messages.map<Map<String, dynamic>>((m) => {
-      'content': m['content'][0]['text']['value'],
+      'content': utf8.decode(utf8.encode(m['content'][0]['text']['value'])),
       'role': m['role'],
     }).toList();
   }
@@ -105,13 +106,22 @@ class AIChatService {
 }
 
   Future<int> getRemainingMessages(String userId) async {
-    var userDoc = await _firestore.collection('users').doc(userId).get();
-    var messagesRemaining = userDoc.data()!['messagesRemaining'] as int;
-    var nextResetTime = userDoc.data()!['nextResetTime'] as Timestamp;
+    var userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    var messagesRemaining = userDoc.data()?['messagesRemaining'] as int?;
+    var nextResetTime = userDoc.data()?['nextResetTime'] as Timestamp?;
+
+    if (messagesRemaining == null || nextResetTime == null) {
+      // If the values are null, set default values
+      await FirebaseFirestore.instance.collection('users').doc(userId).update({
+        'messagesRemaining': 6,
+        'nextResetTime': Timestamp.fromDate(DateTime.now().add(Duration(hours: 24))),
+      });
+      return 6;
+    }
 
     if (DateTime.now().isAfter(nextResetTime.toDate())) {
       // Reset the message count and update the next reset time
-      await _firestore.collection('users').doc(userId).update({
+      await FirebaseFirestore.instance.collection('users').doc(userId).update({
         'messagesRemaining': 6,
         'nextResetTime': Timestamp.fromDate(DateTime.now().add(Duration(hours: 24))),
       });

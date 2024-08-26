@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'bestaetigung_page.dart';
 import 'speech_to_text_service.dart';
+import 'elovando_love_session_service.dart';
+import 'env/env.dart';
 
 class BeziehungsInputPage extends StatefulWidget {
   final String userId;
@@ -17,6 +19,14 @@ class _BeziehungsInputPageState extends State<BeziehungsInputPage> {
   final TextEditingController _inputController = TextEditingController();
   final SpeechToTextService _speechToTextService = SpeechToTextService();
   bool _isProcessingSpeech = false;
+  late ElovandoLoveSessionService _loveSessionService;
+  bool _isSending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loveSessionService = ElovandoLoveSessionService(Env.apiKey, "org-fZRna2F4kfSff4YTG4Lx15mM");
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -272,22 +282,52 @@ class _BeziehungsInputPageState extends State<BeziehungsInputPage> {
                       ),
                       padding: EdgeInsets.symmetric(vertical: 16),
                     ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => BestaetigungPage(userId: widget.userId),
-                        ),
-                      );
+                    onPressed: _isSending ? null : () async {
+                      setState(() {
+                        _isSending = true;
+                      });
+                      try {
+                        // Share user input
+                        await _loveSessionService.shareUserInput(
+                          widget.userId,
+                          "Text Input: ${_inputController.text}\nStimmungstracker: ${sliderValue.round()}",
+                        );
+                        // Navigate to BestaetigungPage
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => BestaetigungPage(userId: widget.userId),
+                          ),
+                        );
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Fehler beim Senden des Inputs: ${e.toString()}'),
+                            duration: Duration(seconds: 10),
+                            action: SnackBarAction(
+                              label: 'OK',
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                              },
+                            ),
+                          ),
+                        );
+                      } finally {
+                        setState(() {
+                          _isSending = false;
+                        });
+                      }
                     },
-                    child: Text(
-                      'Senden',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontFamily: 'Inter',
-                      ),
-                    ),
+                    child: _isSending
+                        ? CircularProgressIndicator(color: Colors.white)
+                        : Text(
+                            'Senden',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontFamily: 'Inter',
+                            ),
+                          ),
                   ),
                 ),
               ),

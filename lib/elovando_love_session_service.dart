@@ -5,14 +5,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 
-
 Future<void> logToFile(String message) async {
   final directory = await getApplicationDocumentsDirectory();
   final file = File('${directory.path}/ai_logs.txt');
   final timestamp = DateTime.now().toIso8601String();
   await file.writeAsString('[$timestamp] $message\n', mode: FileMode.append);
 }
-
 
 class ElovandoLoveSessionService {
   final String apiKey;
@@ -56,34 +54,36 @@ class ElovandoLoveSessionService {
     _isPreloaded = false;
   }
 
-  Future<void> initializeThread(String? userId) async {
-  if (userId == null || userId.isEmpty) {
-    throw Exception('Invalid user ID');
-  }
-
-  final userDoc =
-      await FirebaseFirestore.instance.collection('users').doc(userId).get();
-  final partnerUserId = userDoc.data()?['partnerId'];
-  _threadId = userDoc.data()?['loveSessionThreadId'];
-
-  if (_threadId == null) {
-    _threadId = await createThread();
-    await _updateUserThreadId(userId, _threadId!);
-    if (partnerUserId != null) {
-      await _updateUserThreadId(partnerUserId, _threadId!);
+  Future<void> initializeThread(String userId) async {
+    if (userId.isEmpty) {
+      throw Exception('Invalid user ID');
     }
-  } else if (partnerUserId != null) {
-    final partnerDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(partnerUserId)
-        .get();
-    final partnerThreadId = partnerDoc.data()?['loveSessionThreadId'];
-    if (partnerThreadId != null && partnerThreadId != _threadId) {
-      _threadId = partnerThreadId;
+
+    final userDoc =
+        await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    final partnerUserId = userDoc.data()?['partnerId'];
+    _threadId = userDoc.data()?['loveSessionThreadId'];
+
+    if (_threadId == null) {
+      _threadId = await createThread();
       await _updateUserThreadId(userId, _threadId!);
+      if (partnerUserId != null) {
+        await _updateUserThreadId(partnerUserId, _threadId!);
+      }
+    } else if (partnerUserId != null) {
+      final partnerDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(partnerUserId)
+          .get();
+      final partnerThreadId = partnerDoc.data()?['loveSessionThreadId'];
+      if (partnerThreadId != null && partnerThreadId != _threadId) {
+        _threadId = partnerThreadId;
+        await _updateUserThreadId(userId, _threadId!);
+      }
     }
+
+    await logToFile("Thread initialized: $_threadId for user: $userId");
   }
-}
 
   Future<void> _updateUserThreadId(String userId, String threadId) async {
     await FirebaseFirestore.instance.collection('users').doc(userId).update({
@@ -191,7 +191,7 @@ class ElovandoLoveSessionService {
 
   Future<String> sendMessage(String message, {bool isForDisplay = true}) async {
     if (_threadId == null) {
-      throw Exception('Thread nicht initialisiert. Rufen Sie zuerst startLoveSession auf.');
+      throw Exception('Thread nicht initialisiert. Rufen Sie zuerst initializeThread auf.');
     }
     
     String modifiedMessage = message;
@@ -201,7 +201,7 @@ class ElovandoLoveSessionService {
       modifiedMessage += "\n\nHinweis: Diese Information ist nur für deine interne Verarbeitung bestimmt. Sie wird nicht direkt angezeigt oder gelesen. Bitte verwende diese Information, um den Kontext der Konversation zu verbessern und passendere Antworten zu generieren.";
     }
 
-        await logToFile("USER: $modifiedMessage");
+    await logToFile("Sending message. Thread ID: $_threadId, Message: $modifiedMessage");
 
     try {
       await _retryOperation(() async {
@@ -214,8 +214,9 @@ class ElovandoLoveSessionService {
           }),
         );
         if (response.statusCode != 200) {
+          await logToFile("Error sending message. Status code: ${response.statusCode}, Body: ${response.body}");
           throw Exception(
-              'Fehler beim Senden der Nachricht: ${response.statusCode}');
+              'Fehler beim Senden der Nachricht: ${response.statusCode}. Body: ${response.body}');
         }
       });
 
@@ -228,8 +229,9 @@ class ElovandoLoveSessionService {
           }),
         );
         if (response.statusCode != 200) {
+          await logToFile("Error creating run. Status code: ${response.statusCode}, Body: ${response.body}");
           throw Exception(
-              'Fehler beim Starten des Runs: ${response.statusCode}');
+              'Fehler beim Starten des Runs: ${response.statusCode}. Body: ${response.body}');
         }
         return response;
       });
@@ -244,8 +246,9 @@ class ElovandoLoveSessionService {
           headers: _getHeaders(),
         );
         if (response.statusCode != 200) {
+          await logToFile("Error retrieving messages. Status code: ${response.statusCode}, Body: ${response.body}");
           throw Exception(
-              'Fehler beim Abrufen der Nachrichten: ${response.statusCode}');
+              'Fehler beim Abrufen der Nachrichten: ${response.statusCode}. Body: ${response.body}');
         }
         return response;
       });
@@ -253,12 +256,11 @@ class ElovandoLoveSessionService {
       final messages = jsonDecode(messagesResponse.body)['data'];
       String response = messages[0]['content'][0]['text']['value'];
       
-      await logToFile("ASSISTANT: $response");
-            return response;
+      await logToFile("Received response: $response");
+      return response;
 
     } catch (e) {
-            await logToFile("ERROR: ${e.toString()}");
-
+      await logToFile("Error in sendMessage: ${e.toString()}");
       print("Fehler beim Senden der Nachricht: $e");
       throw Exception('Fehler beim Senden der Nachricht: $e');
     }
@@ -278,11 +280,13 @@ class ElovandoLoveSessionService {
         if (status == 'completed') {
           return;
         } else if (status == 'failed') {
+          await logToFile("Run failed. Status: $status, Response: ${statusResponse.body}");
           print(
               "Run failed. Status: $status, Response: ${statusResponse.body}");
           throw Exception('Run failed: $status');
         }
       } catch (e) {
+        await logToFile("Error checking run status: $e");
         print("Fehler beim Abrufen des Run-Status: $e");
       }
       await Future.delayed(Duration(seconds: 5));
@@ -317,10 +321,7 @@ class ElovandoLoveSessionService {
   }
 
   Future<void> shareOnboardingInfo(String userId, Map<String, dynamic> onboardingInfo) async {
-    if (_threadId == null) {
-      throw Exception('Thread nicht initialisiert. Rufen Sie zuerst startLoveSession auf.');
-    }
-
+    await initializeThread(userId);
     final message = "Onboarding-Informationen für Benutzer $userId:\n" +
         onboardingInfo.entries.map((e) => "${e.key}: ${e.value}").join("\n");
     await logToFile("INITIAL ONBOARDING for $userId: $message");
@@ -329,10 +330,7 @@ class ElovandoLoveSessionService {
   }
 
   Future<void> updateOnboardingInfo(String userId, Map<String, dynamic> newInfo) async {
-    if (_threadId == null) {
-      throw Exception('Thread not initialized. Call initializeThread first.');
-    }
-
+    await initializeThread(userId);
     if (newInfo.isEmpty) return; // No new info to update
 
     String formattedInfo = newInfo.entries.map((e) => "${e.key}: ${e.value}").join("\n");
@@ -341,22 +339,15 @@ class ElovandoLoveSessionService {
 
     await sendMessage(message, isForDisplay: false);
   }
-  Future<void> shareUserInput(String userId, String input) async {
-    if (_threadId == null) {
-      throw Exception(
-          'Thread nicht initialisiert. Rufen Sie zuerst startLoveSession auf.');
-    }
 
-    final message = "Eingabe von Benutzer $userId:\n$input";
+  Future<void> shareUserInput(String userId, String input) async {
+    await initializeThread(userId);
+    final message = "Input von Benutzer $userId:\n$input";
     await sendMessage(message, isForDisplay: false);
   }
 
   Future<void> shareFeedback(String userId, String feedback) async {
-    if (_threadId == null) {
-      throw Exception(
-          'Thread nicht initialisiert. Rufen Sie zuerst startLoveSession auf.');
-    }
-
+    await initializeThread(userId);
     final message = "Feedback von Benutzer $userId:\n$feedback";
     await sendMessage(message, isForDisplay: false);
   }
