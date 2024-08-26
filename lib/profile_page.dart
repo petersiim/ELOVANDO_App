@@ -1,28 +1,51 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:io';
 import 'kostenpflichtig_dialog.dart';
 import 'partner_einladung_page.dart';
 import 'complete_profile_page.dart';
+import 'firestore_service.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   final String userId;
   ProfilePage({required this.userId});
 
-  Future<Map<String, dynamic>> _fetchUserData() async {
-    DocumentSnapshot userDoc =
-        await FirebaseFirestore.instance.collection('users').doc(userId).get();
+  @override
+  _ProfilePageState createState() => _ProfilePageState();
+}
 
-    Map<String, dynamic> userData =
-        userDoc.data() as Map<String, dynamic>? ?? {};
+class _ProfilePageState extends State<ProfilePage> {
+  final FirestoreService _firestoreService = FirestoreService();
+  String? _userProfileImageUrl;
+  File? _selectedImage;
+  String _errorMessage = '';
+  late Future<Map<String, dynamic>> _userDataFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _userDataFuture = _fetchUserData();
+  }
+
+  Future<Map<String, dynamic>> _fetchUserData() async {
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.userId)
+        .get();
+
+    Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>? ?? {};
+
+    _userProfileImageUrl = userData['profileImageUrl'] as String?;
 
     // Ensure profileCompletion exists in the user data
     userData['profileCompletion'] = userData['profileCompletion'] ?? {};
 
     return userData;
   }
-
-  
 
   int _calculateAge(String? birthdate) {
     if (birthdate == null) return 0;
@@ -31,7 +54,6 @@ class ProfilePage extends StatelessWidget {
     int day = int.tryParse(parts[0]) ?? 1;
     int month = int.tryParse(parts[1]) ?? 1;
     int year = int.tryParse(parts[2]) ?? DateTime.now().year;
-    print(userId);
     DateTime birthDate = DateTime(year, month, day);
     DateTime today = DateTime.now();
     int age = today.year - birthDate.year;
@@ -42,12 +64,84 @@ class ProfilePage extends StatelessWidget {
     return age;
   }
 
+  Future<void> _showImageSourceSelectionDialog() async {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: <Widget>[
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Fotobibliothek'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await _pickImage(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_camera),
+                title: const Text('Kamera'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await _pickImage(ImageSource.camera);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: source);
+
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImage = File(pickedFile.path);
+      });
+
+      await _uploadImageToFirebase(_selectedImage!);
+    }
+  }
+
+  Future<void> _uploadImageToFirebase(File image) async {
+    try {
+      String fileName = 'user_images/${widget.userId}/profile_image.jpg';
+
+      Reference ref = FirebaseStorage.instance.ref().child(fileName);
+      await ref.putFile(image);
+
+      String downloadURL = await ref.getDownloadURL();
+
+      await _firestoreService.updateUserProfile(widget.userId, {
+        'profileImageUrl': downloadURL,
+      });
+
+      setState(() {
+        _userProfileImageUrl = downloadURL;
+        _errorMessage = '';
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Profilbild erfolgreich aktualisiert')),
+      );
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Fehler beim Hochladen des Bildes: $e';
+      });
+      print('Failed to upload image: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: FutureBuilder<Map<String, dynamic>>(
-        future: _fetchUserData(),
+        future: _userDataFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
@@ -61,7 +155,6 @@ class ProfilePage extends StatelessWidget {
 
           final userData = snapshot.data!;
           final userName = userData['name'] as String? ?? 'User';
-          final userImageUrl = userData['profileImageUrl'] as String?;
           final userBirthdate = userData['birthdate'] as String?;
           final userAge = _calculateAge(userBirthdate);
           final hasInvitedPartner = userData['invitedUsers'] != null &&
@@ -79,14 +172,37 @@ class ProfilePage extends StatelessWidget {
                   children: [
                     SizedBox(height: 40.0),
                     Center(
-                      child: CircleAvatar(
-                        radius: 50,
-                        backgroundImage: userImageUrl != null
-                            ? NetworkImage(userImageUrl)
-                            : null,
-                        child: userImageUrl == null
-                            ? Icon(Icons.person, size: 50)
-                            : null,
+                      child: GestureDetector(
+                        onTap: _showImageSourceSelectionDialog,
+                        child: Stack(
+                          children: [
+                            CircleAvatar(
+                              radius: 50,
+                              backgroundImage: _userProfileImageUrl != null
+                                  ? NetworkImage(_userProfileImageUrl!)
+                                  : null,
+                              child: _userProfileImageUrl == null
+                                  ? Icon(Icons.person, size: 50)
+                                  : null,
+                            ),
+                            Positioned(
+                              right: 0,
+                              bottom: 0,
+                              child: Container(
+                                padding: EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Color(0xFF7D4666),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.edit,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     SizedBox(height: 10),
@@ -103,8 +219,7 @@ class ProfilePage extends StatelessWidget {
                     ),
                     SizedBox(height: 30),
                     if (!isProfileCompleted)
-                      _buildCompleteProfileBox(
-                          context, userData, completedQuestions),
+                      _buildCompleteProfileBox(context, userData, completedQuestions),
                     if (!hasInvitedPartner) ...[
                       SizedBox(height: 20),
                       _buildInvitePartnerButton(context),
@@ -199,7 +314,7 @@ class ProfilePage extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (context) => CompleteProfilePage(
-                      userId: userId,
+                      userId: widget.userId,
                       completedQuestions: completedQuestions,
                     ),
                   ),
