@@ -18,19 +18,26 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:sqflite/sqflite.dart';
 import 'package:audio_service/audio_service.dart';
+import 'dart:io';
 
 import 'registration_page.dart';
 
+String errorLog = '';
+
+void addToErrorLog(String message) {
+  errorLog += '$message\n';
+  print(message); // Also print to console for debugging
+}
+
 Future<void> initializeSqflite() async {
   try {
-    // This will trigger sqflite initialization
     final databasesPath = await getDatabasesPath();
-    print('Sqflite initialized successfully. Path: $databasesPath');
+    addToErrorLog('Sqflite initialized successfully. Path: $databasesPath');
   } catch (e) {
-    print('Error initializing Sqflite: $e');
-    // Handle the error as needed
+    addToErrorLog('Error initializing Sqflite: $e');
   }
 }
+
 class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   final _player = AudioPlayer();
 
@@ -76,8 +83,9 @@ class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler
     );
   }
 }
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+
+Future<void> initializeApp() async {
+  addToErrorLog('Initializing app...');
 
   try {
     await JustAudioBackground.init(
@@ -85,32 +93,83 @@ Future<void> main() async {
       androidNotificationChannelName: 'Audio playback',
       androidNotificationOngoing: true,
     );
+    addToErrorLog('JustAudioBackground initialized');
   } catch (e) {
-    print('Error initializing JustAudioBackground: $e');
-    // Continue with app initialization even if JustAudioBackground fails
+    addToErrorLog('Error initializing JustAudioBackground: $e');
   }
 
-  await AudioService.init(
-    builder: () => AudioPlayerHandler(),
-    config: AudioServiceConfig(
-      androidNotificationChannelId: 'com.ryanheise.bg_demo.channel.audio',
-      androidNotificationChannelName: 'Audio playback',
-      androidNotificationOngoing: true,
-    ),
-  );
-  await initializeSqflite();
+  try {
+    await AudioService.init(
+      builder: () => AudioPlayerHandler(),
+      config: AudioServiceConfig(
+        androidNotificationChannelId: 'com.ryanheise.bg_demo.channel.audio',
+        androidNotificationChannelName: 'Audio playback',
+        androidNotificationOngoing: true,
+      ),
+    );
+    addToErrorLog('AudioService initialized');
+  } catch (e) {
+    addToErrorLog('Error initializing AudioService: $e');
+  }
 
-  // Load .env file
-  await dotenv.load(fileName: ".env");
+  try {
+    await initializeSqflite();
+  } catch (e) {
+    addToErrorLog('Error in initializeSqflite: $e');
+  }
 
-  openai.OpenAI.apiKey = Env.apiKey;
-  openai.OpenAI.organization = "org-fZRna2F4kfSff4YTG4Lx15mM";
+  try {
+    final envFile = File('.env');
+    if (await envFile.exists()) {
+      addToErrorLog('.env file exists');
+      await dotenv.load(fileName: ".env");
+      addToErrorLog('.env file loaded');
+    } else {
+      addToErrorLog('.env file does not exist');
+    }
+  } catch (e) {
+    addToErrorLog('Error loading .env file: $e');
+  }
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    openai.OpenAI.apiKey = Env.apiKey;
+    openai.OpenAI.organization = "org-fZRna2F4kfSff4YTG4Lx15mM";
+    addToErrorLog('OpenAI configuration set');
+  } catch (e) {
+    addToErrorLog('Error setting OpenAI configuration: $e');
+  }
 
-  runApp(const MyApp());
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    addToErrorLog('Firebase initialized');
+  } catch (e) {
+    addToErrorLog('Error initializing Firebase: $e');
+  }
+
+  addToErrorLog('App initialization completed');
+}
+
+void main() {
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    addToErrorLog('WidgetsFlutterBinding initialized');
+
+    await initializeApp();
+
+    runApp(const MyApp());
+    addToErrorLog('App started');
+  }, (error, stackTrace) {
+    addToErrorLog('Unhandled error: $error');
+    addToErrorLog('Stack trace: $stackTrace');
+  });
+
+  // Set error handler for Flutter errors
+  FlutterError.onError = (FlutterErrorDetails details) {
+    addToErrorLog('Flutter error: ${details.exception}');
+    addToErrorLog('Stack trace: ${details.stack}');
+  };
 }
 
 class MyApp extends StatefulWidget {
@@ -137,7 +196,7 @@ class _MyAppState extends State<MyApp> {
         _handleDeepLink(uri);
       }
     } on PlatformException {
-      print('Failed to get initial uri');
+      addToErrorLog('Failed to get initial uri');
     }
   }
 
@@ -147,7 +206,7 @@ class _MyAppState extends State<MyApp> {
         _handleDeepLink(uri);
       }
     }, onError: (err) {
-      print('Error handling incoming links: $err');
+      addToErrorLog('Error handling incoming links: $err');
     });
   }
 
@@ -202,7 +261,7 @@ class _MyAppState extends State<MyApp> {
         );
       }
     } catch (e) {
-      print('Error processing invitation code: $e');
+      addToErrorLog('Error processing invitation code: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('An error occurred. Please try again later.')),
       );
@@ -223,11 +282,30 @@ class _MyAppState extends State<MyApp> {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: SplashScreen(),
+      home: errorLog.isEmpty ? SplashScreen() : ErrorScreen(errorLog: errorLog),
       routes: {
         '/login': (context) => AnmeldenPage(),
         '/register': (context) => RegistrationPage(),
       },
+    );
+  }
+}
+
+class ErrorScreen extends StatelessWidget {
+  final String errorLog;
+
+  const ErrorScreen({Key? key, required this.errorLog}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Error Log'),
+      ),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(16),
+        child: Text(errorLog),
+      ),
     );
   }
 }
