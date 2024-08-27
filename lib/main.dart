@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart' as dotenv;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:envied/envied.dart';
 import 'env/env.dart';
 import 'package:dart_openai/dart_openai.dart' as openai;
@@ -21,10 +21,19 @@ Future<String> readFile(String path) async {
   return text;
 }
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  openai.OpenAI.apiKey = Env.apiKey;
+  // Load .env file
+  await dotenv.load(fileName: ".env");
+  
+  // Ensure the API key is loaded
+  String? apiKey = dotenv.env['OPEN_AI_API_KEY'];
+  if (apiKey == null || apiKey.isEmpty) {
+    throw Exception('OPEN_AI_API_KEY not found in .env file');
+  }
+  
+  openai.OpenAI.apiKey = apiKey;
   openai.OpenAI.organization = "org-fZRna2F4kfSff4YTG4Lx15mM";
 
   await Firebase.initializeApp(
