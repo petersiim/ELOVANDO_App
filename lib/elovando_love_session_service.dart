@@ -145,7 +145,7 @@ class ElovandoLoveSessionService {
     try {
       progressCallback("Intro wird vorbereitet...", 0.3);
       _preloadedMessages['intro'] =
-          await sendMessage("Erstelle ein Intro für die Love Session");
+          await sendMessage("Erstelle ein Intro für die Love Session. Diese Antwort wird sofort in gesprochenen Text umgewandelt und dem Benutzer vorgelesen.");
 
       progressCallback("Aussage für Partner A wird vorbereitet...", 0.5);
       _preloadedMessages['partnerAToBStatement'] = await sendMessage(
@@ -157,7 +157,7 @@ class ElovandoLoveSessionService {
 
       progressCallback("Outro wird vorbereitet...", 0.9);
       _preloadedMessages['outro'] =
-          await sendMessage("Erstelle ein Outro für die Love Session.");
+          await sendMessage("Erstelle ein Outro für die Love Session. Diese Antwort wird sofort in gesprochenen Text umgewandelt und dem Benutzer vorgelesen.");
 
       _isPreloaded = true;
     } catch (e) {

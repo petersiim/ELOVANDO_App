@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:audio_waveforms/audio_waveforms.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import 'dart:math';
 import 'elovando_love_session_service.dart';
 import 'text_to_speech_service.dart';
 import 'feedback_page.dart';
@@ -18,14 +18,15 @@ class LoveSessionPage extends StatefulWidget {
   _LoveSessionPageState createState() => _LoveSessionPageState();
 }
 
-class _LoveSessionPageState extends State<LoveSessionPage> {
+class _LoveSessionPageState extends State<LoveSessionPage> with SingleTickerProviderStateMixin {
   late final ElovandoLoveSessionService _service;
   late final TextToSpeechService _ttsService;
   late final AudioPlayer _audioPlayer;
-  late final PlayerController _playerController;
+  late AnimationController _animationController;
   String _currentStep = 'intro';
   String _displayText = '';
   bool _isLoading = false;
+  bool _isTtsLoading = false;
   double _progressValue = 0.0;
   String _progressText = '';
   bool _isCancelled = false;
@@ -35,6 +36,7 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
   Duration _audioDuration = Duration.zero;
   Duration _audioPosition = Duration.zero;
   String? _audioFilePath;
+  List<double> _waveformData = [];
 
   @override
   void initState() {
@@ -42,7 +44,10 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
     _service = ElovandoLoveSessionService(Env.apiKey, "org-fZRna2F4kfSff4YTG4Lx15mM");
     _ttsService = TextToSpeechService();
     _audioPlayer = AudioPlayer();
-    _playerController = PlayerController();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: Duration(seconds: 2),
+    )..repeat();
     _initializeService();
     _setupAudioPlayerListeners();
   }
@@ -170,7 +175,13 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
   }
 
   Future<void> _generateAndPlayAudio(String text) async {
+    if (_currentStep == 'partnerAToB' || _currentStep == 'partnerBToA') {
+      return; // Don't generate or play audio for partner statements
+    }
     try {
+      setState(() {
+        _isTtsLoading = true;
+      });
       final audioData = await _ttsService.generateSpeech(text);
       final tempDir = await getApplicationDocumentsDirectory();
       final tempFile = File('${tempDir.path}/temp_audio.mp3');
@@ -178,17 +189,35 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
 
       _audioFilePath = tempFile.path;
       await _audioPlayer.setFilePath(_audioFilePath!);
-      await _playerController.preparePlayer(
-        path: _audioFilePath!,
-        noOfSamples: 100,
-      );
+      _generateWaveformData(audioData);
+      setState(() {
+        _isTtsLoading = false;
+      });
       _audioPlayer.play();
     } catch (e) {
       print("Fehler bei der Audiogenerierung: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Fehler bei der Audiowiedergabe')),
       );
+      setState(() {
+        _isTtsLoading = false;
+      });
     }
+  }
+
+  void _generateWaveformData(List<int> audioData) {
+    const int samplesPerPoint = 200;
+    List<double> waveform = [];
+    for (int i = 0; i < audioData.length; i += samplesPerPoint) {
+      int end = i + samplesPerPoint;
+      if (end > audioData.length) end = audioData.length;
+      List<int> chunk = audioData.sublist(i, end);
+      double average = chunk.reduce((a, b) => a + b) / chunk.length;
+      waveform.add(average.abs() / 128); // Normalize to 0-1 range
+    }
+    setState(() {
+      _waveformData = waveform;
+    });
   }
 
   Future<bool> _checkUserStatus() async {
@@ -293,6 +322,7 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
   }
 
   void _handleNextStep() async {
+    _stopAudio();
     setState(() {
       _isLoading = true;
     });
@@ -349,6 +379,7 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
   }
 
   void _endSession() {
+    _stopAudio();
     if (_isCancelled) return;
     print("Sitzung wird beendet. Navigation zur FeedbackPage");
     Navigator.pushReplacement(
@@ -359,10 +390,18 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
     );
   }
 
+  void _stopAudio() {
+    _audioPlayer.stop();
+    setState(() {
+      _isPlaying = false;
+      _audioPosition = Duration.zero;
+    });
+  }
+
   @override
   void dispose() {
     _audioPlayer.dispose();
-    _playerController.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
@@ -373,6 +412,7 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
         setState(() {
           _isCancelled = true;
         });
+        _stopAudio();
         return true;
       },
       child: Scaffold(
@@ -386,6 +426,7 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
               setState(() {
                 _isCancelled = true;
               });
+              _stopAudio();
               Navigator.of(context).pop();
             },
           ),
@@ -467,38 +508,44 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
                             style: TextStyle(fontSize: 18, color: Color(0xFF414254)),
                           ),
                           SizedBox(height: 16),
-                          if (_audioFilePath != null)
-                            AudioFileWaveforms(
-                              size: Size(MediaQuery.of(context).size.width, 100.0),
-                              playerController: _playerController,
-                              enableSeekGesture: true,
-                              waveformType: WaveformType.fitWidth,
-                              playerWaveStyle: const PlayerWaveStyle(
-                                fixedWaveColor: Colors.white54,
-                                liveWaveColor: Color(0xFF7FCCB1),
-                                spacing: 6,
-                              ),
+                          if (_isTtsLoading)
+                            CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7FCCB1)),
+                            )
+                          else if (_currentStep != 'partnerAToB' && _currentStep != 'partnerBToA' && _waveformData.isNotEmpty)
+                            AnimatedBuilder(
+                              animation: _animationController,
+                              builder: (context, child) {
+                                return CustomPaint(
+                                  painter: CircularWaveformPainter(
+                                    _waveformData,
+                                    _animationController.value,
+                                  ),
+                                  size: Size(200, 200),
+                                );
+                              },
                             ),
                           SizedBox(height: 16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              IconButton(
-                                icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
-                                onPressed: () {
-                                  if (_isPlaying) {
-                                    _audioPlayer.pause();
-                                  } else {
-                                    _audioPlayer.play();
-                                  }
-                                },
-                              ),
-                              Text(
-                                '${_audioPosition.inMinutes}:${(_audioPosition.inSeconds % 60).toString().padLeft(2, '0')} / ${_audioDuration.inMinutes}:${(_audioDuration.inSeconds % 60).toString().padLeft(2, '0')}',
-                                style: TextStyle(fontSize: 16),
-                              ),
-                            ],
-                          ),
+                          if (_currentStep != 'partnerAToB' && _currentStep != 'partnerBToA')
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                IconButton(
+                                  icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
+                                  onPressed: () {
+                                    if (_isPlaying) {
+                                      _audioPlayer.pause();
+                                    } else {
+                                      _audioPlayer.play();
+                                    }
+                                  },
+                                ),
+                                Text(
+                                  '${_audioPosition.inMinutes}:${(_audioPosition.inSeconds % 60).toString().padLeft(2, '0')} / ${_audioDuration.inMinutes}:${(_audioDuration.inSeconds % 60).toString().padLeft(2, '0')}',
+                                  style: TextStyle(fontSize: 16),
+                                ),
+                              ],
+                            ),
                         ],
                       ),
                     ),
@@ -528,5 +575,45 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
         ),
       ),
     );
+  }
+}
+
+class CircularWaveformPainter extends CustomPainter {
+  final List<double> waveformData;
+  final double animationValue;
+
+  CircularWaveformPainter(this.waveformData, this.animationValue);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Color(0xFF7FCCB1)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+
+    for (int i = 0; i < waveformData.length; i++) {
+      final angle = 2 * pi * i / waveformData.length - pi / 2;
+      final x = center.dx + radius * cos(angle);
+      final y = center.dy + radius * sin(angle);
+      final waveHeight = waveformData[i] * radius * 0.3;
+      final animatedWaveHeight = waveHeight * animationValue;
+      
+      final innerX = center.dx + (radius - animatedWaveHeight) * cos(angle);
+      final innerY = center.dy + (radius - animatedWaveHeight) * sin(angle);
+
+      canvas.drawLine(
+        Offset(innerX, innerY),
+        Offset(x, y),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return true;
   }
 }
