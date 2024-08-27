@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart' as dotenv;
-import 'package:envied/envied.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'env/env.dart';
 import 'package:dart_openai/dart_openai.dart' as openai;
-import 'dart:developer';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'splash_screen.dart';
@@ -14,16 +12,97 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'anmelden_page.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
+import 'package:sqflite/sqflite.dart';
+import 'package:audio_service/audio_service.dart';
+
 import 'registration_page.dart';
 
-Future<String> readFile(String path) async {
-  String text = await rootBundle.loadString(path);
-  return text;
+Future<void> initializeSqflite() async {
+  try {
+    // This will trigger sqflite initialization
+    final databasesPath = await getDatabasesPath();
+    print('Sqflite initialized successfully. Path: $databasesPath');
+  } catch (e) {
+    print('Error initializing Sqflite: $e');
+    // Handle the error as needed
+  }
 }
+class AudioPlayerHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
+  final _player = AudioPlayer();
 
-void main() async {
+  AudioPlayerHandler() {
+    _player.playbackEventStream.map(_transformEvent).pipe(playbackState);
+  }
+
+  @override
+  Future<void> play() => _player.play();
+
+  @override
+  Future<void> pause() => _player.pause();
+
+  @override
+  Future<void> seek(Duration position) => _player.seek(position);
+
+  PlaybackState _transformEvent(PlaybackEvent event) {
+    return PlaybackState(
+      controls: [
+        MediaControl.rewind,
+        if (_player.playing) MediaControl.pause else MediaControl.play,
+        MediaControl.stop,
+        MediaControl.fastForward,
+      ],
+      systemActions: const {
+        MediaAction.seek,
+        MediaAction.seekForward,
+        MediaAction.seekBackward,
+      },
+      androidCompactActionIndices: const [0, 1, 3],
+      processingState: const {
+        ProcessingState.idle: AudioProcessingState.idle,
+        ProcessingState.loading: AudioProcessingState.loading,
+        ProcessingState.buffering: AudioProcessingState.buffering,
+        ProcessingState.ready: AudioProcessingState.ready,
+        ProcessingState.completed: AudioProcessingState.completed,
+      }[_player.processingState]!,
+      playing: _player.playing,
+      updatePosition: _player.position,
+      bufferedPosition: _player.bufferedPosition,
+      speed: _player.speed,
+      queueIndex: event.currentIndex,
+    );
+  }
+}
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
+  try {
+    await JustAudioBackground.init(
+      androidNotificationChannelId: 'com.ryanheise.bg_demo.channel.audio',
+      androidNotificationChannelName: 'Audio playback',
+      androidNotificationOngoing: true,
+    );
+  } catch (e) {
+    print('Error initializing JustAudioBackground: $e');
+    // Continue with app initialization even if JustAudioBackground fails
+  }
+
+  await AudioService.init(
+    builder: () => AudioPlayerHandler(),
+    config: AudioServiceConfig(
+      androidNotificationChannelId: 'com.ryanheise.bg_demo.channel.audio',
+      androidNotificationChannelName: 'Audio playback',
+      androidNotificationOngoing: true,
+    ),
+  );
+  await initializeSqflite();
+
+  // Load .env file
+  await dotenv.load(fileName: ".env");
+
   openai.OpenAI.apiKey = Env.apiKey;
   openai.OpenAI.organization = "org-fZRna2F4kfSff4YTG4Lx15mM";
 
@@ -75,16 +154,12 @@ class _MyAppState extends State<MyApp> {
   void _handleDeepLink(Uri uri) async {
     if (uri.path == '/invite' && uri.queryParameters.containsKey('code')) {
       String invitationCode = uri.queryParameters['code']!;
-      
-      // Check if the user is already logged in
+
       User? currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser != null) {
-        // User is logged in, process the invitation code
         await _processInvitationCode(currentUser, invitationCode);
       } else {
-        // User is not logged in, store the invitation code
         await _storeInvitationCode(invitationCode);
-        // Navigate to login or registration page
         Navigator.of(context).pushReplacementNamed('/login');
       }
     }
@@ -105,32 +180,29 @@ class _MyAppState extends State<MyApp> {
 
       if (query.docs.isNotEmpty) {
         String inviterId = query.docs.first.id;
-        
-        // Link the current user to the inviter
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-          'invitedBy': inviterId,
-        });
 
-        // Update the inviter's document
-        await FirebaseFirestore.instance.collection('users').doc(inviterId).update({
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .update({'invitedBy': inviterId});
+
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(inviterId)
+            .update({
           'invitedUsers': FieldValue.arrayUnion([user.uid]),
         });
 
-        print('User successfully linked with inviter');
-        // Show success message to the user
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Successfully connected with your partner!')),
         );
       } else {
-        print('Invalid invitation code');
-        // Show error message to the user
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Invalid invitation code. Please try again.')),
         );
       }
     } catch (e) {
       print('Error processing invitation code: $e');
-      // Show error message to the user
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('An error occurred. Please try again later.')),
       );

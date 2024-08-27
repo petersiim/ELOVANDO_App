@@ -40,6 +40,11 @@ dependencies:
   qr_flutter: ^4.1.0
   share_plus: ^7.0.0
   uni_links: ^0.5.1
+  just_audio: ^0.9.36
+  just_audio_background: ^0.0.1-beta.13
+  audio_service: ^0.18.15
+  audio_waveforms: ^1.0.4
+  sqflite: ^2.3.3+1
 
 dev_dependencies:
   flutter_test:

@@ -71,5 +71,8 @@ flutter {
 
 dependencies {
         implementation 'androidx.multidex:multidex:2.0.1'
+        implementation project(':audio_service')
 
+        implementation 'com.google.android.gms:play-services-base:18.1.0'
+        implementation 'com.google.android.gms:play-services-basement:18.1.0'
 }

@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:audio_waveforms/audio_waveforms.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 import 'elovando_love_session_service.dart';
+import 'text_to_speech_service.dart';
 import 'feedback_page.dart';
 import 'env/env.dart';
 
@@ -15,6 +20,9 @@ class LoveSessionPage extends StatefulWidget {
 
 class _LoveSessionPageState extends State<LoveSessionPage> {
   late final ElovandoLoveSessionService _service;
+  late final TextToSpeechService _ttsService;
+  late final AudioPlayer _audioPlayer;
+  late final PlayerController _playerController;
   String _currentStep = 'intro';
   String _displayText = '';
   bool _isLoading = false;
@@ -23,12 +31,41 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
   bool _isCancelled = false;
   bool _isInitialized = false;
   bool _isSessionStarted = false;
+  bool _isPlaying = false;
+  Duration _audioDuration = Duration.zero;
+  Duration _audioPosition = Duration.zero;
 
   @override
   void initState() {
     super.initState();
     _service = ElovandoLoveSessionService(Env.apiKey, "org-fZRna2F4kfSff4YTG4Lx15mM");
+    _ttsService = TextToSpeechService();
+    _audioPlayer = AudioPlayer();
+    _playerController = PlayerController();
     _initializeService();
+    _setupAudioPlayerListeners();
+  }
+
+  void _setupAudioPlayerListeners() {
+    _audioPlayer.positionStream.listen((position) {
+      setState(() {
+        _audioPosition = position;
+      });
+    });
+
+    _audioPlayer.durationStream.listen((duration) {
+      if (duration != null) {
+        setState(() {
+          _audioDuration = duration;
+        });
+      }
+    });
+
+    _audioPlayer.playerStateStream.listen((playerState) {
+      setState(() {
+        _isPlaying = playerState.playing;
+      });
+    });
   }
 
   Future<void> _initializeService() async {
@@ -122,6 +159,8 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
         _isLoading = false;
         _isSessionStarted = true;
       });
+
+      await _generateAndPlayAudio(_displayText);
     } catch (e) {
       if (_isCancelled) return;
       print("Fehler beim Starten der Love Session: $e");
@@ -129,6 +168,26 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
     }
   }
 
+  Future<void> _generateAndPlayAudio(String text) async {
+  try {
+    final audioData = await _service.generateSpeech(text);
+    final tempDir = await getApplicationDocumentsDirectory();
+    final tempFile = File('${tempDir.path}/temp_audio.mp3');
+    await tempFile.writeAsBytes(audioData);
+
+    await _audioPlayer.setAudioSource(AudioSource.file(tempFile.path));
+    await _playerController.preparePlayer(
+      path: tempFile.path,
+      noOfSamples: 100,
+    );
+    await _audioPlayer.play();
+  } catch (e) {
+    print("Error in _generateAndPlayAudio: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error playing audio: $e')),
+    );
+  }
+}
   Future<bool> _checkUserStatus() async {
     final userDoc = await FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
     final partnerId = userDoc.data()?['partnerId'];
@@ -265,6 +324,7 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
           _currentStep = response['nextStep'] ?? 'error';
           _isLoading = false;
         });
+        await _generateAndPlayAudio(_displayText);
       }
     } catch (e) {
       if (_isCancelled) return;
@@ -294,6 +354,13 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
         builder: (context) => FeedbackPage(userId: widget.userId, service: _service),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    _playerController.dispose();
+    super.dispose();
   }
 
   @override
@@ -390,9 +457,45 @@ class _LoveSessionPageState extends State<LoveSessionPage> {
                 else
                   Expanded(
                     child: SingleChildScrollView(
-                      child: Text(
-                        _displayText,
-                        style: TextStyle(fontSize: 18, color: Color(0xFF414254)),
+                      child: Column(
+                        children: [
+                          Text(
+                            _displayText,
+                            style: TextStyle(fontSize: 18, color: Color(0xFF414254)),
+                          ),
+                          SizedBox(height: 16),
+                          AudioFileWaveforms(
+                            size: Size(MediaQuery.of(context).size.width, 100.0),
+                            playerController: _playerController,
+                            enableSeekGesture: true,
+                            waveformType: WaveformType.fitWidth,
+                            playerWaveStyle: const PlayerWaveStyle(
+                              fixedWaveColor: Colors.white54,
+                              liveWaveColor: Color(0xFF7FCCB1),
+                              spacing: 6,
+                            ),
+                          ),
+                          SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              IconButton(
+                                icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
+                                onPressed: () {
+                                  if (_isPlaying) {
+                                    _audioPlayer.pause();
+                                  } else {
+                                    _audioPlayer.play();
+                                  }
+                                },
+                              ),
+                              Text(
+                                '${_audioPosition.inMinutes}:${(_audioPosition.inSeconds % 60).toString().padLeft(2, '0')} / ${_audioDuration.inMinutes}:${(_audioDuration.inSeconds % 60).toString().padLeft(2, '0')}',
+                                style: TextStyle(fontSize: 16),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
                   ),

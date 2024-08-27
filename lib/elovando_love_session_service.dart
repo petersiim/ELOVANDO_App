@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import 'text_to_speech_service.dart';
 
 Future<void> logToFile(String message) async {
   final directory = await getApplicationDocumentsDirectory();
@@ -21,9 +22,11 @@ class ElovandoLoveSessionService {
   Map<String, String> _preloadedMessages = {};
   bool _isPreloaded = false;
   late bool _partnerAStarts;
+  late TextToSpeechService _ttsService;
 
   ElovandoLoveSessionService(this.apiKey, this.organizationId) {
     _partnerAStarts = Random().nextBool();
+    _ttsService = TextToSpeechService();
   }
 
   Future<Map<String, dynamic>> startLoveSession(
@@ -350,5 +353,9 @@ class ElovandoLoveSessionService {
     await initializeThread(userId);
     final message = "Feedback von Benutzer $userId:\n$feedback";
     await sendMessage(message, isForDisplay: false);
+  }
+
+  Future<List<int>> generateSpeech(String text) async {
+    return await _ttsService.generateSpeech(text);
   }
 }

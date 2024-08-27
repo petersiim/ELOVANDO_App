@@ -8,20 +8,20 @@ class SpeechToTextService {
   static final SpeechToTextService _instance = SpeechToTextService._internal();
   factory SpeechToTextService() => _instance;
   SpeechToTextService._internal();
-  TextEditingController? currentController;
 
   final Record _recorder = Record();
-  String? _path;
+  String? _audioPath;
   bool _isRecording = false;
+  TextEditingController? currentController;
 
   bool get isRecording => _isRecording;
 
   Future<void> startRecording(TextEditingController controller) async {
     if (await _recorder.hasPermission()) {
       final directory = await getTemporaryDirectory();
-      _path = '${directory.path}/audio.mp3';
+      _audioPath = '${directory.path}/audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
       await _recorder.start(
-        path: _path!,
+        path: _audioPath!,
         encoder: AudioEncoder.aacLc,
         bitRate: 128000,
         samplingRate: 44100,
@@ -29,27 +29,40 @@ class SpeechToTextService {
       _isRecording = true;
       currentController = controller;
     } else {
-      print('Microphone permission not granted');
+      throw Exception('Microphone permission not granted');
     }
   }
 
   Future<void> stopRecording() async {
+    if (!_isRecording) return;
     await _recorder.stop();
     _isRecording = false;
-    currentController = null;
   }
+
   Future<String?> transcribeAudio() async {
-    if (_path == null) return null;
+    if (_audioPath == null) return null;
     try {
+      final file = File(_audioPath!);
+      if (!await file.exists()) {
+        throw Exception('Audio file does not exist');
+      }
+
       OpenAIAudioModel transcription = await OpenAI.instance.audio.createTranscription(
-        file: File(_path!),
+        file: file,
         model: "whisper-1",
         responseFormat: OpenAIAudioResponseFormat.json,
       );
+
+      // Clean up the audio file
+      await file.delete();
+      _audioPath = null;
+
       return transcription.text;
     } catch (e) {
       print('Error transcribing audio: $e');
       return null;
+    } finally {
+      currentController = null;
     }
   }
 }

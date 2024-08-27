@@ -1,6 +1,5 @@
 import UIKit
 import Flutter
-import uni_links
 
 @UIApplicationMain
 @objc class AppDelegate: FlutterAppDelegate {
@@ -24,6 +23,10 @@ import uni_links
   }
 
   private func handleUniversalLink(_ url: URL) -> Bool {
-    return UniLinks.handle(url)
+    let flutterViewController = window?.rootViewController as? FlutterViewController
+    let linkMessage = url.absoluteString
+    let methodChannel = FlutterMethodChannel(name: "app.channel.shared.data", binaryMessenger: flutterViewController!.binaryMessenger)
+    methodChannel.invokeMethod("handleLinkReceived", arguments: linkMessage)
+    return true
   }
 }
