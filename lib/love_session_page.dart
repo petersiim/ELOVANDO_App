@@ -37,6 +37,11 @@ class _LoveSessionPageState extends State<LoveSessionPage> with SingleTickerProv
   Duration _audioPosition = Duration.zero;
   String? _audioFilePath;
   List<double> _waveformData = [];
+  bool _isIntroComplete = false;
+  bool _isOutroPhase = false;
+  bool _partnerAStarts = true;
+  int _statementCount = 0;
+  Map<String, String> _preloadedAudioPaths = {};
 
   @override
   void initState() {
@@ -118,15 +123,23 @@ class _LoveSessionPageState extends State<LoveSessionPage> with SingleTickerProv
       });
       await _service.createNewThread(widget.userId);
       await _shareOnboardingInfo();
-      setState(() {
-        _isLoading = false;
-        _isInitialized = true;
-        _isSessionStarted = false;
-      });
+      _resetSessionState();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Neuer Thread erstellt')),
       );
     }
+  }
+
+  void _resetSessionState() {
+    setState(() {
+      _isLoading = false;
+      _isInitialized = true;
+      _isSessionStarted = false;
+      _isIntroComplete = false;
+      _isOutroPhase = false;
+      _statementCount = 0;
+      _currentStep = 'intro';
+    });
   }
 
   Future<void> _startLoveSession() async {
@@ -159,14 +172,23 @@ class _LoveSessionPageState extends State<LoveSessionPage> with SingleTickerProv
         return;
       }
 
+      // Preload intro and outro audio
+      await _preloadAudio(introResponse['intro'], 'intro');
+      final outroResponse = await _service.getOutro();
+      await _preloadAudio(outroResponse['outro'], 'outro');
+
       setState(() {
         _displayText = introResponse['intro'] ?? 'Keine Einführung vorhanden';
-        _currentStep = introResponse['nextStep'] ?? 'error';
+        _currentStep = 'intro';
         _isLoading = false;
         _isSessionStarted = true;
+        _isIntroComplete = false;
+        _isOutroPhase = false;
+        _partnerAStarts = introResponse['nextStep'] == 'partnerAToB';
+        _statementCount = 0;
       });
 
-      await _generateAndPlayAudio(_displayText);
+      await _playPreloadedAudio('intro');
     } catch (e) {
       if (_isCancelled) return;
       print("Fehler beim Starten der Love Session: $e");
@@ -174,26 +196,54 @@ class _LoveSessionPageState extends State<LoveSessionPage> with SingleTickerProv
     }
   }
 
-  Future<void> _generateAndPlayAudio(String text) async {
-    if (_currentStep == 'partnerAToB' || _currentStep == 'partnerBToA') {
-      return; // Don't generate or play audio for partner statements
+  Future<void> _preloadAudio(String text, String key) async {
+    try {
+      final audioData = await _ttsService.generateSpeech(text);
+      final tempDir = await getApplicationDocumentsDirectory();
+      final tempFile = File('${tempDir.path}/temp_audio_$key.mp3');
+      await tempFile.writeAsBytes(audioData);
+      _preloadedAudioPaths[key] = tempFile.path;
+      print("Audio preloaded for $key");
+    } catch (e) {
+      print("Error preloading audio for $key: $e");
     }
+  }
+
+  Future<void> _playPreloadedAudio(String key) async {
+    if (_preloadedAudioPaths.containsKey(key)) {
+      await _audioPlayer.setFilePath(_preloadedAudioPaths[key]!);
+      final audioFile = File(_preloadedAudioPaths[key]!);
+      final audioData = await audioFile.readAsBytes();
+      _generateWaveformData(audioData);
+      _audioPlayer.play();
+    } else {
+      print("Preloaded audio not found for $key");
+    }
+  }
+
+  Future<void> _generateAndPlayAudio(String text, {String? key}) async {
     try {
       setState(() {
         _isTtsLoading = true;
       });
-      final audioData = await _ttsService.generateSpeech(text);
-      final tempDir = await getApplicationDocumentsDirectory();
-      final tempFile = File('${tempDir.path}/temp_audio.mp3');
-      await tempFile.writeAsBytes(audioData);
 
-      _audioFilePath = tempFile.path;
-      await _audioPlayer.setFilePath(_audioFilePath!);
-      _generateWaveformData(audioData);
+      if (key != null && _preloadedAudioPaths.containsKey(key)) {
+        await _playPreloadedAudio(key);
+      } else {
+        final audioData = await _ttsService.generateSpeech(text);
+        final tempDir = await getApplicationDocumentsDirectory();
+        final tempFile = File('${tempDir.path}/temp_audio.mp3');
+        await tempFile.writeAsBytes(audioData);
+
+        _audioFilePath = tempFile.path;
+        await _audioPlayer.setFilePath(_audioFilePath!);
+        _generateWaveformData(audioData);
+        _audioPlayer.play();
+      }
+
       setState(() {
         _isTtsLoading = false;
       });
-      _audioPlayer.play();
     } catch (e) {
       print("Fehler bei der Audiogenerierung: $e");
       ScaffoldMessenger.of(context).showSnackBar(
@@ -322,48 +372,57 @@ class _LoveSessionPageState extends State<LoveSessionPage> with SingleTickerProv
   }
 
   void _handleNextStep() async {
-    _stopAudio();
+    print("Handling next step. Current step: $_currentStep, Statement count: $_statementCount");
+    _stopAudio(); // Stop audio immediately when "Weiter" is pressed
     setState(() {
       _isLoading = true;
     });
 
     try {
-      Map<String, dynamic> response;
-      switch (_currentStep) {
-        case 'partnerAToB':
-          response = await _service.getPartnerStatement('A', 'B');
-          break;
-        case 'partnerBToA':
-          response = await _service.getPartnerStatement('B', 'A');
-          break;
-        case 'outro':
-          response = await _service.getOutro();
-          break;
-        case 'end':
-          _endSession();
-          return;
-        default:
-          _handleError("Ein Fehler ist aufgetreten. Unbekannter Schritt: $_currentStep");
-          return;
-      }
-
-      if (_isCancelled) return;
-
-      if (response.containsKey('error')) {
-        _handleError(response['error']);
+      if (!_isIntroComplete) {
+        print("Intro not complete. Moving to first statement.");
+        _isIntroComplete = true;
+        await _getNextStatement();
+      } else if (_isOutroPhase) {
+        print("In outro phase. Ending session.");
+        _endSession();
+        return;
+      } else if (_statementCount < 2) {
+        print("Getting next statement. Current count: $_statementCount");
+        await _getNextStatement();
       } else {
-        setState(() {
-          _displayText = response['statement'] ?? response['outro'] ?? 'Kein Inhalt vorhanden';
-          _currentStep = response['nextStep'] ?? 'error';
-          _isLoading = false;
-        });
-        await _generateAndPlayAudio(_displayText);
+        print("All statements complete. Moving to outro.");
+        _isOutroPhase = true;
+        if (_preloadedAudioPaths.containsKey('outro')) {
+          final outroResponse = await _service.getOutro();
+          _displayText = outroResponse['outro'];
+          await _playPreloadedAudio('outro');
+        } else {
+          final outroResponse = await _service.getOutro();
+          _displayText = outroResponse['outro'];
+          await _generateAndPlayAudio(_displayText, key: 'outro');
+        }
       }
+
+      setState(() {
+        _isLoading = false;
+      });
     } catch (e) {
       if (_isCancelled) return;
       print("Fehler beim Verarbeiten des nächsten Schritts: $e");
       _handleError("Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.");
     }
+  }
+
+  Future<void> _getNextStatement() async {
+    final response = await _service.getPartnerStatement(
+      _partnerAStarts ? 'A' : 'B',
+      _partnerAStarts ? 'B' : 'A'
+    );
+    _displayText = response['statement'];
+    _statementCount++;
+    _partnerAStarts = !_partnerAStarts; // Switch for next time
+    print("Statement received. New count: $_statementCount, Next starter: ${_partnerAStarts ? 'A' : 'B'}");
   }
 
   void _handleError(String errorMessage) {
@@ -512,7 +571,7 @@ class _LoveSessionPageState extends State<LoveSessionPage> with SingleTickerProv
                             CircularProgressIndicator(
                               valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7FCCB1)),
                             )
-                          else if (_currentStep != 'partnerAToB' && _currentStep != 'partnerBToA' && _waveformData.isNotEmpty)
+                          else if ((!_isIntroComplete || _isOutroPhase) && _waveformData.isNotEmpty)
                             AnimatedBuilder(
                               animation: _animationController,
                               builder: (context, child) {
@@ -526,7 +585,7 @@ class _LoveSessionPageState extends State<LoveSessionPage> with SingleTickerProv
                               },
                             ),
                           SizedBox(height: 16),
-                          if (_currentStep != 'partnerAToB' && _currentStep != 'partnerBToA')
+                          if (!_isIntroComplete || _isOutroPhase)
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -551,22 +610,13 @@ class _LoveSessionPageState extends State<LoveSessionPage> with SingleTickerProv
                     ),
                   ),
                 SizedBox(height: 16),
-                if (_isSessionStarted && _currentStep != 'end' && !_isLoading)
+                if (_isSessionStarted && !_isLoading)
                   ElevatedButton(
                     onPressed: _handleNextStep,
-                    child: Text('Weiter'),
+                    child: Text(_isOutroPhase ? 'Beenden' : 'Weiter'),
                     style: ElevatedButton.styleFrom(
                       foregroundColor: Colors.white,
-                      backgroundColor: Color(0xFF7FCCB1),
-                    ),
-                  )
-                else if (_isSessionStarted && _currentStep == 'end' && !_isLoading)
-                  ElevatedButton(
-                    onPressed: _endSession,
-                    child: Text('Beenden'),
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      backgroundColor: Color(0xFF7D4666),
+                      backgroundColor: _isOutroPhase ? Color(0xFF7D4666) : Color(0xFF7FCCB1),
                     ),
                   ),
               ],

@@ -6,10 +6,7 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 
 Future<void> logToFile(String message) async {
-  final directory = await getApplicationDocumentsDirectory();
-  final file = File('${directory.path}/ai_logs.txt');
-  final timestamp = DateTime.now().toIso8601String();
-  await file.writeAsString('[$timestamp] $message\n', mode: FileMode.append);
+  print(message);
 }
 
 class ElovandoLoveSessionService {
