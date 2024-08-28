@@ -20,6 +20,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
   final TextEditingController _dislikedController = TextEditingController();
   final SpeechToTextService _speechToTextService = SpeechToTextService();
   bool _isProcessingSpeech = false;
+  bool _isSending = false;
 
   @override
   Widget build(BuildContext context) {
@@ -119,35 +120,59 @@ class _FeedbackPageState extends State<FeedbackPage> {
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF7D4666),
+                      backgroundColor: _isSending ? Colors.grey : Color(0xFF7D4666),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                       padding: EdgeInsets.symmetric(vertical: 16),
                     ),
-                    onPressed: () async {
-                      // Share feedback with the thread
-                      String feedback = "Bewertung: $rating/5\n"
-                          "Gefallen: ${_likedController.text}\n"
-                          "Verbesserungswürdig: ${_dislikedController.text}";
-                      await widget.service.shareFeedback(widget.userId, feedback);
+                    onPressed: _isSending ? null : () async {
+                      setState(() {
+                        _isSending = true;
+                      });
+                      try {
+                        // Share feedback with the thread
+                        String feedback = "Bewertung: $rating/5\n"
+                            "Gefallen: ${_likedController.text}\n"
+                            "Verbesserungswürdig: ${_dislikedController.text}";
+                        await widget.service.shareFeedback(widget.userId, feedback);
 
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              BestaetigungPage(userId: widget.userId),
-                        ),
-                      );
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                BestaetigungPage(userId: widget.userId),
+                          ),
+                        );
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Fehler beim Senden des Feedbacks: ${e.toString()}'),
+                            duration: Duration(seconds: 10),
+                            action: SnackBarAction(
+                              label: 'OK',
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                              },
+                            ),
+                          ),
+                        );
+                      } finally {
+                        setState(() {
+                          _isSending = false;
+                        });
+                      }
                     },
-                    child: Text(
-                      'Senden',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontFamily: 'Inter',
-                      ),
-                    ),
+                    child: _isSending
+                        ? CircularProgressIndicator(color: Colors.white)
+                        : Text(
+                            'Senden',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontFamily: 'Inter',
+                            ),
+                          ),
                   ),
                 ),
               ),
