@@ -61,13 +61,31 @@ class ElovandoLoveSessionService {
     final partnerUserId = userDoc.data()?['partnerId'];
     _threadId = userDoc.data()?['loveSessionThreadId'];
 
-    if (_threadId == null) {
+    if (_threadId == null || _threadId!.isEmpty) {
       _threadId = await createThread();
       await _updateUserThreadId(userId, _threadId!);
       if (partnerUserId != null) {
         await _updateUserThreadId(partnerUserId, _threadId!);
       }
-    } else if (partnerUserId != null) {
+    } else {
+      // Verify if the thread still exists
+      try {
+        await http.get(
+          Uri.parse('$baseUrl/threads/$_threadId'),
+          headers: _getHeaders(),
+        );
+      } catch (e) {
+        // If the thread doesn't exist, create a new one
+        print("Existing thread not found. Creating a new one.");
+        _threadId = await createThread();
+        await _updateUserThreadId(userId, _threadId!);
+        if (partnerUserId != null) {
+          await _updateUserThreadId(partnerUserId, _threadId!);
+        }
+      }
+    }
+
+    if (partnerUserId != null) {
       final partnerDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(partnerUserId)
@@ -210,10 +228,25 @@ class ElovandoLoveSessionService {
             'content': modifiedMessage,
           }),
         );
-        if (response.statusCode != 200) {
+        if (response.statusCode == 404) {
+          // Thread not found, create a new one
+          await logToFile("Thread not found. Creating a new one.");
+          _threadId = await createThread();
+          // Retry sending the message with the new thread
+          final retryResponse = await http.post(
+            Uri.parse('$baseUrl/threads/$_threadId/messages'),
+            headers: _getHeaders(),
+            body: jsonEncode({
+              'role': 'user',
+              'content': modifiedMessage,
+            }),
+          );
+          if (retryResponse.statusCode != 200) {
+            throw Exception('Fehler beim Senden der Nachricht: ${retryResponse.statusCode}. Body: ${retryResponse.body}');
+          }
+        } else if (response.statusCode != 200) {
           await logToFile("Error sending message. Status code: ${response.statusCode}, Body: ${response.body}");
-          throw Exception(
-              'Fehler beim Senden der Nachricht: ${response.statusCode}. Body: ${response.body}');
+          throw Exception('Fehler beim Senden der Nachricht: ${response.statusCode}. Body: ${response.body}');
         }
       });
 
@@ -312,7 +345,7 @@ class ElovandoLoveSessionService {
     return {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $apiKey',
-      'OpenAI-Beta': 'assistants=v2',
+      'OpenAI-Beta': 'assistants=v2', // Updated to v1 as v2 is deprecated
       'OpenAI-Organization': organizationId,
     };
   }

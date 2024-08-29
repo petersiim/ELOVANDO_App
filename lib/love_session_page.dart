@@ -155,6 +155,9 @@ class _LoveSessionPageState extends State<LoveSessionPage> with SingleTickerProv
         _progressText = 'Love Session wird gestartet...';
       });
 
+      // Ensure thread is initialized before starting the session
+      await _service.initializeThread(widget.userId);
+
       await _shareOnboardingInfo();
 
       final introResponse = await _service.startLoveSession(widget.userId, (message, progress) {

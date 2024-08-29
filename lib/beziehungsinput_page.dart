@@ -21,14 +21,39 @@ class _BeziehungsInputPageState extends State<BeziehungsInputPage> {
   final SpeechToTextService _speechToTextService = SpeechToTextService();
   bool _isProcessingSpeech = false;
   late ElovandoLoveSessionService _loveSessionService;
-    final FirestoreService _firestoreService = FirestoreService();
+  final FirestoreService _firestoreService = FirestoreService();
 
   bool _isSending = false;
+  bool _isThreadInitialized = false;
 
   @override
   void initState() {
     super.initState();
     _loveSessionService = ElovandoLoveSessionService(Env.apiKey, "org-fZRna2F4kfSff4YTG4Lx15mM");
+    _initializeThread();
+  }
+
+  Future<void> _initializeThread() async {
+    try {
+      await _loveSessionService.initializeThread(widget.userId);
+      setState(() {
+        _isThreadInitialized = true;
+      });
+    } catch (e) {
+      print("Error initializing thread: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Fehler beim Initialisieren der Sitzung. Bitte versuchen Sie es erneut.'),
+          duration: Duration(seconds: 10),
+          action: SnackBarAction(
+            label: 'Wiederholen',
+            onPressed: () {
+              _initializeThread();
+            },
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -279,23 +304,23 @@ class _BeziehungsInputPageState extends State<BeziehungsInputPage> {
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF7D4666),
+                      backgroundColor: _isThreadInitialized ? Color(0xFF7D4666) : Colors.grey,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                       padding: EdgeInsets.symmetric(vertical: 16),
                     ),
-                    onPressed: _isSending ? null : () async {
+                    onPressed: (_isSending || !_isThreadInitialized) ? null : () async {
                       setState(() {
                         _isSending = true;
                       });
                       try {
                         // Share user input
                          await _firestoreService.addUserInput(
-      widget.userId,
-      _inputController.text,
-      sliderValue.round(),
-    );
+                          widget.userId,
+                          _inputController.text,
+                          sliderValue.round(),
+                        );
                         await _loveSessionService.shareUserInput(
                           widget.userId,
                           "Text Input: ${_inputController.text}\nStimmungstracker: ${sliderValue.round()}",
