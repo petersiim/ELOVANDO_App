@@ -14,6 +14,7 @@ import 'beziehungsinput_page.dart';
 import 'feedback_page.dart';
 import 'elovando_love_session_service.dart';
 import 'env/env.dart';
+import 'partner_einladung_page.dart';
 
 class HomePage extends StatefulWidget {
   final String userId;
@@ -120,6 +121,8 @@ class __HomePageContentState extends State<_HomePageContent>
 
         var userData = snapshot.data!.data() as Map<String, dynamic>;
         String userName = userData['name'] ?? 'User';
+        String? partnerId = userData['partnerId'];
+        String? partnerName = userData['partnerName'];
 
         return SingleChildScrollView(
           child: Column(
@@ -137,18 +140,42 @@ class __HomePageContentState extends State<_HomePageContent>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          userName,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF414254),
-                            fontFamily: 'Inter',
+                        if (partnerId != null)
+                          Text(
+                            partnerName ?? 'Partner',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF414254),
+                              fontFamily: 'Inter',
+                            ),
+                          )
+                        else
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              backgroundColor: Color(0xFF7D4666),
+                              elevation: 4,
+                              shape: CircleBorder(),
+                              padding: EdgeInsets.all(8),
+                            ),
+                            child: Icon(
+                              Icons.person_add,
+                              color: Color.fromARGB(255, 255, 255, 255),
+                              size: 24,
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => PartnerEinladungPage(),
+                                ),
+                              );
+                            },
                           ),
-                        ),
                         SizedBox(width: 140),
                         Text(
-                          'Markus',
+                          userName,
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,

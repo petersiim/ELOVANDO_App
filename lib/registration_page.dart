@@ -8,6 +8,7 @@ import 'anmelden_page.dart';
 import 'package:flutter/gestures.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'home_page.dart';
+import 'firestore_service.dart';
 
 class RegistrationPage extends StatefulWidget {
   @override
@@ -20,8 +21,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _invitationCodeController =
-      TextEditingController();
+  final TextEditingController _invitationCodeController = TextEditingController();
+  final FirestoreService _firestoreService = FirestoreService();
   bool _isPasswordVisible = false;
   String _errorMessage = '';
 
@@ -31,19 +32,17 @@ class _RegistrationPageState extends State<RegistrationPage> {
     });
 
     try {
-      UserCredential userCredential =
-          await _auth.createUserWithEmailAndPassword(
+      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-      await _checkAndProcessInvitationCode(userCredential.user!);
-
+      
       // Send email verification
       await userCredential.user!.sendEmailVerification();
 
       // Process invitation code
-      await _processInvitationCode(
-          userCredential.user!, _invitationCodeController.text.trim());
+      await _processInvitationCode(userCredential.user!);
+      
       // Show the verification dialog
       _showVerificationDialog(userCredential.user!);
 
@@ -56,43 +55,14 @@ class _RegistrationPageState extends State<RegistrationPage> {
     }
   }
 
-  Future<void> _checkAndProcessInvitationCode(User user) async {
-    final prefs = await SharedPreferences.getInstance();
-    String? storedInvitationCode = prefs.getString('pending_invitation_code');
-
-    if (storedInvitationCode != null) {
-      await _processInvitationCode(user, storedInvitationCode);
-      // Clear the stored invitation code
-      await prefs.remove('pending_invitation_code');
-    }
-
-    // Process the manually entered invitation code if it exists
-    String manualInvitationCode = _invitationCodeController.text.trim();
-    if (manualInvitationCode.isNotEmpty) {
-      await _processInvitationCode(user, manualInvitationCode);
-    }
-  }
-
-  Future<void> _processInvitationCode(User user, String invitationCode) async {
+  Future<void> _processInvitationCode(User user) async {
+    String invitationCode = _invitationCodeController.text.trim();
     if (invitationCode.isNotEmpty) {
-      QuerySnapshot query = await _firestore
-          .collection('users')
-          .where('invitationCode', isEqualTo: invitationCode)
-          .limit(1)
-          .get();
-
-      if (query.docs.isNotEmpty) {
-        String inviterId = query.docs.first.id;
-
-        // Link the current user to the inviter
-        await _firestore.collection('users').doc(user.uid).update({
-          'invitedBy': inviterId,
-        });
-
-        // Update the inviter's document
-        await _firestore.collection('users').doc(inviterId).update({
-          'invitedUsers': FieldValue.arrayUnion([user.uid]),
-        });
+      bool success = await _firestoreService.linkPartners(user.uid, invitationCode);
+      if (success) {
+        print('Successfully linked partners');
+      } else {
+        print('Failed to link partners');
       }
     }
   }
@@ -201,52 +171,52 @@ class _RegistrationPageState extends State<RegistrationPage> {
   }
 
   Future<void> _signInWithGoogle() async {
-  setState(() {
-    _errorMessage = '';
-  });
-
-  try {
-    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-    if (googleUser == null) {
-      return;
-    }
-
-    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-    final AuthCredential credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
-
-    UserCredential userCredential = await _auth.signInWithCredential(credential);
-    
-    // Check if the user already exists in Firestore
-    DocumentSnapshot userDoc = await _firestore.collection('users').doc(userCredential.user!.uid).get();
-    
-    if (userDoc.exists) {
-      // User already exists, navigate to home screen
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => HomePage(userId: userCredential.user!.uid)),
-      );
-    } else {
-      // New user, create account and navigate to profile creation
-      await _firestore.collection('users').doc(userCredential.user!.uid).set({
-        'email': userCredential.user!.email,
-        'createdAt': Timestamp.now(),
-        'emailVerified': true,
-      }, SetOptions(merge: true));
-      
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => BezProfErstellen()),
-      );
-    }
-  } catch (e) {
     setState(() {
-      _errorMessage = 'Ein unerwarteter Fehler ist aufgetreten: ${e.toString()}';
+      _errorMessage = '';
     });
+
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        return;
+      }
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      UserCredential userCredential = await _auth.signInWithCredential(credential);
+      
+      // Check if the user already exists in Firestore
+      DocumentSnapshot userDoc = await _firestore.collection('users').doc(userCredential.user!.uid).get();
+      
+      if (userDoc.exists) {
+        // User already exists, navigate to home screen
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => HomePage(userId: userCredential.user!.uid)),
+        );
+      } else {
+        // New user, create account and navigate to profile creation
+        await _firestore.collection('users').doc(userCredential.user!.uid).set({
+          'email': userCredential.user!.email,
+          'createdAt': Timestamp.now(),
+          'emailVerified': true,
+        }, SetOptions(merge: true));
+        
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => BezProfErstellen()),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Ein unerwarteter Fehler ist aufgetreten: ${e.toString()}';
+      });
+    }
   }
-}
 
   Future<void> _signInWithFacebook() async {
     setState(() {

@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'custom_app_bar.dart';
 import 'home_page.dart';
+import 'firestore_service.dart';
 
 class PartnerEinladungPage extends StatefulWidget {
   @override
@@ -15,6 +15,8 @@ class PartnerEinladungPage extends StatefulWidget {
 class _PartnerEinladungPageState extends State<PartnerEinladungPage> {
   late Future<String> _invitationCodeFuture;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirestoreService _firestoreService = FirestoreService();
+  final TextEditingController _codeController = TextEditingController();
 
   @override
   void initState() {
@@ -35,48 +37,36 @@ class _PartnerEinladungPageState extends State<PartnerEinladungPage> {
   }
 
   void _shareInvitation(String invitationCode) async {
-    String inviteLink = 'https://elovando.com/invite?code=$invitationCode';
-    await Share.share('Join me on ELOVANDO! Download the app and use this code to connect: $invitationCode\n\nOr use this link: $inviteLink');
-    
+    await Share.share('Trete mir bei ELOVANDO bei! Lade die App herunter und verwende diesen Code, um dich zu verbinden: $invitationCode');
+  }
+
+  Future<void> _linkPartner() async {
+    String code = _codeController.text.trim();
+    if (code.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Bitte gib einen Einladungscode ein')),
+      );
+      return;
+    }
+
     User? currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser != null) {
-      await _processInvitationCode(currentUser, invitationCode);
-    }
-  }
-
-  Future<void> _processInvitationCode(User user, String invitationCode) async {
-  if (invitationCode.isNotEmpty) {
-    QuerySnapshot query = await _firestore
-        .collection('users')
-        .where('invitationCode', isEqualTo: invitationCode)
-        .limit(1)
-        .get();
-
-    if (query.docs.isNotEmpty) {
-      String inviterId = query.docs.first.id;
-      String? inviterThreadId;
-      
-      // Safely access the 'loveSessionThreadId' field
-      var data = query.docs.first.data();
-      if (data is Map<String, dynamic> && data.containsKey('loveSessionThreadId')) {
-        inviterThreadId = data['loveSessionThreadId'] as String?;
+      bool success = await _firestoreService.linkPartners(currentUser.uid, code);
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erfolgreich mit deinem Partner verbunden!')),
+        );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => HomePage(userId: currentUser.uid)),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Verbindung fehlgeschlagen. Bitte überprüfe den Code und versuche es erneut.')),
+        );
       }
-
-      await _firestore.collection('users').doc(user.uid).update({
-        'invitedBy': inviterId,
-        if (inviterThreadId != null) 'loveSessionThreadId': inviterThreadId,
-      });
-
-      await _firestore.collection('users').doc(inviterId).update({
-        'invitedUsers': FieldValue.arrayUnion([user.uid]),
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Successfully connected with your partner!')),
-      );
     }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -141,7 +131,7 @@ class _PartnerEinladungPageState extends State<PartnerEinladungPage> {
               ),
               SizedBox(height: 16),
               Text(
-                'Lass uns jetzt noch deinen Partner überzeugen, damit ihr gemeinsam ELOVANDO für eure Beziehung nutzen könnt, denn unsere Love Sessions könnt ihr nur gemeinsam durchführen. Sende deinem Partner eine Einladung, um die ELOVANDO-App zu nutzen.',
+                'Lass uns jetzt noch deinen Partner überzeugen, damit ihr gemeinsam ELOVANDO für eure Beziehung nutzen könnt, denn unsere Love Sessions könnt ihr nur gemeinsam durchführen. Sende deinem Partner eine Einladung oder gib den Code ein, um die ELOVANDO-App gemeinsam zu nutzen.',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.normal,
@@ -158,16 +148,10 @@ class _PartnerEinladungPageState extends State<PartnerEinladungPage> {
                     return CircularProgressIndicator();
                   }
                   if (snapshot.hasError) {
-                    return Text('Error: ${snapshot.error}');
+                    return Text('Fehler: ${snapshot.error}');
                   }
                   return Column(
                     children: [
-                      QrImageView(
-                        data: snapshot.data!,
-                        version: QrVersions.auto,
-                        size: 200.0,
-                      ),
-                      SizedBox(height: 20),
                       Text(
                         'Einladungscode: ${snapshot.data!}',
                         style: TextStyle(
@@ -200,6 +184,23 @@ class _PartnerEinladungPageState extends State<PartnerEinladungPage> {
                     ],
                   );
                 },
+              ),
+              SizedBox(height: 20),
+              TextField(
+                controller: _codeController,
+                decoration: InputDecoration(
+                  hintText: 'Einladungscode des Partners eingeben',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: _linkPartner,
+                child: Text('Mit Partner verbinden'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF7FCCB1),
+                  foregroundColor: Colors.white,
+                ),
               ),
               SizedBox(height: 20),
               TextButton(
