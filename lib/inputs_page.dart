@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'custom_app_bar.dart';
 import 'app_nav_bar.dart';
 import 'firestore_service.dart';
+import 'beziehungsinput_page.dart';
 
 class InputsPage extends StatefulWidget {
   final String userId;
@@ -50,30 +51,76 @@ class _InputsPageState extends State<InputsPage> {
       backgroundColor: Color(0xFFF7F7F7),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
-          : _buildInputHistoryList(),
+          : _buildContent(),
+    );
+  }
+
+  Widget _buildContent() {
+    return Column(
+      children: [
+        _buildBeziehungsinputButton(),
+        Expanded(
+          child: _inputHistory.isEmpty
+              ? _buildEmptyState()
+              : _buildInputHistoryList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBeziehungsinputButton() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16),
+      child: ElevatedButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BeziehungsInputPage(userId: widget.userId),
+            ),
+          );
+        },
+        child: Text('Beziehungsinput geben'),
+        style: ElevatedButton.styleFrom(
+          foregroundColor: Colors.white,
+          backgroundColor: Color(0xFF7D4666),
+          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          textStyle: TextStyle(
+            fontSize: 16,
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.bold,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Text(
+        'Noch keine Inputs vorhanden',
+        style: TextStyle(
+          fontSize: 18,
+          color: Color(0xFF414254),
+          fontFamily: 'Inter',
+        ),
+      ),
     );
   }
 
   Widget _buildInputHistoryList() {
-    return _inputHistory.isEmpty
-        ? Center(
-            child: Text(
-              'Noch keine Inputs vorhanden',
-              style: TextStyle(
-                fontSize: 18,
-                color: Color(0xFF414254),
-                fontFamily: 'Inter',
-              ),
-            ),
-          )
-        : ListView.builder(
-            itemCount: _inputHistory.length,
-            padding: EdgeInsets.all(16),
-            itemBuilder: (context, index) {
-              final input = _inputHistory[index];
-              return _buildInputCard(input, index);
-            },
-          );
+    return ListView.builder(
+      itemCount: _inputHistory.length,
+      padding: EdgeInsets.all(16),
+      itemBuilder: (context, index) {
+        final input = _inputHistory[index];
+        return _buildInputCard(input, index);
+      },
+    );
   }
 
   Widget _buildInputCard(Map<String, dynamic> input, int index) {
