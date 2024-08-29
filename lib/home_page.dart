@@ -82,7 +82,7 @@ class _HomePageContent extends StatefulWidget {
 
 class __HomePageContentState extends State<_HomePageContent>
     with TickerProviderStateMixin {
-  late Future<DocumentSnapshot> userFuture;
+  late Future<Map<String, dynamic>> userDataFuture;
 
   final List<AnimationController> _leavesControllers = [];
   final List<Animation<Offset>> _leavesAnimations = [];
@@ -94,11 +94,32 @@ class __HomePageContentState extends State<_HomePageContent>
   @override
   void initState() {
     super.initState();
-    userFuture =
-        FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
+    userDataFuture = _fetchUserData();
     initializeLeavesControllers(this, _leavesControllers, _leavesAnimations,
         _flipHorizontally, _rotationAngles, _scaleFactors, random);
     startLeavesAnimations(_leavesControllers, random);
+  }
+
+  Future<Map<String, dynamic>> _fetchUserData() async {
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.userId)
+        .get();
+    
+    Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+    String? partnerId = userData['partnerId'];
+    
+    if (partnerId != null) {
+      DocumentSnapshot partnerDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(partnerId)
+          .get();
+      
+      Map<String, dynamic> partnerData = partnerDoc.data() as Map<String, dynamic>;
+      userData['partnerName'] = partnerData['name'];
+    }
+    
+    return userData;
   }
 
   @override
@@ -109,8 +130,8 @@ class __HomePageContentState extends State<_HomePageContent>
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<DocumentSnapshot>(
-      future: userFuture,
+    return FutureBuilder<Map<String, dynamic>>(
+      future: userDataFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
@@ -119,7 +140,7 @@ class __HomePageContentState extends State<_HomePageContent>
           return Center(child: Text('Error loading user data'));
         }
 
-        var userData = snapshot.data!.data() as Map<String, dynamic>;
+        var userData = snapshot.data!;
         String userName = userData['name'] ?? 'User';
         String? partnerId = userData['partnerId'];
         String? partnerName = userData['partnerName'];

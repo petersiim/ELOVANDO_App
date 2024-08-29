@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -157,8 +156,7 @@ class _ProfilePageState extends State<ProfilePage> {
           final userName = userData['name'] as String? ?? 'User';
           final userBirthdate = userData['birthdate'] as String?;
           final userAge = _calculateAge(userBirthdate);
-          final hasInvitedPartner = userData['invitedUsers'] != null &&
-              (userData['invitedUsers'] as List).isNotEmpty;
+          final hasPartner = userData['partnerId'] != null;
           final completedQuestions =
               Map<String, bool>.from(userData['profileCompletion'] ?? {});
           final isProfileCompleted =
@@ -220,7 +218,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     SizedBox(height: 30),
                     if (!isProfileCompleted)
                       _buildCompleteProfileBox(context, userData, completedQuestions),
-                    if (!hasInvitedPartner) ...[
+                    if (!hasPartner) ...[
                       SizedBox(height: 20),
                       _buildInvitePartnerButton(context),
                     ],
