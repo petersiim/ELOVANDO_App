@@ -21,6 +21,9 @@ class _FeedbackPageState extends State<FeedbackPage> {
   final SpeechToTextService _speechToTextService = SpeechToTextService();
   bool _isProcessingSpeech = false;
   bool _isSending = false;
+  bool _isRecording = false;
+  bool _hasRecordedAudio = false;
+  TextEditingController? _currentRecordingController;
 
   @override
   Widget build(BuildContext context) {
@@ -227,7 +230,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                 ),
                 maxLines: 3,
               ),
-              if (_isProcessingSpeech && _speechToTextService.currentController == controller)
+              if (_isProcessingSpeech && _currentRecordingController == controller)
                 Padding(
                   padding: EdgeInsets.only(right: 16),
                   child: SizedBox(
@@ -245,25 +248,18 @@ class _FeedbackPageState extends State<FeedbackPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              GestureDetector(
-                onLongPressStart: (_) => _startRecording(controller),
-                onLongPressEnd: (_) => _stopRecording(controller),
-                child: IconButton(
-                  icon: SvgPicture.asset(
-                    'assets/graphics/voice_input_icon.svg',
-                    color: _speechToTextService.isRecording && _speechToTextService.currentController == controller
-                        ? Colors.red
-                        : null,
-                  ),
-                  onPressed: () {}, // Disable normal press
-                ),
-              ),
               IconButton(
-                icon: SvgPicture.asset('assets/graphics/send_message_icon.svg'),
-                onPressed: () {
-                  // Handle send message action
-                },
+                icon: SvgPicture.asset(
+                  'assets/graphics/voice_input_icon.svg',
+                  color: _isRecording && _currentRecordingController == controller ? Colors.red : null,
+                ),
+                onPressed: () => _toggleRecording(controller),
               ),
+              if (_hasRecordedAudio && _currentRecordingController == controller)
+                IconButton(
+                  icon: Icon(Icons.play_arrow),
+                  onPressed: _playRecordedAudio,
+                ),
             ],
           ),
         ],
@@ -271,23 +267,75 @@ class _FeedbackPageState extends State<FeedbackPage> {
     );
   }
 
+  void _toggleRecording(TextEditingController controller) {
+    if (_isRecording && _currentRecordingController == controller) {
+      _stopRecording(controller);
+    } else {
+      _startRecording(controller);
+    }
+  }
+
   void _startRecording(TextEditingController controller) async {
-    await _speechToTextService.startRecording(controller);
-    setState(() {
-      _isProcessingSpeech = true;
-    });
+    try {
+      await _speechToTextService.startRecording(controller);
+      setState(() {
+        _isRecording = true;
+        _isProcessingSpeech = true;
+        _hasRecordedAudio = false;
+        _currentRecordingController = controller;
+      });
+      print("Recording started");
+    } catch (e) {
+      print("Error starting recording: $e");
+      setState(() {
+        _isRecording = false;
+        _isProcessingSpeech = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to start recording: ${e.toString()}")),
+      );
+    }
   }
 
   void _stopRecording(TextEditingController controller) async {
-    await _speechToTextService.stopRecording();
-    String? transcription = await _speechToTextService.transcribeAudio();
-    if (transcription != null) {
+    try {
+      await _speechToTextService.stopRecording();
+      print("Recording stopped");
+      String? transcription = await _speechToTextService.transcribeAudio();
       setState(() {
-        controller.text = transcription;
+        _isRecording = false;
+        _isProcessingSpeech = false;
+        _hasRecordedAudio = true;
+        if (transcription != null && transcription.isNotEmpty) {
+          controller.text = transcription;
+          print("Transcription successful: $transcription");
+        } else {
+          print("Transcription failed or returned empty");
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Failed to transcribe audio. Please try again.")),
+          );
+        }
       });
+    } catch (e) {
+      print("Error stopping recording or transcribing: $e");
+      setState(() {
+        _isRecording = false;
+        _isProcessingSpeech = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error processing speech: ${e.toString()}")),
+      );
     }
-    setState(() {
-      _isProcessingSpeech = false;
-    });
+  }
+
+  void _playRecordedAudio() async {
+    try {
+      await _speechToTextService.playRecordedAudio();
+    } catch (e) {
+      print("Error playing recorded audio: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to play recorded audio: ${e.toString()}")),
+      );
+    }
   }
 }

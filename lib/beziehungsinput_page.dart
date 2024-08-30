@@ -25,6 +25,8 @@ class _BeziehungsInputPageState extends State<BeziehungsInputPage> {
 
   bool _isSending = false;
   bool _isThreadInitialized = false;
+  bool _isRecording = false;
+  bool _hasRecordedAudio = false;
 
   @override
   void initState() {
@@ -178,26 +180,18 @@ class _BeziehungsInputPageState extends State<BeziehungsInputPage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              GestureDetector(
-                                onLongPressStart: (_) => _startRecording(_inputController),
-                                onLongPressEnd: (_) => _stopRecording(_inputController),
-                                child: IconButton(
-                                  icon: SvgPicture.asset(
-                                    'assets/graphics/voice_input_icon.svg',
-                                    color: _speechToTextService.isRecording && _speechToTextService.currentController == _inputController
-                                        ? Colors.red
-                                        : null,
-                                  ),
-                                  onPressed: () {}, // Disable normal press
-                                ),
-                              ),
                               IconButton(
                                 icon: SvgPicture.asset(
-                                    'assets/graphics/send_message_icon.svg'),
-                                onPressed: () {
-                                  // Handle send message action
-                                },
+                                  'assets/graphics/voice_input_icon.svg',
+                                  color: _isRecording ? Colors.red : null,
+                                ),
+                                onPressed: _toggleRecording,
                               ),
+                              if (_hasRecordedAudio)
+                                IconButton(
+                                  icon: Icon(Icons.play_arrow),
+                                  onPressed: _playRecordedAudio,
+                                ),
                             ],
                           ),
                         ],
@@ -371,23 +365,74 @@ class _BeziehungsInputPageState extends State<BeziehungsInputPage> {
     );
   }
 
+  void _toggleRecording() {
+    if (_isRecording) {
+      _stopRecording(_inputController);
+    } else {
+      _startRecording(_inputController);
+    }
+  }
+
   void _startRecording(TextEditingController controller) async {
-    await _speechToTextService.startRecording(controller);
-    setState(() {
-      _isProcessingSpeech = true;
-    });
+    try {
+      await _speechToTextService.startRecording(controller);
+      setState(() {
+        _isRecording = true;
+        _isProcessingSpeech = true;
+        _hasRecordedAudio = false;
+      });
+      print("Recording started");
+    } catch (e) {
+      print("Error starting recording: $e");
+      setState(() {
+        _isRecording = false;
+        _isProcessingSpeech = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to start recording: ${e.toString()}")),
+      );
+    }
   }
 
   void _stopRecording(TextEditingController controller) async {
-    await _speechToTextService.stopRecording();
-    String? transcription = await _speechToTextService.transcribeAudio();
-    if (transcription != null) {
+    try {
+      await _speechToTextService.stopRecording();
+      print("Recording stopped");
+      String? transcription = await _speechToTextService.transcribeAudio();
       setState(() {
-        controller.text = transcription;
+        _isRecording = false;
+        _isProcessingSpeech = false;
+        _hasRecordedAudio = true;
+        if (transcription != null && transcription.isNotEmpty) {
+          controller.text = transcription;
+          print("Transcription successful: $transcription");
+        } else {
+          print("Transcription failed or returned empty");
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Failed to transcribe audio. Please try again.")),
+          );
+        }
       });
+    } catch (e) {
+      print("Error stopping recording or transcribing: $e");
+      setState(() {
+        _isRecording = false;
+        _isProcessingSpeech = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error processing speech: ${e.toString()}")),
+      );
     }
-    setState(() {
-      _isProcessingSpeech = false;
-    });
+  }
+
+  void _playRecordedAudio() async {
+    try {
+      await _speechToTextService.playRecordedAudio();
+    } catch (e) {
+      print("Error playing recorded audio: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to play recorded audio: ${e.toString()}")),
+      );
+    }
   }
 }
