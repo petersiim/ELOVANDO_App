@@ -8,163 +8,193 @@ class AIChatService {
   final String apiKey;
   final String organizationId;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final String assistantId = 'asst_NGkGIycW4Fu0P7FsygARNzkH'; // Your assistant ID
 
   AIChatService(this.apiKey, this.organizationId);
 
-  Future<String> createThread(String userId, String userInfo) async {
-  final response = await http.post(
-    Uri.parse('https://api.openai.com/v1/threads'),
-    headers: _getHeaders(),
-  );
+  Future<String> createThread() async {
+    print("DEBUG: Creating new thread");
+    try {
+      final response = await http.post(
+        Uri.parse('https://api.openai.com/v1/threads'),
+        headers: _getHeaders(),
+      );
 
-  if (response.statusCode == 200) {
-    final threadId = jsonDecode(response.body)['id'];
-    
-    // Send user information as the first message in the thread
-    await sendMessage(userId, threadId, "User Information:\n$userInfo");
-    print(userInfo);
-    return threadId;
-  } else {
-    throw Exception('Failed to create thread');
+      print("DEBUG: Thread creation response status: ${response.statusCode}");
+      print("DEBUG: Thread creation response body: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final threadId = jsonDecode(response.body)['id'] as String?;
+        if (threadId == null) {
+          throw Exception('Failed to create thread: Thread ID is null');
+        }
+        print("DEBUG: Thread created successfully with ID: $threadId");
+        return threadId;
+      } else {
+        throw Exception('Failed to create thread: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      print("ERROR: Exception in createThread: $e");
+      rethrow;
+    }
   }
-}
 
-  Future<String> sendMessage(String userId, String threadId, String message) async {
-    var userDoc = await _firestore.collection('users').doc(userId).get();
-    var messagesRemaining = userDoc.data()!['messagesRemaining'] as int;
-    var nextResetTime = userDoc.data()!['nextResetTime'] as Timestamp;
+  Future<void> addMessageToThread(String threadId, String content) async {
+    print("DEBUG: Adding message to thread $threadId");
+    try {
+      final response = await http.post(
+        Uri.parse('https://api.openai.com/v1/threads/$threadId/messages'),
+        headers: _getHeaders(),
+        body: jsonEncode({
+          'role': 'user',
+          'content': content,
+        }),
+      );
 
-    if (DateTime.now().isAfter(nextResetTime.toDate())) {
-      // Reset the message count and update the next reset time
+      print("DEBUG: Add message response status: ${response.statusCode}");
+      print("DEBUG: Add message response body: ${response.body}");
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to add message: ${response.statusCode} - ${response.body}');
+      }
+      print("DEBUG: Message added successfully to thread $threadId");
+    } catch (e) {
+      print("ERROR: Exception in addMessageToThread: $e");
+      rethrow;
+    }
+  }
+
+  Future<String> runAssistant(String threadId, String userId) async {
+    print("DEBUG: Running assistant for thread $threadId and user $userId");
+    try {
+      var userDoc = await _firestore.collection('users').doc(userId).get();
+      var messagesRemaining = userDoc.data()?['messagesRemaining'] as int? ?? 0;
+      var nextResetTime = userDoc.data()?['nextResetTime'] as Timestamp?;
+
+      print("DEBUG: Messages remaining: $messagesRemaining, Next reset time: $nextResetTime");
+
+      if (nextResetTime != null && DateTime.now().isAfter(nextResetTime.toDate())) {
+        print("DEBUG: Resetting message count and update time");
+        await _firestore.collection('users').doc(userId).update({
+          'messagesRemaining': 6,
+          'nextResetTime': Timestamp.fromDate(DateTime.now().add(Duration(hours: 24))),
+        });
+        messagesRemaining = 6;
+      }
+
+      if (messagesRemaining <= 0) {
+        throw Exception('Message limit reached. Please wait until ${nextResetTime?.toDate()} before sending more messages.');
+      }
+
+      print("DEBUG: Creating run for thread $threadId");
+      final runResponse = await http.post(
+        Uri.parse('https://api.openai.com/v1/threads/$threadId/runs'),
+        headers: _getHeaders(),
+        body: jsonEncode({
+          'assistant_id': assistantId,
+        }),
+      );
+
+      print("DEBUG: Run creation response status: ${runResponse.statusCode}");
+      print("DEBUG: Run creation response body: ${runResponse.body}");
+
+      if (runResponse.statusCode != 200) {
+        throw Exception('Failed to create run: ${runResponse.statusCode} - ${runResponse.body}');
+      }
+
+      final runData = jsonDecode(runResponse.body);
+      final runId = runData['id'] as String?;
+      if (runId == null) {
+        throw Exception('Failed to create run: Run ID is null. Response: ${runResponse.body}');
+      }
+
+      print("DEBUG: Run created with ID: $runId");
+
+      String status = 'in_progress';
+      int attempts = 0;
+      while (status != 'completed' && attempts < 30) {
+        await Future.delayed(Duration(seconds: 1));
+        print("DEBUG: Checking run status (Attempt ${attempts + 1})");
+        final statusResponse = await http.get(
+          Uri.parse('https://api.openai.com/v1/threads/$threadId/runs/$runId'),
+          headers: _getHeaders(),
+        );
+        final statusData = jsonDecode(statusResponse.body);
+        status = statusData['status'] as String? ?? '';
+        print("DEBUG: Current run status: $status");
+        if (status == 'failed') {
+          throw Exception('Run failed: ${statusData['error']}');
+        }
+        attempts++;
+      }
+
+      if (status != 'completed') {
+        throw Exception('Run timed out after 30 attempts');
+      }
+
+      print("DEBUG: Run completed, retrieving messages");
+      final messagesResponse = await http.get(
+        Uri.parse('https://api.openai.com/v1/threads/$threadId/messages'),
+        headers: _getHeaders(),
+      );
+
+      print("DEBUG: Messages response status: ${messagesResponse.statusCode}");
+      print("DEBUG: Messages response body: ${messagesResponse.body}");
+
+      final messages = jsonDecode(messagesResponse.body)['data'] as List<dynamic>?;
+      if (messages == null || messages.isEmpty) {
+        throw Exception('No messages found in the thread');
+      }
+      final aiResponse = messages[0]['content'][0]['text']['value'] as String? ?? 'No response';
+
+      print("DEBUG: AI response: $aiResponse");
+
       await _firestore.collection('users').doc(userId).update({
-        'messagesRemaining': 6,
-        'nextResetTime': Timestamp.fromDate(DateTime.now().add(Duration(hours: 24))),
+        'messagesRemaining': FieldValue.increment(-1),
+        'lastMessageTimestamp': FieldValue.serverTimestamp(),
       });
-      messagesRemaining = 6;
+
+      print("DEBUG: User document updated, returning AI response");
+      return aiResponse;
+    } catch (e) {
+      print("ERROR: Exception in runAssistant: $e");
+      rethrow;
     }
-
-    if (messagesRemaining <= 0) {
-      throw Exception('Message limit reached. Please wait until ${nextResetTime.toDate()} before sending more messages.');
-    }
-
-    await _addMessage(threadId, message);
-    
-    final runResponse = await _createRun(threadId);
-    final runId = jsonDecode(runResponse.body)['id'];
-
-    String status = 'in_progress';
-    while (status != 'completed') {
-      await Future.delayed(Duration(seconds: 1));
-      final statusResponse = await _checkRunStatus(threadId, runId);
-      status = jsonDecode(statusResponse.body)['status'];
-    }
-
-    final messagesResponse = await _listMessages(threadId);
-    final messages = jsonDecode(messagesResponse.body)['data'];
-    final aiResponse = messages[0]['content'][0]['text']['value'];
-
-    await _firestore.collection('users').doc(userId).update({
-      'messagesRemaining': FieldValue.increment(-1),
-      'lastMessageTimestamp': FieldValue.serverTimestamp(),
-    });
-
-    // Decode and re-encode the response to handle potential encoding issues
-    return utf8.decode(aiResponse.runes.toList()).replaceAll('**', '');
   }
-
-  Future<List<Map<String, dynamic>>> getThreadMessages(String threadId) async {
-    final response = await _listMessages(threadId);
-    final messages = jsonDecode(response.body)['data'];
-    return messages.map<Map<String, dynamic>>((m) => {
-      'content': utf8.decode(utf8.encode(m['content'][0]['text']['value'])),
-      'role': m['role'],
-    }).toList();
-  }
-
-  Future<void> resetThread(String userId) async {
-  DocumentSnapshot userDoc = await FirebaseFirestore.instance
-      .collection('users')
-      .doc(userId)
-      .get();
-
-  Map<String, dynamic> userInfo = userDoc.data() as Map<String, dynamic>? ?? {};
-  userInfo.remove('password');
-  String userInfoString = userInfo.entries.map((e) => "${e.key}: ${e.value}").join("\n");
-
-  var newThreadId = await createThread(userId, userInfoString);
-  print("New thread created with ID: $newThreadId");
-  print("Reset Thread - User Information:\n$userInfoString");
-
-  await FirebaseFirestore.instance
-      .collection('users')
-      .doc(userId)
-      .update({
-    'threadId': newThreadId,
-    'messagesRemaining': 6,
-    'nextResetTime': Timestamp.fromDate(DateTime.now().add(Duration(hours: 24))),
-  });
-}
 
   Future<int> getRemainingMessages(String userId) async {
-    var userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
-    var messagesRemaining = userDoc.data()?['messagesRemaining'] as int?;
-    var nextResetTime = userDoc.data()?['nextResetTime'] as Timestamp?;
+    print("DEBUG: Getting remaining messages for user $userId");
+    try {
+      var userDoc = await _firestore.collection('users').doc(userId).get();
+      var messagesRemaining = userDoc.data()?['messagesRemaining'] as int? ?? 0;
+      var nextResetTime = userDoc.data()?['nextResetTime'] as Timestamp?;
 
-    if (messagesRemaining == null || nextResetTime == null) {
-      // If the values are null, set default values
-      await FirebaseFirestore.instance.collection('users').doc(userId).update({
-        'messagesRemaining': 6,
-        'nextResetTime': Timestamp.fromDate(DateTime.now().add(Duration(hours: 24))),
-      });
-      return 6;
+      print("DEBUG: Current messages remaining: $messagesRemaining, Next reset time: $nextResetTime");
+
+      if (messagesRemaining == 0 || nextResetTime == null) {
+        print("DEBUG: Resetting message count and update time (case 1)");
+        await _firestore.collection('users').doc(userId).update({
+          'messagesRemaining': 6,
+          'nextResetTime': Timestamp.fromDate(DateTime.now().add(Duration(hours: 24))),
+        });
+        return 6;
+      }
+
+      if (DateTime.now().isAfter(nextResetTime.toDate())) {
+        print("DEBUG: Resetting message count and update time (case 2)");
+        await _firestore.collection('users').doc(userId).update({
+          'messagesRemaining': 6,
+          'nextResetTime': Timestamp.fromDate(DateTime.now().add(Duration(hours: 24))),
+        });
+        return 6;
+      }
+
+      print("DEBUG: Returning current messages remaining: $messagesRemaining");
+      return messagesRemaining;
+    } catch (e) {
+      print("ERROR: Exception in getRemainingMessages: $e");
+      rethrow;
     }
-
-    if (DateTime.now().isAfter(nextResetTime.toDate())) {
-      // Reset the message count and update the next reset time
-      await FirebaseFirestore.instance.collection('users').doc(userId).update({
-        'messagesRemaining': 6,
-        'nextResetTime': Timestamp.fromDate(DateTime.now().add(Duration(hours: 24))),
-      });
-      return 6;
-    }
-
-    return messagesRemaining;
-  }
-
-
-  Future<http.Response> _addMessage(String threadId, String message) async {
-    return await http.post(
-      Uri.parse('https://api.openai.com/v1/threads/$threadId/messages'),
-      headers: _getHeaders(),
-      body: jsonEncode({
-        'role': 'user',
-        'content': message,
-      }),
-    );
-  }
-
-  Future<http.Response> _createRun(String threadId) async {
-    return await http.post(
-      Uri.parse('https://api.openai.com/v1/threads/$threadId/runs'),
-      headers: _getHeaders(),
-      body: jsonEncode({
-        'assistant_id': 'asst_NGkGIycW4Fu0P7FsygARNzkH',
-      }),
-    );
-  }
-
-  Future<http.Response> _checkRunStatus(String threadId, String runId) async {
-    return await http.get(
-      Uri.parse('https://api.openai.com/v1/threads/$threadId/runs/$runId'),
-      headers: _getHeaders(),
-    );
-  }
-
-  Future<http.Response> _listMessages(String threadId) async {
-    return await http.get(
-      Uri.parse('https://api.openai.com/v1/threads/$threadId/messages'),
-      headers: _getHeaders(),
-    );
   }
 
   Map<String, String> _getHeaders() {

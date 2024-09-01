@@ -12,6 +12,7 @@ import 'package:dart_openai/dart_openai.dart' as openai;
 import 'dart:developer';
 import 'dart:async';
 import 'dart:math';
+import 'dart:convert';
 import 'home_page.dart';
 
 class ChatPage extends StatefulWidget {
@@ -58,6 +59,7 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
+    print("DEBUG: ChatPage initState called");
     _fetchUserProfileImage();
     _initializeAIChatService();
     _loadingTimer = Timer(Duration.zero, () {});
@@ -82,36 +84,58 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Future<void> _initializeAIChatService() async {
+    print("DEBUG: Initializing AIChatService");
     _aiChatService = AIChatService(Env.apiKey, "org-fZRna2F4kfSff4YTG4Lx15mM");
-    var userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(widget.userId)
-        .get();
-
-    Map<String, dynamic> userInfo = userDoc.data() ?? {};
-    userInfo.remove('password');
-    String userInfoString = userInfo.entries.map((e) => "${e.key}: ${e.value}").join("\n");
-    print("User Information:\n$userInfoString");
-
-    _threadId = userDoc.data()?['loveSessionThreadId'] as String?;
-    if (_threadId == null) {
-      _threadId = await _aiChatService.createThread(widget.userId, userInfoString);
-      await FirebaseFirestore.instance
+    try {
+      var userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(widget.userId)
-          .update({'loveSessionThreadId': _threadId});
+          .get();
+
+      _threadId = userDoc.data()?['loveSessionThreadId'] as String?;
+      print("DEBUG: Existing threadId: $_threadId");
+      if (_threadId == null) {
+        await _createNewThread(userDoc);
+      }
+      await _updateRemainingMessages();
+    } catch (e) {
+      print("ERROR: Exception in _initializeAIChatService: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to initialize chat. Please try again later.")),
+      );
     }
-    _updateRemainingMessages();
+  }
+
+  Future<void> _createNewThread(DocumentSnapshot userDoc) async {
+    print("DEBUG: Creating new thread");
+    _threadId = await _aiChatService.createThread();
+    print("DEBUG: New threadId: $_threadId");
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.userId)
+        .update({'loveSessionThreadId': _threadId});
+    
+    // Send initial user information
+    Map<String, dynamic> userInfo = userDoc.data() as Map<String, dynamic>? ?? {};
+    userInfo.remove('password');
+    String userInfoString = userInfo.entries.map((e) => "${e.key}: ${e.value}").join("\n");
+    print("DEBUG: Sending initial user information");
+    await _aiChatService.addMessageToThread(_threadId!, "User Information:\n$userInfoString");
   }
 
   Future<void> _fetchUserProfileImage() async {
-    final userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(widget.userId)
-        .get();
-    setState(() {
-      _userProfileImageUrl = userDoc.data()?['profileImageUrl'];
-    });
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.userId)
+          .get();
+      setState(() {
+        _userProfileImageUrl = userDoc.data()?['profileImageUrl'];
+      });
+      print("DEBUG: User profile image URL: $_userProfileImageUrl");
+    } catch (e) {
+      print("ERROR: Exception in _fetchUserProfileImage: $e");
+    }
   }
 
   Future<void> _updateRemainingMessages() async {
@@ -120,8 +144,9 @@ class _ChatPageState extends State<ChatPage> {
       setState(() {
         _remainingMessages = remaining;
       });
+      print("DEBUG: Updated remaining messages: $_remainingMessages");
     } catch (e) {
-      print("Error updating remaining messages: $e");
+      print("ERROR: Exception in _updateRemainingMessages: $e");
       setState(() {
         _remainingMessages = 0;
       });
@@ -385,9 +410,9 @@ class _ChatPageState extends State<ChatPage> {
         _isProcessingSpeech = true;
         _hasRecordedAudio = false;
       });
-      print("Recording started");
+      print("DEBUG: Recording started");
     } catch (e) {
-      print("Error starting recording: $e");
+      print("ERROR: Exception in _startRecording: $e");
       setState(() {
         _isRecording = false;
         _isProcessingSpeech = false;
@@ -401,7 +426,7 @@ class _ChatPageState extends State<ChatPage> {
   void _stopRecording(TextEditingController controller) async {
     try {
       await _speechToTextService.stopRecording();
-      print("Recording stopped");
+      print("DEBUG: Recording stopped");
       String? transcription = await _speechToTextService.transcribeAudio();
       setState(() {
         _isRecording = false;
@@ -409,16 +434,16 @@ class _ChatPageState extends State<ChatPage> {
         _hasRecordedAudio = true;
         if (transcription != null && transcription.isNotEmpty) {
           controller.text = transcription;
-          print("Transcription successful: $transcription");
+          print("DEBUG: Transcription successful: $transcription");
         } else {
-          print("Transcription failed or returned empty");
+          print("DEBUG: Transcription failed or returned empty");
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text("Failed to transcribe audio. Please try again.")),
           );
         }
       });
     } catch (e) {
-      print("Error stopping recording or transcribing: $e");
+      print("ERROR: Exception in _stopRecording: $e");
       setState(() {
         _isRecording = false;
         _isProcessingSpeech = false;
@@ -433,16 +458,61 @@ class _ChatPageState extends State<ChatPage> {
     try {
       await _speechToTextService.playRecordedAudio();
     } catch (e) {
-      print("Error playing recorded audio: $e");
+      print("ERROR: Exception in _playRecordedAudio: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Failed to play recorded audio: ${e.toString()}")),
       );
     }
   }
 
-  void _sendMessage(String message) async {
-    if (message.isNotEmpty && _threadId != null) {
+  Future<void> _sendMessage(String message) async {
+    print("DEBUG: Sending message: $message");
+    if (message.isEmpty || _threadId == null) {
+      print("DEBUG: Message is empty or threadId is null. Not sending.");
+      return;
+    }
+
+    setState(() {
+      _messages.add(ChatMessage(
+        text: message,
+        isUser: true,
+        userIcon: _userProfileImageUrl != null
+            ? CircleAvatar(backgroundImage: NetworkImage(_userProfileImageUrl!))
+            : CircleAvatar(child: Icon(Icons.person)),
+      ));
+      _messageController.clear();
+      _showIntroBox = false;
+
+      _messages.add(ChatMessage(
+        text: '',
+        isUser: false,
+        userIcon: CircleAvatar(
+          child: Padding(
+            padding: EdgeInsets.all(3.0),
+            child: Image.asset('assets/graphics/logo_black.png'),
+          ),
+          backgroundColor: Color(0xFF414254),
+        ),
+        isLoading: true,
+      ));
+    });
+
+    try {
+      print("DEBUG: Adding message to thread");
+      await _aiChatService.addMessageToThread(_threadId!, message);
+      print("DEBUG: Running assistant");
+      String aiResponse = await _aiChatService.runAssistant(_threadId!, widget.userId);
+      print("DEBUG: AI Response received: $aiResponse");
+
+      // Decode the UTF-8 encoded response
+      String decodedResponse = utf8.decode(aiResponse.runes.toList());
+
       setState(() {
+        // Remove the last two messages (user message and loading message)
+        _messages.removeLast();
+        _messages.removeLast();
+
+        // Add the user message back
         _messages.add(ChatMessage(
           text: message,
           isUser: true,
@@ -450,11 +520,10 @@ class _ChatPageState extends State<ChatPage> {
               ? CircleAvatar(backgroundImage: NetworkImage(_userProfileImageUrl!))
               : CircleAvatar(child: Icon(Icons.person)),
         ));
-        _messageController.clear();
-        _showIntroBox = false;
 
+        // Add the AI response
         _messages.add(ChatMessage(
-          text: '',
+          text: decodedResponse,
           isUser: false,
           userIcon: CircleAvatar(
             child: Padding(
@@ -463,31 +532,19 @@ class _ChatPageState extends State<ChatPage> {
             ),
             backgroundColor: Color(0xFF414254),
           ),
-          isLoading: true,
         ));
       });
-
-      try {
-        String aiResponse = await _aiChatService.sendMessage(
-            widget.userId, _threadId!, message);
-        print("AI Response: $aiResponse");
+      await _updateRemainingMessages();
+    } catch (e) {
+      print("ERROR: Exception in _sendMessage: $e");
+      if (e.toString().contains("No thread found with id")) {
+        print("DEBUG: Thread not found. Creating a new thread.");
+        await _createNewThread(await FirebaseFirestore.instance.collection('users').doc(widget.userId).get());
+        // Retry sending the message with the new thread
+        return _sendMessage(message);
+      } else {
         setState(() {
-          _messages.removeLast();
-          _messages.add(ChatMessage(
-            text: aiResponse,
-            isUser: false,
-            userIcon: CircleAvatar(
-              child: Padding(
-                padding: EdgeInsets.all(3.0),
-                child: Image.asset('assets/graphics/logo_black.png'),
-              ),
-              backgroundColor: Color(0xFF414254),
-            ),
-          ));
-        });
-        await _updateRemainingMessages();
-      } catch (e) {
-        setState(() {
+          // Remove the loading message
           _messages.removeLast();
         });
         ScaffoldMessenger.of(context).showSnackBar(
@@ -498,6 +555,7 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void _resetThread() async {
+    print("DEBUG: Resetting thread");
     bool? confirm = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -564,30 +622,14 @@ class _ChatPageState extends State<ChatPage> {
       });
 
       try {
-        var userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(widget.userId)
-            .get();
-
-        Map<String, dynamic> userInfo = userDoc.data() ?? {};
-        userInfo.remove('password');
-        String userInfoString =
-            userInfo.entries.map((e) => "${e.key}: ${e.value}").join("\n");
-
-        _threadId =
-            await _aiChatService.createThread(widget.userId, userInfoString);
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(widget.userId)
-            .update({'loveSessionThreadId': _threadId});
-
+        await _createNewThread(await FirebaseFirestore.instance.collection('users').doc(widget.userId).get());
         setState(() {
           _messages.clear();
           _showIntroBox = true;
         });
-        _updateRemainingMessages();
+        await _updateRemainingMessages();
       } catch (e) {
-        print("Error resetting thread: $e");
+        print("ERROR: Exception in _resetThread: $e");
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content: Text(
