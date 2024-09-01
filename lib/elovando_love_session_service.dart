@@ -18,6 +18,8 @@ class ElovandoLoveSessionService {
   Map<String, String> _preloadedMessages = {};
   bool _isPreloaded = false;
   late bool _partnerAStarts;
+  late String _userAName;
+  late String _userBName;
 
   ElovandoLoveSessionService(this.apiKey, this.organizationId) {
     _partnerAStarts = Random().nextBool();
@@ -45,13 +47,7 @@ class ElovandoLoveSessionService {
     }
   }
 
-  Future<void> createNewThread(String userId) async {
-    _threadId = await createThread();
-    await _updateUserThreadId(userId, _threadId!);
-    _isPreloaded = false;
-  }
-
-  Future<void> initializeThread(String userId) async {
+  Future<void> initializeThread(String userId, {bool forceRenew = false}) async {
     if (userId.isEmpty) {
       throw Exception('Invalid user ID');
     }
@@ -61,7 +57,7 @@ class ElovandoLoveSessionService {
     final partnerUserId = userDoc.data()?['partnerId'];
     _threadId = userDoc.data()?['loveSessionThreadId'];
 
-    if (_threadId == null || _threadId!.isEmpty) {
+    if (_threadId == null || _threadId!.isEmpty || forceRenew) {
       _threadId = await createThread();
       await _updateUserThreadId(userId, _threadId!);
       if (partnerUserId != null) {
@@ -97,7 +93,23 @@ class ElovandoLoveSessionService {
       }
     }
 
+    _userAName = userDoc.data()?['name'] as String? ?? 'Partner A';
+    if (partnerUserId != null) {
+      final partnerDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(partnerUserId)
+          .get();
+      _userBName = partnerDoc.data()?['name'] as String? ?? 'Partner B';
+    } else {
+      _userBName = 'Partner B';
+    }
+
     await logToFile("Thread initialized: $_threadId for user: $userId");
+  }
+
+  Future<void> renewThread(String userId) async {
+    await initializeThread(userId, forceRenew: true);
+    await logToFile("Thread renewed: $_threadId for user: $userId");
   }
 
   Future<void> _updateUserThreadId(String userId, String threadId) async {
@@ -111,7 +123,10 @@ class ElovandoLoveSessionService {
     try {
       print("Hole Aussage von Partner $from für Partner $to");
       final key = 'partner${from}To${to}Statement';
-      final response = _preloadedMessages[key]!;
+      String response = _preloadedMessages[key]!;
+      String fromName = from == 'A' ? _userAName : _userBName;
+      String toName = to == 'A' ? _userAName : _userBName;
+      response = "$fromName, bitte lies das folgende Statement $toName vor:\n\n$response";
       print("Aussage von Partner $from für Partner $to: $response");
       String nextStep;
       if (_partnerAStarts) {
@@ -164,11 +179,11 @@ class ElovandoLoveSessionService {
 
       progressCallback("Aussage für Partner A wird vorbereitet...", 0.5);
       _preloadedMessages['partnerAToBStatement'] = await sendMessage(
-          "Generiere eine Aussage, die Partner A in der Love Session laut an Partner B vorlesen soll.");
+          "Generiere eine Aussage, die $_userAName in der Love Session laut an $_userBName vorlesen soll.");
 
       progressCallback("Aussage für Partner B wird vorbereitet...", 0.7);
       _preloadedMessages['partnerBToAStatement'] = await sendMessage(
-          "Generiere eine Aussage, die Partner B in der Love Session laut an Partner A vorlesen soll.");
+          "Generiere eine Aussage, die $_userBName in der Love Session laut an $_userAName vorlesen soll.");
 
       progressCallback("Outro wird vorbereitet...", 0.9);
       _preloadedMessages['outro'] =
@@ -228,23 +243,7 @@ class ElovandoLoveSessionService {
             'content': modifiedMessage,
           }),
         );
-        if (response.statusCode == 404) {
-          // Thread not found, create a new one
-          await logToFile("Thread not found. Creating a new one.");
-          _threadId = await createThread();
-          // Retry sending the message with the new thread
-          final retryResponse = await http.post(
-            Uri.parse('$baseUrl/threads/$_threadId/messages'),
-            headers: _getHeaders(),
-            body: jsonEncode({
-              'role': 'user',
-              'content': modifiedMessage,
-            }),
-          );
-          if (retryResponse.statusCode != 200) {
-            throw Exception('Fehler beim Senden der Nachricht: ${retryResponse.statusCode}. Body: ${retryResponse.body}');
-          }
-        } else if (response.statusCode != 200) {
+        if (response.statusCode != 200) {
           await logToFile("Error sending message. Status code: ${response.statusCode}, Body: ${response.body}");
           throw Exception('Fehler beim Senden der Nachricht: ${response.statusCode}. Body: ${response.body}');
         }
@@ -345,40 +344,144 @@ class ElovandoLoveSessionService {
     return {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $apiKey',
-      'OpenAI-Beta': 'assistants=v2', // Updated to v1 as v2 is deprecated
+      'OpenAI-Beta': 'assistants=v2',
       'OpenAI-Organization': organizationId,
     };
   }
 
+  dynamic _convertTimestamps(dynamic data) {
+    if (data is Timestamp) {
+      return data.toDate().toIso8601String();
+    } else if (data is Map) {
+      return data.map((key, value) => MapEntry(key, _convertTimestamps(value)));
+    } else if (data is List) {
+      return data.map(_convertTimestamps).toList();
+    }
+    return data;
+  }
+
+  Future<Map<String, dynamic>> _getUserOnboardingInfo(String userId) async {
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    final userData = userDoc.data() as Map<String, dynamic>? ?? {};
+    final convertedData = _convertTimestamps(userData);
+    await logToFile("DEBUG: Raw user data for $userId: ${jsonEncode(convertedData)}");
+    
+    // Extract relevant onboarding information
+    final onboardingInfo = {
+      'name': convertedData['name'],
+      'gender': convertedData['gender'],
+      'birthdate': convertedData['birthdate'],
+      'relationshipMovie': convertedData['question1'],
+      'relationshipAnimal': convertedData['question2'],
+      'cookingRoleUser': convertedData['question6'],
+      'cookingRolePartner': convertedData['question7'],
+      'partnerSupport': convertedData['question8'],
+      'deadlySin': convertedData['question9'],
+      'relationshipDetails': convertedData['question10'],
+    };
+    
+    return onboardingInfo;
+  }
+
   Future<void> shareOnboardingInfo(String userId, Map<String, dynamic> onboardingInfo) async {
     await initializeThread(userId);
-    final message = "Onboarding-Informationen für Benutzer $userId:\n" +
-        onboardingInfo.entries.map((e) => "${e.key}: ${e.value}").join("\n");
-    await logToFile("INITIAL ONBOARDING for $userId: $message");
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    final userName = userDoc.data()?['name'] ?? 'Unbekannt';
+    final partnerUserId = userDoc.data()?['partnerId'];
 
+    final userOnboardingInfo = await _getUserOnboardingInfo(userId);
+    await logToFile("DEBUG: User onboarding info for $userName: ${jsonEncode(userOnboardingInfo)}");
+
+    String message = "Onboarding-Informationen für Benutzer $userName:\n" +
+        _formatOnboardingInfo(userOnboardingInfo);
+
+    if (partnerUserId != null) {
+      await logToFile("DEBUG: Partner found with ID: $partnerUserId");
+      final partnerDoc = await FirebaseFirestore.instance.collection('users').doc(partnerUserId).get();
+      final partnerName = partnerDoc.data()?['name'] ?? 'Unbekannt';
+      final partnerOnboardingInfo = await _getUserOnboardingInfo(partnerUserId);
+
+      await logToFile("DEBUG: Partner onboarding info for $partnerName: ${jsonEncode(partnerOnboardingInfo)}");
+
+      message += "\n\nOnboarding-Informationen für Partner $partnerName:\n" +
+          _formatOnboardingInfo(partnerOnboardingInfo);
+    } else {
+      await logToFile("DEBUG: No partner found for user $userName");
+    }
+
+    await logToFile("DEBUG: Final message to be sent: $message");
     await sendMessage(message, isForDisplay: false);
+  }
+
+  String _formatOnboardingInfo(Map<String, dynamic> info) {
+    if (info.isEmpty) {
+      return "Keine Onboarding-Informationen verfügbar.";
+    }
+    return info.entries.map((e) {
+      var value = e.value;
+      if (value == null) {
+        return "${e.key}: Keine Antwort";
+      }
+      if (value is Timestamp) {
+        value = value.toDate().toIso8601String();
+      }
+      return "${e.key}: $value";
+    }).join("\n");
   }
 
   Future<void> updateOnboardingInfo(String userId, Map<String, dynamic> newInfo) async {
     await initializeThread(userId);
-    if (newInfo.isEmpty) return; // No new info to update
+    if (newInfo.isEmpty) return;
 
-    String formattedInfo = newInfo.entries.map((e) => "${e.key}: ${e.value}").join("\n");
-    String message = "Updated user information for $userId:\n$formattedInfo";
-    await logToFile("ONBOARDING UPDATE for $userId: $formattedInfo");
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    final userName = userDoc.data()?['name'] ?? 'Unbekannt';
+    final partnerUserId = userDoc.data()?['partnerId'];
 
+    String formattedInfo = _formatOnboardingInfo(newInfo);
+    String message = "Aktualisierte Benutzerinformationen für $userName:\n$formattedInfo";
+
+    if (partnerUserId != null) {
+      final partnerDoc = await FirebaseFirestore.instance.collection('users').doc(partnerUserId).get();
+      final partnerName = partnerDoc.data()?['name'] ?? 'Unbekannt';
+      message += "\n\nDiese Informationen beziehen sich auf $userName, den Partner von $partnerName.";
+    }
+
+    await logToFile("ONBOARDING UPDATE for $userName: $formattedInfo");
     await sendMessage(message, isForDisplay: false);
   }
 
   Future<void> shareUserInput(String userId, String input) async {
     await initializeThread(userId);
-    final message = "Input von Benutzer $userId:\n$input";
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    final userName = userDoc.data()?['name'] ?? 'Unbekannt';
+    final message = "Input von Benutzer $userName:\n$input";
     await sendMessage(message, isForDisplay: false);
   }
 
   Future<void> shareFeedback(String userId, String feedback) async {
     await initializeThread(userId);
-    final message = "Feedback von Benutzer $userId:\n$feedback";
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    final userName = userDoc.data()?['name'] ?? 'Unbekannt';
+    final message = "Feedback von Benutzer $userName:\n$feedback";
     await sendMessage(message, isForDisplay: false);
+  }
+
+  Future<bool> canStartLoveSession(String userId) async {
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    final partnerUserId = userDoc.data()?['partnerId'];
+    if (partnerUserId == null) {
+      return true; // User has no partner, can start session
+    }
+    
+    final partnerDoc = await FirebaseFirestore.instance.collection('users').doc(partnerUserId).get();
+    final partnerInSession = partnerDoc.data()?['inLoveSession'] ?? false;
+    
+    return !partnerInSession;
+  }
+
+  Future<void> setLoveSessionStatus(String userId, bool inSession) async {
+    await FirebaseFirestore.instance.collection('users').doc(userId).update({
+      'inLoveSession': inSession,
+    });
   }
 }

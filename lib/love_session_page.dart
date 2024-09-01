@@ -91,13 +91,13 @@ class _LoveSessionPageState extends State<LoveSessionPage> with SingleTickerProv
     });
   }
 
-  Future<void> _createNewThread() async {
+  Future<void> _renewThread() async {
     bool confirm = await showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Neuen Thread erstellen'),
-          content: Text('Wenn Sie einen neuen Thread erstellen, gehen alle vorherigen Informationen bezüglich der Eingaben und des Feedbacks verloren. Möchten Sie fortfahren?'),
+          title: Text('Thread erneuern'),
+          content: Text('Wenn Sie den Thread erneuern, wird ein neuer Thread erstellt. Möchten Sie fortfahren?'),
           actions: <Widget>[
             TextButton(
               child: Text('Abbrechen'),
@@ -119,14 +119,93 @@ class _LoveSessionPageState extends State<LoveSessionPage> with SingleTickerProv
     if (confirm) {
       setState(() {
         _isLoading = true;
-        _progressText = 'Erstelle neuen Thread...';
+        _progressText = 'Erneuere Thread...';
       });
-      await _service.createNewThread(widget.userId);
-      await _shareOnboardingInfo();
-      _resetSessionState();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Neuer Thread erstellt')),
-      );
+      try {
+        await _service.renewThread(widget.userId);
+        await _updateThreadIdInFirebase();
+        await _shareUserInfo();
+        _resetSessionState();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Thread erneuert und Benutzerinformationen aktualisiert')),
+        );
+      } catch (e) {
+        print('Error renewing thread: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fehler beim Erneuern des Threads. Bitte versuchen Sie es erneut.')),
+        );
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _updateThreadIdInFirebase() async {
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
+    final userData = userDoc.data() ?? {};
+    
+    final partnerUserId = userData['partnerId'];
+    final loveSessionThreadId = userData['loveSessionThreadId'];
+    
+    if (loveSessionThreadId == null) {
+      throw Exception('Love session thread ID is null after renewal');
+    }
+    
+    // Create or update the thread document in the loveSessionThreads collection
+    await FirebaseFirestore.instance.collection('loveSessionThreads').doc(loveSessionThreadId).set({
+      'createdAt': FieldValue.serverTimestamp(),
+      'lastUpdated': FieldValue.serverTimestamp(),
+      'participants': [widget.userId, partnerUserId],
+    });
+
+    if (partnerUserId != null) {
+      await FirebaseFirestore.instance.collection('users').doc(partnerUserId).update({
+        'loveSessionThreadId': loveSessionThreadId,
+      });
+    }
+  }
+
+  Future<void> _shareUserInfo() async {
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
+    final userData = userDoc.data() ?? {};
+    
+    final userInfo = {
+      'name': userData['name'],
+      'gender': userData['gender'],
+      'birthdate': userData['birthdate'],
+      'relationshipMovie': userData['question4'],
+      'relationshipAnimal': userData['question5'],
+      'cookingRoleUser': userData['question6'],
+      'cookingRolePartner': userData['question7'],
+      'partnerSupport': userData['question8'],
+      'deadlySin': userData['question9'],
+      'relationshipDetails': userData['question10'],
+    };
+
+    await _service.updateOnboardingInfo(widget.userId, userInfo);
+
+    // Share partner's info if available
+    final partnerUserId = userData['partnerId'];
+    if (partnerUserId != null) {
+      final partnerDoc = await FirebaseFirestore.instance.collection('users').doc(partnerUserId).get();
+      final partnerData = partnerDoc.data() ?? {};
+      
+      final partnerInfo = {
+        'name': partnerData['name'],
+        'gender': partnerData['gender'],
+        'birthdate': partnerData['birthdate'],
+        'relationshipMovie': partnerData['question4'],
+        'relationshipAnimal': partnerData['question5'],
+        'cookingRoleUser': partnerData['question6'],
+        'cookingRolePartner': partnerData['question7'],
+        'partnerSupport': partnerData['question8'],
+        'deadlySin': partnerData['question9'],
+        'relationshipDetails': partnerData['question10'],
+      };
+
+      await _service.updateOnboardingInfo(partnerUserId, partnerInfo);
     }
   }
 
@@ -155,10 +234,23 @@ class _LoveSessionPageState extends State<LoveSessionPage> with SingleTickerProv
         _progressText = 'Love Session wird gestartet...';
       });
 
+      // Check if partner is already in a session
+      bool canStart = await _service.canStartLoveSession(widget.userId);
+      if (!canStart) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ihr Partner ist bereits in einer Love Session. Bitte versuchen Sie es später erneut.')),
+        );
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // Set the user's status to in session
+      await _service.setLoveSessionStatus(widget.userId, true);
+
       // Ensure thread is initialized before starting the session
       await _service.initializeThread(widget.userId);
-
-      await _shareOnboardingInfo();
 
       final introResponse = await _service.startLoveSession(widget.userId, (message, progress) {
         if (_isCancelled) return;
@@ -168,10 +260,14 @@ class _LoveSessionPageState extends State<LoveSessionPage> with SingleTickerProv
         });
       });
 
-      if (_isCancelled) return;
+      if (_isCancelled) {
+        await _service.setLoveSessionStatus(widget.userId, false);
+        return;
+      }
 
       if (introResponse.containsKey('error')) {
         _handleError(introResponse['error']);
+        await _service.setLoveSessionStatus(widget.userId, false);
         return;
       }
 
@@ -196,6 +292,7 @@ class _LoveSessionPageState extends State<LoveSessionPage> with SingleTickerProv
       if (_isCancelled) return;
       print("Fehler beim Starten der Love Session: $e");
       _handleError("Fehler beim Starten der Love Session. Bitte versuchen Sie es erneut.");
+      await _service.setLoveSessionStatus(widget.userId, false);
     }
   }
 
@@ -333,47 +430,6 @@ class _LoveSessionPageState extends State<LoveSessionPage> with SingleTickerProv
     return true;
   }
 
-  Future<void> _shareOnboardingInfo() async {
-    final userDoc = await FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
-    final userData = userDoc.data() ?? {};
-    
-    final onboardingInfo = {
-      'name': userData['name'],
-      'gender': userData['gender'],
-      'birthdate': userData['birthdate'],
-      'relationshipMovie': userData['question4'],
-      'relationshipAnimal': userData['question5'],
-      'cookingRoleUser': userData['question6'],
-      'cookingRolePartner': userData['question7'],
-      'partnerSupport': userData['question8'],
-      'deadlySin': userData['question9'],
-      'relationshipDetails': userData['question10'],
-    };
-
-    final onboardingQuestions = {
-      'name': 'So möchtest du von deinem Partner / deiner Partnerin genannt werden:',
-      'gender': 'Gender:',
-      'birthdate': 'Geburtsdatum:',
-      'relationshipMovie': 'Welche Art von Film repräsentiert am besten eure Beziehung?',
-      'relationshipAnimal': 'Welches Tierduo beschreibt eure Partnerschaft am besten?',
-      'cookingRoleUser': 'Wenn ihr zusammen kochen würdet, welche Rolle übernimmst du?',
-      'cookingRolePartner': 'Welche Rolle würde dein Partner übernehmen?',
-      'partnerSupport': 'Wie unterstützt du deinen Partner in einer schwierigen Situation?',
-      'deadlySin': 'Für welche der sieben Todsünden bist du am ehesten empfänglich?',
-      'relationshipDetails': 'Erzähle uns doch noch etwas mehr über eure Beziehung. Wie läuft es?',
-    };
-
-    final formattedOnboardingInfo = onboardingInfo.map((key, value) {
-      final question = onboardingQuestions[key] ?? 'Unbekannte Frage';
-      return MapEntry(key, {
-        'Frage': question,
-        'Antwort': value ?? 'Keine Angabe'
-      });
-    });
-
-    await _service.shareOnboardingInfo(widget.userId, formattedOnboardingInfo);
-  }
-
   void _handleNextStep() async {
     print("Handling next step. Current step: $_currentStep, Statement count: $_statementCount");
     _stopAudio(); // Stop audio immediately when "Weiter" is pressed
@@ -440,10 +496,11 @@ class _LoveSessionPageState extends State<LoveSessionPage> with SingleTickerProv
     );
   }
 
-  void _endSession() {
+  void _endSession() async {
     _stopAudio();
     if (_isCancelled) return;
     print("Sitzung wird beendet. Navigation zur FeedbackPage");
+    await _service.setLoveSessionStatus(widget.userId, false);
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -464,6 +521,7 @@ class _LoveSessionPageState extends State<LoveSessionPage> with SingleTickerProv
   void dispose() {
     _audioPlayer.dispose();
     _animationController.dispose();
+    _service.setLoveSessionStatus(widget.userId, false);
     super.dispose();
   }
 
@@ -475,6 +533,7 @@ class _LoveSessionPageState extends State<LoveSessionPage> with SingleTickerProv
           _isCancelled = true;
         });
         _stopAudio();
+        await _service.setLoveSessionStatus(widget.userId, false);
         return true;
       },
       child: Scaffold(
@@ -484,11 +543,12 @@ class _LoveSessionPageState extends State<LoveSessionPage> with SingleTickerProv
           elevation: 1,
           leading: IconButton(
             icon: Icon(Icons.arrow_back, color: Color(0xFF414254)),
-            onPressed: () {
+            onPressed: () async {
               setState(() {
                 _isCancelled = true;
               });
               _stopAudio();
+              await _service.setLoveSessionStatus(widget.userId, false);
               Navigator.of(context).pop();
             },
           ),
@@ -508,7 +568,7 @@ class _LoveSessionPageState extends State<LoveSessionPage> with SingleTickerProv
           actions: [
             IconButton(
               icon: Icon(Icons.refresh, color: Color(0xFF7FCCB1)),
-              onPressed: _createNewThread,
+              onPressed: _renewThread,
               tooltip: 'Thread erneuern',
             ),
           ],
