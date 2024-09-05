@@ -10,13 +10,13 @@ workflows:
           echo "Print env variables"
           env | grep -v -e '^_' -e '^ANDROID_' -e '^JAVA_' -e '^FLUTTER_' -e '^PATH'
 
-          if [ -z "$API_KEY" ]; then
-            echo "Error: API_KEY environment variable is not set"
+          if [ -z "$OPEN_AI_API_KEY" ]; then
+            echo "Error: OPEN_AI_API_KEY environment variable is not set"
             exit 1
           fi
 
           echo "Create .env file"
-          echo "API_KEY=$API_KEY" > .env
+          echo "OPEN_AI_API_KEY=$OPEN_AI_API_KEY" > .env
 
           echo "Set up Flutter"
           flutter channel stable
@@ -25,8 +25,11 @@ workflows:
           echo "Get Flutter packages"
           flutter pub get
 
-          echo "Generate env.g.dart"
+          echo "Run build runner"
           flutter pub run build_runner build --delete-conflicting-outputs
+
+          echo "List contents of lib/env directory"
+          ls -la lib/env
 
           echo "Verify env.g.dart exists"
           if [ ! -f "lib/env/env.g.dart" ]; then
@@ -59,13 +62,13 @@ workflows:
           echo "Print env variables"
           env | grep -v -e '^_' -e '^ANDROID_' -e '^JAVA_' -e '^FLUTTER_' -e '^PATH'
 
-          if [ -z "$API_KEY" ]; then
-            echo "Error: API_KEY environment variable is not set"
+          if [ -z "$OPEN_AI_API_KEY" ]; then
+            echo "Error: OPEN_AI_API_KEY environment variable is not set"
             exit 1
           fi
 
           echo "Create .env file"
-          echo "API_KEY=$API_KEY" > .env
+          echo "OPEN_AI_API_KEY=$OPEN_AI_API_KEY" > .env
 
           echo "Set up Flutter"
           flutter channel stable
@@ -74,8 +77,11 @@ workflows:
           echo "Get Flutter packages"
           flutter pub get
 
-          echo "Generate env.g.dart"
+          echo "Run build runner"
           flutter pub run build_runner build --delete-conflicting-outputs
+
+          echo "List contents of lib/env directory"
+          ls -la lib/env
 
           echo "Verify env.g.dart exists"
           if [ ! -f "lib/env/env.g.dart" ]; then
