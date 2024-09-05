@@ -1,73 +1,43 @@
 workflows:
-  ios-workflow:
-    name: iOS Workflow
-    max_build_duration: 120
-    environment:
-      flutter: stable
-      xcode: 14.3
-      cocoapods: default
-    scripts:
-      - name: Set up code signing settings on Xcode project
-        script: xcode-project use-profiles
-      - name: Get Flutter packages
-        script: flutter pub get
-      - name: Flutter build ipa
-        script: flutter build ipa --release --export-options-plist=/path/to/ExportOptions.plist
-    artifacts:
-      - build/ios/ipa/*.ipa
-      - /tmp/xcodebuild_logs/*.log
-      - flutter_drive.log
-    publishing:
-      app_store_connect:
-        api_key: $APP_STORE_CONNECT_API_KEY
-        key_id: $APP_STORE_CONNECT_KEY_ID
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-
   android-workflow:
     name: Android Workflow
     max_build_duration: 120
     environment:
       flutter: stable
     scripts:
-      - name: Get Flutter packages
-        script: flutter pub get
-      - name: Build APK
-        script: flutter build apk --release
-    artifacts:
-      - build/app/outputs/apk/release/*.apk
-    publishing:
-      google_play:
-        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
-        track: internal
-
-  post-clone:
-    name: Post-clone script
-    scripts:
-      - name: Set up environment
+      - name: Set up environment and build
         script: |
+          echo "Print env variables"
+          env | grep -v -e '^_' -e '^ANDROID_' -e '^JAVA_' -e '^FLUTTER_' -e '^PATH'
+
+          if [ -z "$API_KEY" ]; then
+            echo "Error: API_KEY environment variable is not set"
+            exit 1
+          fi
+
           echo "Create .env file"
           echo "API_KEY=$API_KEY" > .env
-          
+
           echo "Set up Flutter"
           flutter channel stable
           flutter upgrade
-          
+
           echo "Clean Flutter project"
           flutter clean
-          
+
           echo "Update env.dart file"
           cat << EOF > lib/env/env.dart
           import 'package:envied/envied.dart';
-          
+
           part 'env.g.dart';
-          
+
           @Envied(path: '.env')
           abstract class Env {
             @EnviedField(varName: 'API_KEY')
             static const String apiKey = _Env.apiKey;
           }
           EOF
-          
+
           echo "Update pubspec.yaml"
           sed -i '' '
           /^dev_dependencies:/,/^$/ {
@@ -76,18 +46,50 @@ workflows:
             analyzer: ^6.7.0
           }
           ' pubspec.yaml
-          
+
           echo "Remove pubspec.lock"
           rm -f pubspec.lock
-          
+
           echo "Get Flutter packages"
           flutter pub get
-          
+
           echo "Generate env.g.dart"
           dart run build_runner build --delete-conflicting-outputs
-          
-          echo "Remove unused imports and replace print statements"
-          find lib -name "*.dart" -type f -print0 | xargs -0 sed -i '' -e '/^import.*material.dart/d' -e 's/print(/debugPrint(/g'
-          
-          echo "Run Flutter analyze"
+
+          echo "Update win32 package"
+          flutter pub upgrade win32
+
+          echo "Flutter analyze"
           flutter analyze
+
+          echo "Flutter test"
+          flutter test
+
+          echo "Build APK with Flutter"
+          flutter build apk --release
+
+    artifacts:
+      - build/app/outputs/apk/release/*.apk
+
+  ios-workflow:
+    name: iOS Workflow
+    max_build_duration: 120
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Set up environment and build
+        script: |
+          # (Include the same script as in the Android workflow)
+          
+          echo "Build iOS app"
+          flutter build ios --release --no-codesign
+
+    artifacts:
+      - build/ios/iphoneos/Runner.app
+
+publishing:
+  email:
+    recipients:
+      - your.email@example.com
