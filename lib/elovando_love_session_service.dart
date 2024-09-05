@@ -47,50 +47,50 @@ class ElovandoLoveSessionService {
     }
   }
 
-  Future<void> initializeThread(String userId, {bool forceRenew = false}) async {
+  Future<void> initializeThread(String userId) async {
     if (userId.isEmpty) {
       throw Exception('Invalid user ID');
     }
 
-    final userDoc =
-        await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    await logToFile("Initializing thread for user: $userId");
+
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
     final partnerUserId = userDoc.data()?['partnerId'];
     _threadId = userDoc.data()?['loveSessionThreadId'];
 
-    if (_threadId == null || _threadId!.isEmpty || forceRenew) {
-      _threadId = await createThread();
-      await _updateUserThreadId(userId, _threadId!);
-      if (partnerUserId != null) {
-        await _updateUserThreadId(partnerUserId, _threadId!);
-      }
-    } else {
-      // Verify if the thread still exists
+    if (_threadId != null) {
       try {
+        // Verify if the thread still exists
         await http.get(
           Uri.parse('$baseUrl/threads/$_threadId'),
           headers: _getHeaders(),
         );
+        await logToFile("Existing thread found: $_threadId");
       } catch (e) {
         // If the thread doesn't exist, create a new one
-        print("Existing thread not found. Creating a new one.");
+        await logToFile("Existing thread not found. Creating a new one.");
         _threadId = await createThread();
-        await _updateUserThreadId(userId, _threadId!);
-        if (partnerUserId != null) {
-          await _updateUserThreadId(partnerUserId, _threadId!);
-        }
       }
+    } else {
+      // If no thread ID is found, create a new one
+      _threadId = await createThread();
+      await logToFile("New thread created: $_threadId");
     }
 
+    // Update or create the thread document in Firestore
+    await FirebaseFirestore.instance.collection('loveSessionThreads').doc(_threadId).set({
+      'createdAt': FieldValue.serverTimestamp(),
+      'lastUpdated': FieldValue.serverTimestamp(),
+      'participants': [
+        userId,
+        if (partnerUserId != null) partnerUserId,
+      ],
+    }, SetOptions(merge: true));
+
+    // Update the thread ID for both users
+    await _updateUserThreadId(userId, _threadId!);
     if (partnerUserId != null) {
-      final partnerDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(partnerUserId)
-          .get();
-      final partnerThreadId = partnerDoc.data()?['loveSessionThreadId'];
-      if (partnerThreadId != null && partnerThreadId != _threadId) {
-        _threadId = partnerThreadId;
-        await _updateUserThreadId(userId, _threadId!);
-      }
+      await _updateUserThreadId(partnerUserId, _threadId!);
     }
 
     _userAName = userDoc.data()?['name'] as String? ?? 'Partner A';
@@ -105,10 +105,11 @@ class ElovandoLoveSessionService {
     }
 
     await logToFile("Thread initialized: $_threadId for user: $userId");
+    await logToFile("User A: $_userAName, User B: $_userBName");
   }
 
   Future<void> renewThread(String userId) async {
-    await initializeThread(userId, forceRenew: true);
+    await initializeThread(userId);
     await logToFile("Thread renewed: $_threadId for user: $userId");
   }
 
@@ -116,6 +117,7 @@ class ElovandoLoveSessionService {
     await FirebaseFirestore.instance.collection('users').doc(userId).update({
       'loveSessionThreadId': threadId,
     });
+    await logToFile("Updated thread ID for user $userId: $threadId");
   }
 
   Future<Map<String, dynamic>> getPartnerStatement(
@@ -206,15 +208,16 @@ class ElovandoLoveSessionService {
       );
 
       if (response.statusCode == 200) {
-        return jsonDecode(response.body)['id'];
+        final threadId = jsonDecode(response.body)['id'];
+        await logToFile("Thread created successfully: $threadId");
+        return threadId;
       } else {
-        print(
-            "Fehler beim Erstellen des Threads. Statuscode: ${response.statusCode}, Antwort: ${response.body}");
+        await logToFile("Error creating thread. Status code: ${response.statusCode}, Response: ${response.body}");
         throw Exception(
             'Fehler beim Erstellen des Threads: ${response.statusCode}');
       }
     } catch (e) {
-      print("Ausnahme beim Erstellen des Threads: $e");
+      await logToFile("Exception while creating thread: $e");
       throw Exception('Fehler beim Erstellen des Threads: $e');
     }
   }
