@@ -1,60 +1,4 @@
 workflows:
-  android-workflow:
-    name: Android Workflow
-    max_build_duration: 120
-    environment:
-      flutter: stable
-      groups:
-        - test
-    scripts:
-      - name: Set up environment and build
-        script: |
-          echo "======== STARTING ANDROID WORKFLOW FROM CODEMAGIC.YAML ========"
-          
-          echo "Print env variables"
-          env | grep -v -e '^_' -e '^ANDROID_' -e '^JAVA_' -e '^FLUTTER_' -e '^PATH'
-
-          if [ -z "$OPEN_AI_API_KEY" ]; then
-            echo "Error: OPEN_AI_API_KEY environment variable is not set"
-            exit 1
-          fi
-
-          echo "Create .env file"
-          echo "OPEN_AI_API_KEY=$OPEN_AI_API_KEY" > .env
-
-          echo "Set up Flutter"
-          flutter channel stable
-          flutter upgrade
-
-          echo "Get Flutter packages"
-          flutter pub get
-
-          echo "Run build runner"
-          flutter pub run build_runner build --delete-conflicting-outputs
-
-          echo "List contents of lib/env directory"
-          ls -la lib/env
-
-          echo "Verify env.g.dart exists"
-          if [ ! -f "lib/env/env.g.dart" ]; then
-            echo "Error: env.g.dart file is missing"
-            exit 1
-          fi
-
-          echo "Flutter analyze"
-          flutter analyze
-
-          echo "Flutter test"
-          flutter test
-
-          echo "Build APK with Flutter"
-          flutter build apk --release
-
-          echo "======== FINISHED ANDROID WORKFLOW FROM CODEMAGIC.YAML ========"
-
-    artifacts:
-      - build/app/outputs/apk/release/*.apk
-
   ios-workflow:
     name: iOS Workflow
     max_build_duration: 120
@@ -84,11 +28,17 @@ workflows:
           flutter channel stable
           flutter upgrade
 
+          echo "Clean Flutter project"
+          flutter clean
+
           echo "Get Flutter packages"
           flutter pub get
 
-          echo "Run build runner"
-          flutter pub run build_runner build --delete-conflicting-outputs
+          echo "Update dependencies"
+          flutter pub upgrade
+
+          echo "Run build runner with verbose output"
+          flutter pub run build_runner build --delete-conflicting-outputs --verbose
 
           echo "List contents of lib/env directory"
           ls -la lib/env
