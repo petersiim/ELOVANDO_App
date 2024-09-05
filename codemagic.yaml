@@ -22,42 +22,17 @@ workflows:
           flutter channel stable
           flutter upgrade
 
-          echo "Clean Flutter project"
-          flutter clean
-
-          echo "Update env.dart file"
-          cat << EOF > lib/env/env.dart
-          import 'package:envied/envied.dart';
-
-          part 'env.g.dart';
-
-          @Envied(path: '.env')
-          abstract class Env {
-            @EnviedField(varName: 'API_KEY')
-            static const String apiKey = _Env.apiKey;
-          }
-          EOF
-
-          echo "Update pubspec.yaml"
-          sed -i '' '
-          /^dev_dependencies:/,/^$/ {
-            /analyzer:/d
-            /^$/i\
-            analyzer: ^6.7.0
-          }
-          ' pubspec.yaml
-
-          echo "Remove pubspec.lock"
-          rm -f pubspec.lock
-
           echo "Get Flutter packages"
           flutter pub get
 
           echo "Generate env.g.dart"
-          dart run build_runner build --delete-conflicting-outputs
+          flutter pub run build_runner build --delete-conflicting-outputs
 
-          echo "Update win32 package"
-          flutter pub upgrade win32
+          echo "Verify env.g.dart exists"
+          if [ ! -f "lib/env/env.g.dart" ]; then
+            echo "Error: env.g.dart file is missing"
+            exit 1
+          fi
 
           echo "Flutter analyze"
           flutter analyze
@@ -81,8 +56,39 @@ workflows:
     scripts:
       - name: Set up environment and build
         script: |
-          # (Include the same script as in the Android workflow)
-          
+          echo "Print env variables"
+          env | grep -v -e '^_' -e '^ANDROID_' -e '^JAVA_' -e '^FLUTTER_' -e '^PATH'
+
+          if [ -z "$API_KEY" ]; then
+            echo "Error: API_KEY environment variable is not set"
+            exit 1
+          fi
+
+          echo "Create .env file"
+          echo "API_KEY=$API_KEY" > .env
+
+          echo "Set up Flutter"
+          flutter channel stable
+          flutter upgrade
+
+          echo "Get Flutter packages"
+          flutter pub get
+
+          echo "Generate env.g.dart"
+          flutter pub run build_runner build --delete-conflicting-outputs
+
+          echo "Verify env.g.dart exists"
+          if [ ! -f "lib/env/env.g.dart" ]; then
+            echo "Error: env.g.dart file is missing"
+            exit 1
+          fi
+
+          echo "Flutter analyze"
+          flutter analyze
+
+          echo "Flutter test"
+          flutter test
+
           echo "Build iOS app"
           flutter build ios --release --no-codesign
 
