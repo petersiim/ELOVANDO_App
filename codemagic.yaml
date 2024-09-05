@@ -4,9 +4,13 @@ workflows:
     max_build_duration: 120
     environment:
       flutter: stable
+      groups:
+        - test
     scripts:
       - name: Set up environment and build
         script: |
+          echo "======== STARTING ANDROID WORKFLOW FROM CODEMAGIC.YAML ========"
+          
           echo "Print env variables"
           env | grep -v -e '^_' -e '^ANDROID_' -e '^JAVA_' -e '^FLUTTER_' -e '^PATH'
 
@@ -46,6 +50,8 @@ workflows:
           echo "Build APK with Flutter"
           flutter build apk --release
 
+          echo "======== FINISHED ANDROID WORKFLOW FROM CODEMAGIC.YAML ========"
+
     artifacts:
       - build/app/outputs/apk/release/*.apk
 
@@ -56,9 +62,13 @@ workflows:
       flutter: stable
       xcode: latest
       cocoapods: default
+      groups:
+        - test
     scripts:
       - name: Set up environment and build
         script: |
+          echo "======== STARTING iOS WORKFLOW FROM CODEMAGIC.YAML ========"
+          
           echo "Print env variables"
           env | grep -v -e '^_' -e '^ANDROID_' -e '^JAVA_' -e '^FLUTTER_' -e '^PATH'
 
@@ -97,6 +107,8 @@ workflows:
 
           echo "Build iOS app"
           flutter build ios --release --no-codesign
+
+          echo "======== FINISHED iOS WORKFLOW FROM CODEMAGIC.YAML ========"
 
     artifacts:
       - build/ios/iphoneos/Runner.app
