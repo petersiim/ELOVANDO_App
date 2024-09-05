@@ -1,6 +1,5 @@
 import UIKit
 import Flutter
-import uni_links
 
 @UIApplicationMain
 @objc class AppDelegate: FlutterAppDelegate {
@@ -24,6 +23,10 @@ import uni_links
   }
 
   private func handleUniversalLink(_ url: URL) -> Bool {
-    return UniLinks.handle(url)
+    let linkString = url.absoluteString
+    if let flutterViewController = window?.rootViewController as? FlutterViewController {
+      flutterViewController.engine?.navigationChannel.invokeMethod("pushRoute", arguments: "/deeplink?link=\(linkString)")
+    }
+    return true
   }
 }
