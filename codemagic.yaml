@@ -26,14 +26,19 @@ workflows:
       - name: Run build_runner
         script: |
           flutter pub run build_runner build --delete-conflicting-outputs
-      - name: Verify env.g.dart
+      - name: Update bundle identifier
         script: |
-          if [ ! -f "lib/env/env.g.dart" ]; then
-            echo "Error: env.g.dart file is missing"
-            exit 1
-          fi
+          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier com.elovando.app" ios/Runner/Info.plist
       - name: Build unsigned IPA
         script: |
-          flutter build ipa --release --no-codesign
+          flutter build ipa --export-options-plist=ios/export_options.plist --no-codesign
+      - name: Verify IPA
+        script: |
+          if [ -f "build/ios/ipa/ELOVANDO_App.ipa" ]; then
+            echo "IPA file generated successfully"
+          else
+            echo "Error: IPA file not found"
+            exit 1
+          fi
     artifacts:
       - build/ios/ipa/*.ipa
