@@ -31,15 +31,13 @@ workflows:
         script: |
           echo "Debugging environment variables:"
           echo "BUNDLE_ID: $BUNDLE_ID"
-          keychain initialize
-          echo $IOS_DEVELOPMENT_CERTIFICATE | base64 --decode > /tmp/certificate.p12
-          keychain add-certificates --certificate /tmp/certificate.p12 --certificate-password $IOS_CERTIFICATE_PASSWORD
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
       - name: Update Info.plist
         script: |
           /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" ios/Runner/Info.plist
       - name: Build signed IPA
         script: |
-          flutter build ipa --release --export-options-plist=/tmp/exportOptions.plist
+          flutter build ipa --release
       - name: Verify IPA
         script: |
           if [ -f "build/ios/ipa/ELOVANDO_App.ipa" ]; then
