@@ -9,7 +9,6 @@ workflows:
       groups:
         - test
         - app_store_credentials
-        - ios_signing
     scripts:
       - name: Set up flutter
         script: |
@@ -33,17 +32,12 @@ workflows:
           /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" ios/Runner/Info.plist
       - name: Set up code signing
         script: |
-          echo $IOS_CERTIFICATE | base64 --decode > /tmp/certificate.p12
-          echo $IOS_PROVISIONING_PROFILE | base64 --decode > /tmp/provisioning_profile.mobileprovision
           keychain initialize
-          keychain add-certificates --certificate /tmp/certificate.p12 --certificate-password $IOS_CERTIFICATE_PASSWORD
-          flutter config --enable-ios
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
       - name: Build signed IPA
         script: |
-          xcode-project use-profiles
           flutter build ipa --release \
-            --export-options-plist=/tmp/exportOptions.plist \
-            --obfuscate --split-debug-info=./debug-info
+            --export-options-plist=/Users/builder/export_options.plist
       - name: Verify IPA
         script: |
           if [ -f "build/ios/ipa/ELOVANDO_App.ipa" ]; then
