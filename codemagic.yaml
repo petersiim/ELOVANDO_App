@@ -31,7 +31,7 @@ workflows:
           /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier com.elovando.app" ios/Runner/Info.plist
       - name: Build unsigned IPA
         script: |
-          flutter build ipa --export-options-plist=ios/export_options.plist --no-codesign
+          flutter build ipa --release --no-codesign
       - name: Verify IPA
         script: |
           if [ -f "build/ios/ipa/ELOVANDO_App.ipa" ]; then
