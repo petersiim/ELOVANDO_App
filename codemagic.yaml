@@ -9,6 +9,7 @@ workflows:
       groups:
         - test
         - app_store_credentials
+        - ios_signing
     scripts:
       - name: Set up flutter
         script: |
@@ -29,17 +30,20 @@ workflows:
           flutter pub run build_runner build --delete-conflicting-outputs
       - name: Update bundle identifier
         script: |
-          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier com.elovando.app" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" ios/Runner/Info.plist
       - name: Set up code signing
         script: |
+          echo $IOS_CERTIFICATE | base64 --decode > /tmp/certificate.p12
+          echo $IOS_PROVISIONING_PROFILE | base64 --decode > /tmp/provisioning_profile.mobileprovision
           keychain initialize
-          echo $APP_STORE_CONNECT_PRIVATE_KEY | base64 --decode > /tmp/app_store_connect_key.p8
-          app-store-connect fetch-signing-files "com.elovando.app" --type IOS_APP_STORE --create --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" --private-key "@file:/tmp/app_store_connect_key.p8"
-          keychain add-certificates
-          xcode-project use-profiles
+          keychain add-certificates --certificate /tmp/certificate.p12 --certificate-password $IOS_CERTIFICATE_PASSWORD
+          flutter config --enable-ios
       - name: Build signed IPA
         script: |
-          flutter build ipa --release --export-options-plist=/Users/builder/export_options.plist
+          xcode-project use-profiles
+          flutter build ipa --release \
+            --export-options-plist=/tmp/exportOptions.plist \
+            --obfuscate --split-debug-info=./debug-info
       - name: Verify IPA
         script: |
           if [ -f "build/ios/ipa/ELOVANDO_App.ipa" ]; then
