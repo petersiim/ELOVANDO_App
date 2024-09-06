@@ -8,8 +8,7 @@ workflows:
       cocoapods: default
       groups:
         - test
-        - ios_credentials
-        - firebase
+       
     scripts:
       - name: Set up environment and build
         script: |
