@@ -35,16 +35,15 @@ workflows:
           echo "APP_STORE_CONNECT_KEY_IDENTIFIER: $APP_STORE_CONNECT_KEY_IDENTIFIER"
           echo "APP_STORE_CONNECT_PRIVATE_KEY (first 10 characters): ${APP_STORE_CONNECT_PRIVATE_KEY:0:10}..."
           
-          echo $APP_STORE_CONNECT_PRIVATE_KEY > /tmp/app_store_connect_key.p8
-          echo "Contents of /tmp/app_store_connect_key.p8 (first 10 lines):"
-          head -n 10 /tmp/app_store_connect_key.p8
+          # Ensure the private key is properly formatted
+          FORMATTED_PRIVATE_KEY=$(echo "$APP_STORE_CONNECT_PRIVATE_KEY" | sed 's/\\n/\n/g')
           
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
             --create \
             --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
             --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
-            --private-key "@file:/tmp/app_store_connect_key.p8"
+            --private-key "$FORMATTED_PRIVATE_KEY"
       - name: Build unsigned IPA
         script: |
           flutter build ipa --release --export-options-plist=/Users/builder/export_options.plist --no-codesign
