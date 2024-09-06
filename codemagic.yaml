@@ -19,6 +19,15 @@ workflows:
       - name: Create .env file
         script: |
           echo "OPEN_AI_API_KEY=$OPEN_AI_API_KEY" > .env
+      - name: Run build_runner
+        script: |
+          flutter pub run build_runner build --delete-conflicting-outputs
+      - name: Verify env.g.dart
+        script: |
+          if [ ! -f "lib/env/env.g.dart" ]; then
+            echo "Error: env.g.dart file is missing"
+            exit 1
+          fi
       - name: Build unsigned IPA
         script: |
           flutter build ipa --release --no-codesign
