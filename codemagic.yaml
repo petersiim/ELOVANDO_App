@@ -65,8 +65,5 @@ workflows:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
       - flutter_drive.log
-    publishing:
-      email:
-        recipients:
-          - your.email@example.com
+
       
