@@ -33,7 +33,10 @@ workflows:
       - name: Set up code signing
         script: |
           keychain initialize
-          app-store-connect fetch-signing-files "com.elovando.app" --type IOS_APP_STORE --create
+          echo $APP_STORE_CONNECT_PRIVATE_KEY | base64 --decode > /tmp/app_store_connect_key.p8
+          app-store-connect fetch-signing-files "com.elovando.app" --type IOS_APP_STORE --create --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" --private-key "@file:/tmp/app_store_connect_key.p8"
+          keychain add-certificates
+          xcode-project use-profiles
       - name: Build signed IPA
         script: |
           flutter build ipa --release --export-options-plist=/Users/builder/export_options.plist
