@@ -13,9 +13,13 @@ workflows:
         script: |
           flutter channel stable
           flutter upgrade
-      - name: Get flutter packages
+      - name: Clean project and get packages
         script: |
+          flutter clean
           flutter pub get
+      - name: Update dependencies
+        script: |
+          flutter pub upgrade
       - name: Create .env file
         script: |
           echo "OPEN_AI_API_KEY=$OPEN_AI_API_KEY" > .env

@@ -17,7 +17,6 @@ dependencies:
   cloud_firestore: ^4.17.2
   envied: ^0.5.4
   flutter_dotenv: ^5.0.0
-  envied_generator: ^0.5.4
   dart_openai: ^5.1.0
   permission_handler: ^11.3.1 
   html: ^0.15.4
