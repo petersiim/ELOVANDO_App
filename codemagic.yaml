@@ -27,17 +27,27 @@ workflows:
       - name: Run build_runner
         script: |
           flutter pub run build_runner build --delete-conflicting-outputs
-      - name: Update bundle identifier
-        script: |
-          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" ios/Runner/Info.plist
       - name: Set up code signing
         script: |
-          keychain initialize
-          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
-      - name: Build signed IPA
+          echo "Debugging environment variables:"
+          echo "BUNDLE_ID: $BUNDLE_ID"
+          echo "APP_STORE_CONNECT_ISSUER_ID: $APP_STORE_CONNECT_ISSUER_ID"
+          echo "APP_STORE_CONNECT_KEY_IDENTIFIER: $APP_STORE_CONNECT_KEY_IDENTIFIER"
+          echo "APP_STORE_CONNECT_PRIVATE_KEY (first 10 characters): ${APP_STORE_CONNECT_PRIVATE_KEY:0:10}..."
+          
+          echo $APP_STORE_CONNECT_PRIVATE_KEY > /tmp/app_store_connect_key.p8
+          echo "Contents of /tmp/app_store_connect_key.p8 (first 10 lines):"
+          head -n 10 /tmp/app_store_connect_key.p8
+          
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create \
+            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
+            --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            --private-key "@file:/tmp/app_store_connect_key.p8"
+      - name: Build unsigned IPA
         script: |
-          flutter build ipa --release \
-            --export-options-plist=/Users/builder/export_options.plist
+          flutter build ipa --release --export-options-plist=/Users/builder/export_options.plist --no-codesign
       - name: Verify IPA
         script: |
           if [ -f "build/ios/ipa/ELOVANDO_App.ipa" ]; then
