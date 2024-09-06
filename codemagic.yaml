@@ -8,6 +8,8 @@ workflows:
       cocoapods: default
       groups:
         - test
+        - ios_credentials
+        - firebase
     scripts:
       - name: Set up environment and build
         script: |
@@ -56,14 +58,15 @@ workflows:
           flutter test
 
           echo "Build iOS app"
-          flutter build ios --release --no-codesign
+          flutter build ipa --release
 
           echo "======== FINISHED iOS WORKFLOW FROM CODEMAGIC.YAML ========"
-
     artifacts:
-      - build/ios/iphoneos/Runner.app
-
-publishing:
-  email:
-    recipients:
-      - your.email@example.com
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - flutter_drive.log
+    publishing:
+      email:
+        recipients:
+          - your.email@example.com
+      
