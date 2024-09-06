@@ -33,9 +33,7 @@ workflows:
       - name: Set up code signing
         script: |
           keychain initialize
-          app-store-connect fetch-signing-files "com.elovando.app" --type IOS_APP_STORE --create --issuer-id $APP_STORE_CONNECT_ISSUER_ID --key-id $APP_STORE_CONNECT_KEY_IDENTIFIER --private-key $APP_STORE_CONNECT_PRIVATE_KEY
-          keychain add-certificates
-          xcode-project use-profiles
+          app-store-connect fetch-signing-files "com.elovando.app" --type IOS_APP_STORE --create
       - name: Build signed IPA
         script: |
           flutter build ipa --release --export-options-plist=/Users/builder/export_options.plist
