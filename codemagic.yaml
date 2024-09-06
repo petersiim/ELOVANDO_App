@@ -8,6 +8,7 @@ workflows:
       cocoapods: default
       groups:
         - test
+        - app_store_credentials
     scripts:
       - name: Set up flutter
         script: |
@@ -29,9 +30,13 @@ workflows:
       - name: Update bundle identifier
         script: |
           /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier com.elovando.app" ios/Runner/Info.plist
-      - name: Build unsigned IPA
+      - name: Set up code signing
         script: |
-          flutter build ipa --release --no-codesign
+          keychain initialize
+          app-store-connect fetch-signing-files "com.elovando.app" --type IOS_APP_STORE --create
+      - name: Build signed IPA
+        script: |
+          flutter build ipa --release --export-options-plist=/Users/builder/export_options.plist
       - name: Verify IPA
         script: |
           if [ -f "build/ios/ipa/ELOVANDO_App.ipa" ]; then
@@ -42,3 +47,5 @@ workflows:
           fi
     artifacts:
       - build/ios/ipa/*.ipa
+
+  
