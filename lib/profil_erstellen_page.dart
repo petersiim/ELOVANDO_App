@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
@@ -538,20 +537,11 @@ class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
   }
 
   Future<PermissionStatus> _requestPhotoPermission() async {
-    final deviceInfo = DeviceInfoPlugin();
-    final androidInfo = await deviceInfo.androidInfo;
-    Permission permissionToRequest;
-
-    if (androidInfo.version.sdkInt <= 32) {
-      permissionToRequest = Permission.storage;
-    } else {
-      permissionToRequest = Permission.photos;
+    PermissionStatus status = await Permission.photos.status;
+    if (!status.isGranted) {
+      status = await Permission.photos.request();
     }
-
-    if (await permissionToRequest.isDenied) {
-      return await permissionToRequest.request();
-    }
-    return permissionToRequest.status;
+    return status;
   }
 
   Future<void> _showImageSourceSelectionDialog() async {
