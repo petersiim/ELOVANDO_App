@@ -11,8 +11,7 @@ import 'profil_erstellen2_page.dart';
 import 'firestore_service.dart';
 
 // Conditional import for device_info_plus
-import 'dart:io' show Platform;
-import 'package:device_info_plus/device_info_plus.dart' if (dart.library.io) 'package:device_info_plus/device_info_plus.dart' if (dart.library.html) 'device_info_web.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 
 class ProfilErstellenPage extends StatefulWidget {
   @override
