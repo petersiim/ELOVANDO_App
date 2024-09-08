@@ -32,15 +32,17 @@ workflows:
           flutter test || echo "Tests completed with issues, but continuing build."
       - name: Set up code signing
         script: |
-          echo "Debugging environment variables:"
-          echo "BUNDLE_ID: $BUNDLE_ID"
+          keychain initialize
           app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+          keychain add-certificates
+          xcode-project use-profiles
       - name: Update Info.plist
         script: |
           /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" ios/Runner/Info.plist
       - name: Build signed IPA
         script: |
-          flutter build ipa --release
+          flutter build ipa --release \
+            --export-options-plist=/Users/builder/export_options.plist
       - name: Verify IPA
         script: |
           if [ -f "build/ios/ipa/ELOVANDO_App.ipa" ]; then
