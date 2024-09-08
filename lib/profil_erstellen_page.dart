@@ -5,9 +5,14 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'data_input_formatter.dart';
 import 'profil_erstellen2_page.dart';
 import 'firestore_service.dart';
+
+// Conditional import for device_info_plus
+import 'dart:io' show Platform;
+import 'package:device_info_plus/device_info_plus.dart' if (dart.library.io) 'package:device_info_plus/device_info_plus.dart' if (dart.library.html) 'device_info_web.dart';
 
 class ProfilErstellenPage extends StatefulWidget {
   @override
@@ -197,6 +202,72 @@ class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
     }
   }
 
+  Future<PermissionStatus> _requestPhotoPermission() async {
+    if (kIsWeb) {
+      // Web doesn't require permissions in the same way
+      return PermissionStatus.granted;
+    }
+
+    if (Platform.isAndroid) {
+      final deviceInfo = DeviceInfoPlugin();
+      final androidInfo = await deviceInfo.androidInfo;
+      if (androidInfo.version.sdkInt <= 32) {
+        return Permission.storage.request();
+      } else {
+        return Permission.photos.request();
+      }
+    } else if (Platform.isIOS) {
+      return Permission.photos.request();
+    }
+
+    // For other platforms, assume permission is granted
+    return PermissionStatus.granted;
+  }
+
+  Future<void> _showImageSourceSelectionDialog() async {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: <Widget>[
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Photo Library'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  PermissionStatus permissionStatus =
+                      await _requestPhotoPermission();
+                  if (permissionStatus.isGranted) {
+                    _pickImage(ImageSource.gallery);
+                  } else {
+                    setState(() {
+                      _errorMessage = 'Galerieerlaubnis verweigert';
+                    });
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_camera),
+                title: const Text('Camera'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  if (await Permission.camera.request().isGranted) {
+                    _pickImage(ImageSource.camera);
+                  } else {
+                    setState(() {
+                      _errorMessage = 'Kameraerlaubnis verweigert';
+                    });
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     bool isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom != 0;
@@ -207,7 +278,7 @@ class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
         elevation: 0,
         leading: Padding(
           padding: const EdgeInsets.only(
-              top: 16.0, left: 24.0), // Adjust padding as needed
+              top: 16.0, left: 24.0),
           child: GestureDetector(
             onTap: () {
               if (_currentPage == 0) {
@@ -220,18 +291,17 @@ class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
               }
             },
             child: Container(
-              width: 60, // Adjusted button size
-              height: 60, // Adjusted button size
+              width: 60,
+              height: 60,
               child: SvgPicture.asset(
                 'assets/graphics/prof_erstellen_back_button.svg',
-                fit: BoxFit.contain, // Ensure the SVG fits within the container
+                fit: BoxFit.contain,
               ),
             ),
           ),
         ),
         title: Padding(
-          padding: const EdgeInsets.only(
-              top: 16.0), // Adjust the top padding as needed
+          padding: const EdgeInsets.only(top: 16.0),
           child: Text(
             'Profil erstellen',
             style: TextStyle(
@@ -281,7 +351,6 @@ class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
                 children: _buildPageIndicators(),
               ),
             ),
-            // Skip Button
             if (_currentPage > 0)
               Positioned(
                 bottom: 100,
@@ -406,22 +475,18 @@ class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
                 Expanded(
                   child: GridView.builder(
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2, // Number of columns in the grid
-                      crossAxisSpacing: 20.0, // Spacing between columns
-                      mainAxisSpacing: 20.0, // Spacing between rows
-                      childAspectRatio: 1.2, // Aspect ratio of each item
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 20.0,
+                      mainAxisSpacing: 20.0,
+                      childAspectRatio: 1.2,
                     ),
                     itemCount: genderOptions.length,
                     itemBuilder: (context, index) {
                       bool isSelected = selectedGenderIndex == index;
-                      print(
-                          'Rendering box $index, isSelected: $isSelected'); // Debugging statement
                       return GestureDetector(
                         onTap: () {
                           setState(() {
                             selectedGenderIndex = index;
-                            print(
-                                'Selected Gender Index: $selectedGenderIndex'); // Debugging statement
                           });
                         },
                         child: AnimatedContainer(
@@ -536,58 +601,6 @@ class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
     );
   }
 
-  Future<PermissionStatus> _requestPhotoPermission() async {
-    PermissionStatus status = await Permission.photos.status;
-    if (!status.isGranted) {
-      status = await Permission.photos.request();
-    }
-    return status;
-  }
-
-  Future<void> _showImageSourceSelectionDialog() async {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return SafeArea(
-          child: Wrap(
-            children: <Widget>[
-              ListTile(
-                leading: const Icon(Icons.photo_library),
-                title: const Text('Photo Library'),
-                onTap: () async {
-                  Navigator.pop(context);
-                  PermissionStatus permissionStatus =
-                      await _requestPhotoPermission();
-                  if (permissionStatus.isGranted) {
-                    _pickImage(ImageSource.gallery);
-                  } else {
-                    setState(() {
-                      _errorMessage = 'Galerieerlaubnis verweigert';
-                    });
-                  }
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo_camera),
-                title: const Text('Camera'),
-                onTap: () async {
-                  Navigator.pop(context);
-                  if (await Permission.camera.request().isGranted) {
-                    _pickImage(ImageSource.camera);
-                  } else {
-                    setState(() {
-                      _errorMessage = 'Kameraerlaubnis verweigert';
-                    });
-                  }
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   Widget _buildPage4() {
     return Padding(
       padding: EdgeInsets.all(16.0),
@@ -611,8 +624,8 @@ class _ProfilErstellenPageState extends State<ProfilErstellenPage> {
               child: _selectedImage == null
                   ? SvgPicture.asset(
                       'assets/graphics/pic_upload_icon.svg',
-                      width: 250, // Adjust width as needed
-                      height: 250, // Adjust height as needed
+                      width: 250,
+                      height: 250,
                     )
                   : Image.file(
                       _selectedImage!,
