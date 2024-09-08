@@ -395,8 +395,7 @@ class ElovandoLoveSessionService {
     final userOnboardingInfo = await _getUserOnboardingInfo(userId);
     await logToFile("DEBUG: User onboarding info for $userName: ${jsonEncode(userOnboardingInfo)}");
 
-    String message = "Onboarding-Informationen für Benutzer $userName:\n" +
-        _formatOnboardingInfo(userOnboardingInfo);
+    String message = "Onboarding-Informationen für Benutzer $userName:\n${_formatOnboardingInfo(userOnboardingInfo)}";
 
     if (partnerUserId != null) {
       await logToFile("DEBUG: Partner found with ID: $partnerUserId");
@@ -406,8 +405,7 @@ class ElovandoLoveSessionService {
 
       await logToFile("DEBUG: Partner onboarding info for $partnerName: ${jsonEncode(partnerOnboardingInfo)}");
 
-      message += "\n\nOnboarding-Informationen für Partner $partnerName:\n" +
-          _formatOnboardingInfo(partnerOnboardingInfo);
+      message += "\n\nOnboarding-Informationen für Partner $partnerName:\n${_formatOnboardingInfo(partnerOnboardingInfo)}";
     } else {
       await logToFile("DEBUG: No partner found for user $userName");
     }

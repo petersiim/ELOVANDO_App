@@ -8,7 +8,12 @@ class FeedbackPage extends StatefulWidget {
   final String userId;
   final ElovandoLoveSessionService service;
 
-  FeedbackPage({required this.userId, required this.service});
+  const FeedbackPage({
+    Key? key,
+    required this.userId,
+    required this.service,
+  }) : super(key: key);
+
   @override
   _FeedbackPageState createState() => _FeedbackPageState();
 }
