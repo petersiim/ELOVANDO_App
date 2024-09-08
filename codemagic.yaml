@@ -30,6 +30,11 @@ workflows:
       - name: Run tests (ignore issues)
         script: |
           flutter test || echo "Tests completed with issues, but continuing build."
+      - name: List certificates and profiles
+        script: |
+          flutter doctor -v
+          security find-identity -v -p codesigning
+          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
       - name: Set up code signing
         script: |
           keychain initialize
@@ -39,10 +44,9 @@ workflows:
       - name: Update Info.plist
         script: |
           /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" ios/Runner/Info.plist
-      - name: Build signed IPA
+      - name: Build unsigned IPA (for debugging)
         script: |
-          flutter build ipa --release \
-            --export-options-plist=/Users/builder/export_options.plist
+          flutter build ipa --release --no-codesign
       - name: Verify IPA
         script: |
           if [ -f "build/ios/ipa/ELOVANDO_App.ipa" ]; then
