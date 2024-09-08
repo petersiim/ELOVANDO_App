@@ -1,11 +1,5 @@
-import 'package:envied/envied.dart';
 import 'dart:io';
 
-part 'env.g.dart';
-
-@Envied(path: '.env')
-abstract class Env {   
-@EnviedField(varName: 'API_KEY')
-  static const String apiKey = _Env.apiKey;
+class Env {
+  static String get apiKey => Platform.environment['API_KEY'] ?? '';
 }
-
