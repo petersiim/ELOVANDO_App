@@ -77,6 +77,11 @@ Future<void> main() async {
     });
 
     logger.i('App initialization completed successfully');
+
+    // Add a test crash
+    FirebaseCrashlytics.instance.log("App started, about to crash");
+    FirebaseCrashlytics.instance.crash();
+
     runApp(const MyApp());
   } catch (e, stackTrace) {
     logger.e('Error during initialization: $e\nStack trace: $stackTrace');
