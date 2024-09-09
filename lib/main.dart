@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'firebase_options.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:envied/envied.dart';
@@ -20,25 +21,47 @@ Future<String> readFile(String path) async {
 }
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  
-  // Load .env file
-  await dotenv.load(fileName: ".env");
-  
-  // Ensure the API key is loaded
-  String? apiKey = dotenv.env['OPEN_AI_API_KEY'];
-  if (apiKey == null || apiKey.isEmpty) {
-    throw Exception('OPEN_AI_API_KEY not found in .env file');
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
+    
+    // Load .env file
+    await dotenv.load(fileName: ".env");
+    
+    // Ensure the API key is loaded
+    String? apiKey = dotenv.env['OPEN_AI_API_KEY'];
+    if (apiKey == null || apiKey.isEmpty) {
+      throw Exception('OPEN_AI_API_KEY not found in .env file');
+    }
+    
+    openai.OpenAI.apiKey = apiKey;
+    openai.OpenAI.organization = "org-fZRna2F4kfSff4YTG4Lx15mM";
+
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+
+    // Initialize Firebase Crashlytics
+    await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+
+    // Pass all uncaught errors to Crashlytics
+    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterError;
+
+    FirebaseAuth.instance.authStateChanges().listen((User? user) {
+      if (user == null) {
+        print('User is currently signed out!');
+      } else {
+        print('User is signed in!');
+      }
+    });
+
+    runApp(const MyApp());
+  } catch (e, stackTrace) {
+    print('Error during initialization: $e');
+    print('Stack trace: $stackTrace');
+    // Report error to Crashlytics
+    await FirebaseCrashlytics.instance.recordError(e, stackTrace);
+    // You might want to show an error dialog or screen here
   }
-  
-  openai.OpenAI.apiKey = apiKey;
-  openai.OpenAI.organization = "org-fZRna2F4kfSff4YTG4Lx15mM";
-
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-
-  runApp(const MyApp());
 }
 
 class MyApp extends StatefulWidget {

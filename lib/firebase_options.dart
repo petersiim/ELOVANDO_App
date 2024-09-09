@@ -59,12 +59,14 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyA8UHL3mEMj_wrPI7uuTz53DZ4ETQRfXCY',
-    appId: '1:137798276523:ios:edacaa410f5ffa93be6eee',
-    messagingSenderId: '137798276523',
-    projectId: 'deescalateapp-12db3',
-    storageBucket: 'deescalateapp-12db3.appspot.com',
-    iosBundleId: 'com.example.newDeescalate',
+    apiKey: 'AIzaSyBkn3MKKaLtcaap0Vqn845Colffb_qzAF8',
+    appId: '1:996434213634:ios:6c88e85843cc015e7fa01b',
+    messagingSenderId: '996434213634',
+    projectId: 'elovando-final',
+    storageBucket: 'elovando-final.appspot.com',
+    androidClientId: '996434213634-q46gs1ggpnbqrih9k1eipbv5cdmk3m5a.apps.googleusercontent.com',
+    iosClientId: '996434213634-06r9ngtv51c475gguge2g31qcelnjjtj.apps.googleusercontent.com',
+    iosBundleId: 'elovando',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(

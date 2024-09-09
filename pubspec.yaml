@@ -41,9 +41,11 @@ dependencies:
   just_audio: ^0.9.40
   audio_waveforms: ^1.0.5
   audio_session: ^0.1.18
+  firebase_crashlytics: ^3.5.7
 
   win32: ^5.0.9
   win32_registry: ^1.1.4
+  firebase_analytics: ^10.10.7
 
 dev_dependencies:
   flutter_test:
