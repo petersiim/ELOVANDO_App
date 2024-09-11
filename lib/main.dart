@@ -9,7 +9,6 @@ import 'dart:developer';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'splash_screen.dart';
-import 'package:uni_links/uni_links.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -56,47 +55,6 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    _handleIncomingLinks();
-    _handleInitialUri();
-  }
-
-  Future<void> _handleInitialUri() async {
-    try {
-      final uri = await getInitialUri();
-      if (uri != null) {
-        _handleDeepLink(uri);
-      }
-    } on PlatformException {
-      print('Failed to get initial uri');
-    }
-  }
-
-  void _handleIncomingLinks() {
-    _sub = uriLinkStream.listen((Uri? uri) {
-      if (uri != null) {
-        _handleDeepLink(uri);
-      }
-    }, onError: (err) {
-      print('Error handling incoming links: $err');
-    });
-  }
-
-  void _handleDeepLink(Uri uri) async {
-    if (uri.path == '/invite' && uri.queryParameters.containsKey('code')) {
-      String invitationCode = uri.queryParameters['code']!;
-      
-      // Check if the user is already logged in
-      User? currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser != null) {
-        // User is logged in, process the invitation code
-        await _processInvitationCode(currentUser, invitationCode);
-      } else {
-        // User is not logged in, store the invitation code
-        await _storeInvitationCode(invitationCode);
-        // Navigate to login or registration page
-        Navigator.of(context).pushReplacementNamed('/login');
-      }
-    }
   }
 
   Future<void> _storeInvitationCode(String invitationCode) async {
