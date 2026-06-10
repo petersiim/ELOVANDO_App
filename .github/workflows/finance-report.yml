@@ -1,0 +1,37 @@
+name: Finanzberichte per Mail
+
+on:
+  schedule:
+    # Am 10. jedes Monats um 08:00 UTC (Apple- und Google-Reports sind dann da)
+    - cron: "0 8 10 * *"
+  workflow_dispatch:
+    inputs:
+      report_month:
+        description: "Monat überschreiben (YYYY-MM, leer = Vormonat)"
+        required: false
+
+jobs:
+  send-reports:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r store_reports/requirements.txt
+
+      - name: Berichte laden und mailen
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+          ASC_VENDOR_NUMBER: ${{ secrets.ASC_VENDOR_NUMBER }}
+          PLAY_BUCKET_ID: ${{ secrets.PLAY_BUCKET_ID }}
+          GCP_SERVICE_ACCOUNT_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          REPORT_MONTH: ${{ github.event.inputs.report_month }}
+        run: python store_reports/finance_report_mailer.py

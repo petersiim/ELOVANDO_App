@@ -1,0 +1,46 @@
+name: Review-Benachrichtigungen
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"   # alle 6 Stunden
+  workflow_dispatch:
+
+permissions:
+  contents: write   # zum Zurückcommitten von seen_reviews.json
+
+concurrency:
+  group: review-check
+  cancel-in-progress: false
+
+jobs:
+  check-reviews:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r store_reports/requirements.txt
+
+      - name: Reviews prüfen
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+          ASC_APP_ID: ${{ secrets.ASC_APP_ID }}
+          PLAY_PACKAGE_NAME: ${{ secrets.PLAY_PACKAGE_NAME }}
+          GCP_SERVICE_ACCOUNT_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: python store_reports/review_notifier.py
+
+      - name: Status-Datei committen
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add store_reports/seen_reviews.json
+          git diff --cached --quiet || git commit -m "Update seen reviews [skip ci]"
+          git push
