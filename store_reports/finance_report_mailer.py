@@ -159,11 +159,11 @@ def main():
     if not attachments and errors:
         sys.exit("Keine Berichte geladen:\n" + "\n".join(errors))
 
-    body = f"Im Anhang die Finanzberichte für {month}.\n"
+    body = f"Im Anhang die Finanzberichte der ELOVANDO-App für {month}.\n"
     if errors:
         body += "\nHinweise/Fehler:\n" + "\n".join(errors) + "\n"
     body += "\nAutomatisch versendet via GitHub Actions."
-    send_mail(f"Store-Finanzberichte {month}", body, attachments)
+    send_mail(f"ELOVANDO – Store-Finanzberichte {month}", body, attachments)
 
 
 if __name__ == "__main__":

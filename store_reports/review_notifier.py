@@ -137,8 +137,8 @@ def send_mail(new_reviews: list):
     msg = EmailMessage()
     msg["From"] = env("MAIL_FROM")
     msg["To"] = env("MAIL_TO")
-    msg["Subject"] = f"{count} neue Review(s) – Ø {avg:.1f}★"
-    body = "\n\n----------------------------------------\n\n".join(
+    msg["Subject"] = f"ELOVANDO – {count} neue Review(s) – Ø {avg:.1f}★"
+    body = "Neue Rezensionen für die ELOVANDO-App:\n\n" + "\n\n----------------------------------------\n\n".join(
         format_review(r) for r in new_reviews
     )
     msg.set_content(body + "\n\nAutomatisch versendet via GitHub Actions.")
