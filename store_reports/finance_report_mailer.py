@@ -33,6 +33,9 @@ from google.oauth2 import service_account
 ASC_API = "https://api.appstoreconnect.apple.com/v1"
 
 
+NOTES = []  # Hinweise, die in den Mailtext aufgenommen werden
+
+
 def env(name: str) -> str:
     value = os.environ.get(name, "").strip()
     if not value:
@@ -110,15 +113,26 @@ def fetch_play_reports(month: str) -> list:
     bucket = client.bucket(env("PLAY_BUCKET_ID"))
 
     attachments = []
-    for prefix in (f"earnings/earnings_{yyyymm}", f"sales/salesreport_{yyyymm}"):
-        for blob in client.list_blobs(bucket, prefix=prefix):
+    for folder, stem in (("earnings", "earnings"), ("sales", "salesreport")):
+        blobs = list(client.list_blobs(bucket, prefix=f"{folder}/{stem}_{yyyymm}"))
+        if not blobs:
+            # Zielmonat noch nicht da -> neuesten verfügbaren Report nehmen
+            all_blobs = sorted(client.list_blobs(bucket, prefix=f"{folder}/{stem}_"),
+                               key=lambda b: b.name)
+            if all_blobs:
+                blobs = [all_blobs[-1]]
+                raise_note = (f"Google Play {folder}: Report für {yyyymm} noch nicht "
+                              f"verfügbar, stattdessen neuester angehängt: {blobs[0].name}")
+                NOTES.append(raise_note)
+                print(raise_note)
+            else:
+                NOTES.append(f"Google Play {folder}: noch gar keine Reports im Bucket.")
+                continue
+        for blob in blobs:
             buf = io.BytesIO()
             blob.download_to_file(buf)
-            name = os.path.basename(blob.name)
-            attachments.append((name, buf.getvalue()))
+            attachments.append((os.path.basename(blob.name), buf.getvalue()))
             print(f"Google Play: {blob.name} ({buf.tell()} Bytes) geladen.")
-    if not attachments:
-        print(f"Google Play: keine Reports für {yyyymm} gefunden.")
     return attachments
 
 
@@ -160,8 +174,8 @@ def main():
         sys.exit("Keine Berichte geladen:\n" + "\n".join(errors))
 
     body = f"Im Anhang die Finanzberichte der ELOVANDO-App für {month}.\n"
-    if errors:
-        body += "\nHinweise/Fehler:\n" + "\n".join(errors) + "\n"
+    if NOTES or errors:
+        body += "\nHinweise/Fehler:\n" + "\n".join(NOTES + errors) + "\n"
     body += "\nAutomatisch versendet via GitHub Actions."
     send_mail(f"ELOVANDO – Store-Finanzberichte {month}", body, attachments)
 
