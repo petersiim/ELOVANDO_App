@@ -39,4 +39,18 @@ jobs:
           ASC_VENDOR_NUMBER: ${{ secrets.ASC_VENDOR_NUMBER }}
           PLAY_BUCKET_ID: ${{ secrets.PLAY_BUCKET_ID }}
           GCP_SERVICE_ACCOUNT_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
-          MAIL_FROM: ${{ secrets.MAIL_FROM }
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+          MAIL_TO_FINANCE: ${{ secrets.MAIL_TO_FINANCE }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          REPORT_MONTH: ${{ github.event.inputs.report_month }}
+        run: python store_reports/finance_report_mailer.py
+
+      - name: Retry-Markierung committen
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull -q
+          git add -A store_reports/
+          git diff --cached --quiet || git commit -m "Update pending_retry [skip ci]"
+          git push
