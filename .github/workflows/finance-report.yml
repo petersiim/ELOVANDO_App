@@ -2,13 +2,22 @@ name: Finanzberichte per Mail
 
 on:
   schedule:
-    # Am 16. jedes Monats um 08:00 UTC (dann sind Apple- UND Google-Reports da)
-    - cron: "0 8 16 * *"
+    # Hauptlauf am 10., zweiter Versuch am 20. (nur falls beim Hauptlauf
+    # ein Bericht noch nicht aktuell war), jeweils 08:00 UTC
+    - cron: "0 8 10 * *"
+    - cron: "0 8 20 * *"
   workflow_dispatch:
     inputs:
       report_month:
         description: "Monat überschreiben (YYYY-MM, leer = Vormonat)"
         required: false
+
+permissions:
+  contents: write   # zum Zurückcommitten der pending_retry-Markierung
+
+concurrency:
+  group: finance-report
+  cancel-in-progress: false
 
 jobs:
   send-reports:
@@ -30,8 +39,4 @@ jobs:
           ASC_VENDOR_NUMBER: ${{ secrets.ASC_VENDOR_NUMBER }}
           PLAY_BUCKET_ID: ${{ secrets.PLAY_BUCKET_ID }}
           GCP_SERVICE_ACCOUNT_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
-          MAIL_FROM: ${{ secrets.MAIL_FROM }}
-          MAIL_TO: ${{ secrets.MAIL_TO }}
-          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-          REPORT_MONTH: ${{ github.event.inputs.report_month }}
-        run: python store_reports/finance_report_mailer.py
+          MAIL_FROM: ${{ secrets.MAIL_FROM }

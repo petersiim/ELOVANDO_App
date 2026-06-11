@@ -133,14 +133,19 @@ def format_review(rv: dict) -> str:
 
 def send_mail(new_reviews: list):
     count = len(new_reviews)
-    avg = sum(int(r["rating"] or 0) for r in new_reviews) / count
     msg = EmailMessage()
     msg["From"] = env("MAIL_FROM")
     msg["To"] = env("MAIL_TO")
-    msg["Subject"] = f"ELOVANDO – {count} neue Review(s) – Ø {avg:.1f}★"
-    body = "Neue Rezensionen für die ELOVANDO-App:\n\n" + "\n\n----------------------------------------\n\n".join(
-        format_review(r) for r in new_reviews
-    )
+    if new_reviews:
+        avg = sum(int(r["rating"] or 0) for r in new_reviews) / count
+        msg["Subject"] = f"ELOVANDO – {count} neue Review(s) – Ø {avg:.1f}★"
+        body = "Neue Rezensionen für die ELOVANDO-App:\n\n" + "\n\n----------------------------------------\n\n".join(
+            format_review(r) for r in new_reviews
+        )
+    else:
+        msg["Subject"] = "ELOVANDO – keine neuen Reviews"
+        body = ("Seit dem letzten Check gab es keine neuen Rezensionen "
+                "für die ELOVANDO-App (App Store und Google Play).")
     msg.set_content(body + "\n\nAutomatisch versendet via GitHub Actions.")
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
         smtp.login(env("MAIL_FROM"), env("GMAIL_APP_PASSWORD"))
@@ -168,11 +173,9 @@ def main():
     if first_run:
         print(f"Erster Lauf: {len(new_reviews)} bestehende Reviews als gesehen "
               "markiert, keine Mail verschickt.")
-    elif new_reviews:
+    else:
         new_reviews.sort(key=lambda r: r["date"], reverse=True)
         send_mail(new_reviews)
-    else:
-        print("Keine neuen Reviews.")
 
 
 if __name__ == "__main__":

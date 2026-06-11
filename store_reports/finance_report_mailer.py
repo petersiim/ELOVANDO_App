@@ -7,12 +7,13 @@ Benötigte Umgebungsvariablen (in GitHub Actions als Secrets hinterlegen):
   ASC_KEY_ID            App Store Connect API Key-ID
   ASC_ISSUER_ID         App Store Connect Issuer-ID
   ASC_PRIVATE_KEY       Inhalt der .p8-Datei (kompletter Text inkl. BEGIN/END)
-  ASC_VENDOR_NUMBER     Apple Vendor-Nummer (in ASC unter "Payments and Financial Reports")
+  ASC_VENDOR_NUMBER     Apple Vendor-Nummer
   PLAY_BUCKET_ID        z.B. pubsite_prod_rev_01234567890987654321
   GCP_SERVICE_ACCOUNT_JSON  Inhalt der Service-Account-JSON-Datei
   MAIL_FROM             Gmail-Adresse (Absender)
-  MAIL_TO               Empfänger (kommagetrennt für mehrere)
-  GMAIL_APP_PASSWORD    Gmail App-Passwort (https://myaccount.google.com/apppasswords)
+  MAIL_TO               Standard-Empfänger
+  MAIL_TO_FINANCE       Empfänger für Finanzberichte (optional, sonst MAIL_TO)
+  GMAIL_APP_PASSWORD    Gmail App-Passwort
 """
 
 import gzip
@@ -24,6 +25,7 @@ import sys
 import time
 from datetime import date, timedelta
 from email.message import EmailMessage
+from pathlib import Path
 
 import jwt  # PyJWT
 import requests
@@ -31,7 +33,6 @@ from google.cloud import storage
 from google.oauth2 import service_account
 
 ASC_API = "https://api.appstoreconnect.apple.com/v1"
-
 
 NOTES = []  # Hinweise, die in den Mailtext aufgenommen werden
 
@@ -85,11 +86,12 @@ def fetch_apple_finance_report(report_date: str) -> list:
         r = requests.get(f"{ASC_API}/financeReports", headers=headers,
                          params=params, timeout=60)
         if r.status_code == 404:
-            print(f"Apple {report_type}: noch nicht verfügbar für {report_date}.")
+            note = f"Apple {report_type}: Bericht für {report_date} noch nicht verfügbar."
+            NOTES.append(note)
+            print(note)
             continue
         r.raise_for_status()
         data = r.content
-        # Antwort ist gzip-komprimierte CSV (a-gzip)
         try:
             data = gzip.decompress(data)
         except OSError:
@@ -121,10 +123,10 @@ def fetch_play_reports(month: str) -> list:
                                key=lambda b: b.name)
             if all_blobs:
                 blobs = [all_blobs[-1]]
-                raise_note = (f"Google Play {folder}: Report für {yyyymm} noch nicht "
-                              f"verfügbar, stattdessen neuester angehängt: {blobs[0].name}")
-                NOTES.append(raise_note)
-                print(raise_note)
+                note = (f"Google Play {folder}: Report für {yyyymm} noch nicht "
+                        f"verfügbar, stattdessen neuester angehängt: {blobs[0].name}")
+                NOTES.append(note)
+                print(note)
             else:
                 NOTES.append(f"Google Play {folder}: noch gar keine Reports im Bucket.")
                 continue
@@ -141,7 +143,7 @@ def fetch_play_reports(month: str) -> list:
 def send_mail(subject: str, body: str, attachments: list):
     msg = EmailMessage()
     msg["From"] = env("MAIL_FROM")
-    msg["To"] = env("MAIL_TO")
+    msg["To"] = os.environ.get("MAIL_TO_FINANCE", "").strip() or env("MAIL_TO")
     msg["Subject"] = subject
     msg.set_content(body)
     for name, data in attachments:
@@ -156,8 +158,20 @@ def send_mail(subject: str, body: str, attachments: list):
     print(f"Mail an {msg['To']} verschickt ({len(attachments)} Anhänge).")
 
 
+PENDING_FILE = Path(__file__).parent / "pending_retry"
+
+
 def main():
     month = os.environ.get("REPORT_MONTH") or previous_month()
+    # Lauf am 10. = Hauptlauf; Lauf ab dem 15. (also der 20.) = zweiter Versuch,
+    # der nur stattfindet, wenn beim Hauptlauf etwas gefehlt hat.
+    retry_run = date.today().day >= 15 and not os.environ.get("REPORT_MONTH")
+    if retry_run:
+        if not PENDING_FILE.exists():
+            print("Zweiter Versuch nicht nötig – beim Hauptlauf war alles aktuell.")
+            return
+        month = PENDING_FILE.read_text().strip() or month
+
     print(f"Hole Finanzberichte für {month} ...")
     attachments = []
     errors = []
@@ -173,11 +187,27 @@ def main():
     if not attachments and errors:
         sys.exit("Keine Berichte geladen:\n" + "\n".join(errors))
 
+    incomplete = bool(NOTES or errors)
+    subject = f"ELOVANDO – Store-Finanzberichte {month}"
     body = f"Im Anhang die Finanzberichte der ELOVANDO-App für {month}.\n"
+    if retry_run:
+        subject += " (2. Versuch)"
+        body = (f"Zweiter Versuch: Im Anhang die Finanzberichte der "
+                f"ELOVANDO-App für {month}.\n")
     if NOTES or errors:
         body += "\nHinweise/Fehler:\n" + "\n".join(NOTES + errors) + "\n"
+    if incomplete and not retry_run:
+        body += ("\nMindestens ein Bericht war noch nicht aktuell – am 20. "
+                 "dieses Monats folgt automatisch ein zweiter Versuch.\n")
+        PENDING_FILE.write_text(month)
+    elif incomplete and retry_run:
+        body += ("\nAuch beim zweiten Versuch war noch nicht alles aktuell – "
+                 "der nächste reguläre Lauf ist am 10. des Folgemonats.\n")
+        PENDING_FILE.unlink(missing_ok=True)
+    else:
+        PENDING_FILE.unlink(missing_ok=True)
     body += "\nAutomatisch versendet via GitHub Actions."
-    send_mail(f"ELOVANDO – Store-Finanzberichte {month}", body, attachments)
+    send_mail(subject, body, attachments)
 
 
 if __name__ == "__main__":
