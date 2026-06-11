@@ -44,6 +44,13 @@ def env(name: str) -> str:
     return value
 
 
+def apple_fiscal(month: str) -> str:
+    """Kalendermonat YYYY-MM -> Apple-Fiskalperiode YYYY-PP.
+    Apples Geschaeftsjahr beginnt im Oktober: Okt=P1 ... Feb=P5 ... Mai=P8."""
+    y, m = map(int, month.split("-"))
+    return f"{y + 1}-{m - 9:02d}" if m >= 10 else f"{y}-{m + 3:02d}"
+
+
 def previous_month() -> str:
     first = date.today().replace(day=1)
     prev = first - timedelta(days=1)
@@ -68,8 +75,10 @@ def asc_token() -> str:
     )
 
 
-def fetch_apple_finance_report(report_date: str) -> list:
-    """Holt FINANCIAL- und FINANCE_DETAIL-Report für den Fiskalmonat."""
+def fetch_apple_finance_report(month: str) -> list:
+    """Holt FINANCIAL- und FINANCE_DETAIL-Report (Kalendermonat -> Fiskalperiode)."""
+    report_date = apple_fiscal(month)
+    print(f"Apple: Kalendermonat {month} = Fiskalperiode {report_date}")
     headers = {"Authorization": f"Bearer {asc_token()}"}
     attachments = []
     variants = [
@@ -86,7 +95,7 @@ def fetch_apple_finance_report(report_date: str) -> list:
         r = requests.get(f"{ASC_API}/financeReports", headers=headers,
                          params=params, timeout=60)
         if r.status_code == 404:
-            note = f"Apple {report_type}: Bericht für {report_date} noch nicht verfügbar."
+            note = f"Apple {report_type}: Bericht für {month} (Fiskalperiode {report_date}) noch nicht verfügbar."
             NOTES.append(note)
             print(note)
             continue
@@ -96,7 +105,7 @@ def fetch_apple_finance_report(report_date: str) -> list:
             data = gzip.decompress(data)
         except OSError:
             pass  # war nicht komprimiert
-        name = f"apple_{report_type.lower()}_{report_date}.csv"
+        name = f"apple_{report_type.lower()}_{month}.csv"
         attachments.append((name, data))
         print(f"Apple {report_type}: {len(data)} Bytes geladen.")
     return attachments
