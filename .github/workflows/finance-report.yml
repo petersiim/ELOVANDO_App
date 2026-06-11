@@ -2,8 +2,8 @@ name: Finanzberichte per Mail
 
 on:
   schedule:
-    # Am 10. jedes Monats um 08:00 UTC (Apple- und Google-Reports sind dann da)
-    - cron: "0 8 10 * *"
+    # Am 16. jedes Monats um 08:00 UTC (dann sind Apple- UND Google-Reports da)
+    - cron: "0 8 16 * *"
   workflow_dispatch:
     inputs:
       report_month:
