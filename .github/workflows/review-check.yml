@@ -2,7 +2,7 @@ name: Review-Benachrichtigungen
 
 on:
   schedule:
-    - cron: "0 8 */2 * *"   # jeden zweiten Tag um 08:00 UTC
+    - cron: "0 8 * * 1"   # 1x pro Woche, Montag 08:00 UTC
   workflow_dispatch:
 
 permissions:
